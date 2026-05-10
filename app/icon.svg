@@ -1,0 +1,28 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="glow" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="18" result="blur" />
+      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.184 0 0 0 0 0.482 0 0 0 0 1 0 0 0 0.82 0" result="glow" />
+      <feMerge>
+        <feMergeNode in="glow" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="96" fill="#070A12" />
+  <path
+    d="M176 330C145.624 330 121 305.376 121 275V264C121 233.624 145.624 209 176 209H189C204.464 209 217 221.536 217 237V259C217 274.464 204.464 287 189 287H174C164.059 287 156 295.059 156 305C156 314.941 164.059 323 174 323H189C209 323 225 339 225 359V365C225 379.359 213.359 391 199 391H182C143.311 391 112 359.689 112 321V313C112 305.9 113.602 299.005 116.663 292.67C122.701 279.962 135.617 272 150 272H158C170.15 272 180 262.15 180 250V242C180 234.268 186.268 228 194 228H199C206.732 228 213 234.268 213 242V247C213 257.493 221.507 266 232 266H245C255.493 266 264 274.507 264 285V291C264 299.837 256.837 307 248 307H240C230.059 307 222 315.059 222 325C222 334.941 230.059 343 240 343H248C261.255 343 272 353.745 272 367V372C272 378.627 266.627 384 260 384H249C225.804 384 207 365.196 207 342V334C207 323.507 198.493 315 188 315H178C170.268 315 164 321.268 164 329V330Z"
+    fill="#2F7BFF"
+    filter="url(#glow)"
+  />
+  <path
+    d="M228 126H344C362.778 126 378 141.222 378 160V347C378 365.778 362.778 381 344 381H228C209.222 381 194 365.778 194 347V160C194 141.222 209.222 126 228 126Z"
+    stroke="#020617"
+    stroke-width="18"
+  />
+  <path d="M334 126L378 170V126H334Z" fill="#070A12" stroke="#020617" stroke-width="18" stroke-linejoin="round" />
+  <path d="M334 126V170H378" stroke="#020617" stroke-width="18" stroke-linecap="round" />
+  <path d="M244 208H359" stroke="#121826" stroke-width="19" stroke-linecap="round" />
+  <path d="M244 250H359" stroke="#121826" stroke-width="19" stroke-linecap="round" />
+  <path d="M244 292H332" stroke="#121826" stroke-width="19" stroke-linecap="round" />
+</svg>

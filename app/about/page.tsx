@@ -1,3 +1,4 @@
+import { BrandLogo } from "@/components/brand-logo";
 import { Header } from "@/components/header";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -9,6 +10,9 @@ export default function AboutPage() {
     <main className="site-grid min-h-screen overflow-hidden">
       <Header />
       <Container className="section-space">
+        <div className="mb-8">
+          <BrandLogo full />
+        </div>
         <SectionTitle
           eyebrow="About"
           title="A fast crypto RSS briefing feed."

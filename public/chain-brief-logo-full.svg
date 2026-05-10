@@ -1,0 +1,76 @@
+<svg width="1400" height="900" viewBox="0 0 1400 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="glow" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="28" result="blur" />
+      <feColorMatrix
+        in="blur"
+        type="matrix"
+        values="0 0 0 0 0.184 0 0 0 0 0.482 0 0 0 0 1 0 0 0 0.82 0"
+        result="glow"
+      />
+      <feMerge>
+        <feMergeNode in="glow" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+    <radialGradient id="bgGlow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(700 435) rotate(90) scale(380 640)">
+      <stop stop-color="#0F172A" stop-opacity="0.95" />
+      <stop offset="0.58" stop-color="#0B1220" stop-opacity="0.72" />
+      <stop offset="1" stop-color="#070A12" stop-opacity="1" />
+    </radialGradient>
+    <linearGradient id="blueFill" x1="262" y1="354" x2="538" y2="636" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2F7BFF" />
+      <stop offset="1" stop-color="#0D4CFF" />
+    </linearGradient>
+    <linearGradient id="wordmark" x1="620" y1="326" x2="1108" y2="640" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#09111F" />
+      <stop offset="1" stop-color="#030712" />
+    </linearGradient>
+  </defs>
+  <rect width="1400" height="900" fill="#070A12" />
+  <rect width="1400" height="900" fill="url(#bgGlow)" />
+  <ellipse cx="700" cy="214" rx="540" ry="176" fill="#111827" fill-opacity="0.44" />
+  <ellipse cx="700" cy="666" rx="560" ry="202" fill="#111827" fill-opacity="0.34" />
+  <g filter="url(#glow)">
+    <path
+      d="M317 560C317 496.827 368.327 445.5 431.5 445.5H472C493.263 445.5 510.5 462.737 510.5 484V532C510.5 553.263 493.263 570.5 472 570.5H430.5C421.387 570.5 414 577.887 414 587V605C414 614.113 421.387 621.5 430.5 621.5H469C519.257 621.5 560 662.243 560 712.5V715C560 735.711 543.211 752.5 522.5 752.5H462C369.293 752.5 294 677.207 294 584.5V560Z"
+      fill="#070A12"
+      stroke="#020617"
+      stroke-width="10"
+      stroke-linejoin="round"
+    />
+    <path
+      d="M362 374.5C362 332.802 395.802 299 437.5 299H510C529.882 299 546 315.118 546 335V468C546 487.882 529.882 504 510 504H492C472.118 504 456 487.882 456 468V405C456 389.536 443.464 377 428 377H385.5C373.624 377 364 386.624 364 398.5C364 410.376 373.624 420 385.5 420H402C419.673 420 434 434.327 434 452C434 469.673 419.673 484 402 484H381C358.908 484 341 466.092 341 444V396.5C341 387.44 344.606 378.751 351.024 372.33C355.322 368.031 361.046 365.5 367 365.5H394.5C404.717 365.5 413 357.217 413 347V325.5C413 317.492 419.492 311 427.5 311H438C445.18 311 451 316.82 451 324V336.5C451 350.031 462.969 361.5 476.5 361.5H503C521.225 361.5 536 376.275 536 394.5V399.5C536 414.187 524.187 426 509.5 426H482.5C471.73 426 463 434.73 463 445.5V459.5C463 470.269 471.73 479 482.5 479H503C517.359 479 529 490.641 529 505V525C529 534.941 520.941 543 511 543H480C462.327 543 448 528.673 448 511V497.5C448 484.2 437.3 473.5 424 473.5H404C393.506 473.5 385 482.006 385 492.5V517.5C385 533.792 398.208 547 414.5 547H433C453.987 547 471 564.013 471 585V588.5C471 605.068 457.568 618.5 441 618.5H397.5C368.386 618.5 345 595.114 345 566V525.5C345 511.36 350.623 497.801 360.639 487.78C366.05 482.368 372 478.77 372 468V412.5C372 403.387 378.387 396 387.5 396H405C414.113 396 421.5 388.613 421.5 379.5V362.5C421.5 353.387 414.113 346 405 346H390.5C375.82 346 363.5 361.8 363.5 376.5V374.5Z"
+      fill="url(#blueFill)"
+      stroke="#0D4CFF"
+      stroke-width="1.5"
+      stroke-linejoin="round"
+    />
+    <path
+      d="M520 299H815C835.987 299 853 316.013 853 337V607C853 627.987 835.987 645 815 645H520C499.013 645 482 627.987 482 607V337C482 316.013 499.013 299 520 299Z"
+      stroke="#020617"
+      stroke-width="10"
+      opacity="0.98"
+    />
+    <path d="M825 299L883 357V299H825Z" fill="#070A12" stroke="#020617" stroke-width="10" stroke-linejoin="round" />
+    <path d="M825 299V357H883" stroke="#020617" stroke-width="10" stroke-linecap="round" />
+    <path d="M500 300H835" stroke="#050B16" stroke-width="12" stroke-linecap="round" opacity="0.9" />
+    <path d="M522 425H840" stroke="#121826" stroke-width="15" stroke-linecap="round" />
+    <path d="M522 500H840" stroke="#121826" stroke-width="15" stroke-linecap="round" />
+    <path d="M522 575H790" stroke="#121826" stroke-width="15" stroke-linecap="round" />
+    <path d="M864 437H1128" stroke="#121826" stroke-width="17" stroke-linecap="round" />
+    <path d="M864 523H1128" stroke="#121826" stroke-width="17" stroke-linecap="round" />
+    <path d="M864 609H1088" stroke="#121826" stroke-width="17" stroke-linecap="round" />
+  </g>
+  <g transform="translate(574 310)">
+    <text x="0" y="0" fill="url(#wordmark)" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="134" font-weight="700" letter-spacing="-6">
+      Chain
+    </text>
+    <text x="0" y="178" fill="#2F7BFF" filter="url(#glow)" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="144" font-weight="700" letter-spacing="-6">
+      Brief
+    </text>
+    <text x="0" y="298" fill="#050B16" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="34" font-weight="600" letter-spacing="14">
+      CRYPTO NEWS, SIMPLIFIED.
+    </text>
+  </g>
+</svg>

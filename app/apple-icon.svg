@@ -1,0 +1,28 @@
+<svg width="180" height="180" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="glow" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="10" result="blur" />
+      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.184 0 0 0 0 0.482 0 0 0 0 1 0 0 0 0.82 0" result="glow" />
+      <feMerge>
+        <feMergeNode in="glow" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+  <rect width="180" height="180" rx="34" fill="#070A12" />
+  <path
+    d="M64 114C52.954 114 44 105.046 44 94V90C44 78.954 52.954 70 64 70H69C74.523 70 79 74.477 79 80V88C79 93.523 74.523 98 69 98H63C59.134 98 56 101.134 56 105C56 108.866 59.134 112 63 112H69C76.732 112 83 118.268 83 126V128C83 133.523 78.523 138 73 138H66C51.64 138 40 126.36 40 112V109C40 106.3 40.61 103.677 41.78 101.27C44.09 96.4 49 93.333 54.5 93.333H57.5C62.194 93.333 66 89.528 66 84.833V82C66 79.239 68.239 77 71 77H73C75.761 77 78 79.239 78 82V84C78 87.866 81.134 91 85 91H90.5C94.642 91 98 94.358 98 98.5V100.5C98 103.814 95.314 106.5 92 106.5H88C84.134 106.5 81 109.634 81 113.5C81 117.366 84.134 120.5 88 120.5H92C97.523 120.5 102 124.977 102 130.5V132C102 134.761 99.761 137 97 137H92C81.507 137 73 128.493 73 118V114C73 109.582 69.418 106 65 106H60C56.686 106 54 108.686 54 112V114Z"
+    fill="#2F7BFF"
+    filter="url(#glow)"
+  />
+  <path
+    d="M88 42H126C132.627 42 138 47.373 138 54V126C138 132.627 132.627 138 126 138H88C81.373 138 76 132.627 76 126V54C76 47.373 81.373 42 88 42Z"
+    stroke="#020617"
+    stroke-width="10"
+  />
+  <path d="M123 42L138 57V42H123Z" fill="#070A12" stroke="#020617" stroke-width="10" stroke-linejoin="round" />
+  <path d="M123 42V57H138" stroke="#020617" stroke-width="10" stroke-linecap="round" />
+  <path d="M93 70H132" stroke="#121826" stroke-width="11" stroke-linecap="round" />
+  <path d="M93 88H132" stroke="#121826" stroke-width="11" stroke-linecap="round" />
+  <path d="M93 106H122" stroke="#121826" stroke-width="11" stroke-linecap="round" />
+</svg>
