@@ -606,7 +606,7 @@ function getCopy(language: BriefPreferences["language"]) {
       category: "카테고리",
       customizeFeed: "피드 설정",
       disclaimer:
-        "Chain Brief는 공개 RSS 메타데이터만 사용합니다. 빠른 스캔용 정보이며 투자 조언이 아닙니다. 의사결정 전 원문을 확인하세요.",
+        "Chain Brief는 공개 RSS 메타데이터만 사용합니다. 빠른 스캐닝용 정보이며 투자 조언이 아닙니다. 의사결정 전 원문을 확인하세요.",
       disclaimerTitle: "안내",
       exclude: "제외",
       headline: "Crypto news, simplified.",
