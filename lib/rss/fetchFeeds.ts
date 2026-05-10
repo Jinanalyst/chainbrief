@@ -12,7 +12,7 @@ type FeedItem = {
   content?: string;
   summary?: string;
   creator?: string;
-  categories?: string[];
+  categories?: unknown[];
 };
 
 const parser = new Parser<Record<string, never>, FeedItem>({
@@ -164,7 +164,7 @@ function createBriefSummary(title: string, rawContentSnippet: string) {
   return `Brief: ${truncate(sourceText, 150)}`;
 }
 
-function createTags(categories: string[] | undefined, title: string, fallback: string) {
+function createTags(categories: unknown[] | undefined, title: string, fallback: string) {
   const rssTags = Array.isArray(categories) ? categories : [];
   const inferredTags = [
     ["Bitcoin", /\b(bitcoin|btc)\b/i],
@@ -248,8 +248,8 @@ function stripHtml(value?: string) {
     .replace(/<[^>]+>/g, " ");
 }
 
-function cleanText(value?: string) {
-  return (value ?? "")
+function cleanText(value?: unknown) {
+  return String(value ?? "")
     .replace(/&nbsp;/g, " ")
     .replace(/&amp;/g, "&")
     .replace(/&quot;/g, '"')

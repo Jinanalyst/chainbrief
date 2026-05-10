@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -22,6 +22,7 @@ import {
   getCategoryLabel,
 } from "@/lib/i18n";
 import { useI18n, usePreferences } from "@/lib/i18n/use-i18n";
+import { notifyMatchingArticles } from "@/lib/notifications";
 
 type BriefsResponse = {
   articles: Article[];
@@ -45,6 +46,11 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const preferencesRef = useRef(preferences);
+
+  useEffect(() => {
+    preferencesRef.current = preferences;
+  }, [preferences]);
 
   useEffect(() => {
     let isMounted = true;
@@ -68,8 +74,11 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
         }
 
         if (isMounted) {
-          setArticles(data.articles ?? []);
+          const nextArticles = data.articles ?? [];
+
+          setArticles(nextArticles);
           setLastUpdatedAt(data.refreshedAt ?? new Date().toISOString());
+          notifyMatchingArticles(nextArticles, preferencesRef.current);
         }
       } catch {
         if (isMounted) {

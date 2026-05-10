@@ -100,6 +100,25 @@ export const dictionaries = {
       sources: "소스",
       translationLayout: "번역 구조",
     },
+    notifications: {
+      blockedHelp:
+        "브라우저에서 알림 권한이 차단되어 있으면 사이트 설정에서 권한을 다시 허용해야 합니다.",
+      description:
+        "선택한 키워드와 일치하는 새 RSS 브리프가 들어오면 이 브라우저에서만 알림을 보냅니다.",
+      disabled: "비활성화",
+      enabled: "활성화",
+      enabledState: "상태",
+      emptyKeywords: "키워드를 줄바꿈 또는 쉼표로 추가하세요.",
+      keywords: "알림 키워드",
+      permissionLabels: {
+        default: "요청 전",
+        denied: "거부됨",
+        granted: "허용됨",
+        unsupported: "지원 안 됨",
+      },
+      permissionStatus: "권한 상태",
+      title: "브라우저 알림",
+    },
     pages: {
       aboutDescription:
         "Chain Brief는 공개 RSS 헤드라인을 소스, 카테고리, 키워드 제어가 있는 간결한 브리핑 화면으로 정리합니다.",
@@ -191,6 +210,25 @@ export const dictionaries = {
       saved: "Preferences saved.",
       sources: "Sources",
       translationLayout: "Translation Layout",
+    },
+    notifications: {
+      blockedHelp:
+        "If notifications are blocked in the browser, re-enable permission from the site settings.",
+      description:
+        "Send lightweight browser notifications on this device when new RSS briefs match your keywords.",
+      disabled: "Disabled",
+      enabled: "Enabled",
+      enabledState: "Enabled state",
+      emptyKeywords: "Add keywords separated by new lines or commas.",
+      keywords: "Notification Keywords",
+      permissionLabels: {
+        default: "Not requested",
+        denied: "Denied",
+        granted: "Granted",
+        unsupported: "Unsupported",
+      },
+      permissionStatus: "Permission status",
+      title: "Browser Notifications",
     },
     pages: {
       aboutDescription:

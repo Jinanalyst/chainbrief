@@ -22,7 +22,18 @@ export function readStoredPreferences(): BriefPreferences {
   }
 
   try {
-    return { ...defaultPreferences, ...JSON.parse(stored) };
+    const parsed = JSON.parse(stored);
+    const notificationKeywords = Array.isArray(parsed.notificationKeywords)
+      ? parsed.notificationKeywords.filter(
+          (keyword: unknown): keyword is string => typeof keyword === "string",
+        )
+      : defaultPreferences.notificationKeywords;
+
+    return {
+      ...defaultPreferences,
+      ...parsed,
+      notificationKeywords,
+    };
   } catch {
     return defaultPreferences;
   }

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { BriefPreferenceControls } from "@/components/brief-preference-controls";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { NotificationSettings } from "@/components/notification-settings";
 import { defaultPreferences } from "@/lib/preferences";
 import { useI18n, usePreferences } from "@/lib/i18n/use-i18n";
 
@@ -28,6 +29,7 @@ export function SettingsPanel() {
     <div className="grid gap-4 lg:grid-cols-[1fr_20rem]">
       <Card className="p-5 sm:p-6">
         <BriefPreferenceControls preferences={preferences} onChange={setPreferences} />
+        <NotificationSettings preferences={preferences} onChange={setPreferences} />
         <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
           <Button onClick={savePreferences} type="button">
             {copy.preferences.save}

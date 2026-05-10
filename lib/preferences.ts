@@ -19,6 +19,9 @@ export type BriefPreferences = {
   includeKeywords: string;
   excludeKeywords: string;
   language: "ko" | "en";
+  notificationsEnabled: boolean;
+  notificationKeywords: string[];
+  notificationPermission: "default" | "granted" | "denied" | "unsupported";
 };
 
 export const defaultPreferences: BriefPreferences = {
@@ -27,6 +30,9 @@ export const defaultPreferences: BriefPreferences = {
   includeKeywords: "",
   excludeKeywords: "",
   language: "ko",
+  notificationsEnabled: false,
+  notificationKeywords: [],
+  notificationPermission: "default",
 };
 
 export const PREFERENCES_STORAGE_KEY = "chain-brief-preferences";
