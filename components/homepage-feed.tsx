@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
+import { BrandLogo } from "@/components/brand-logo";
 import {
   ACTIVE_SOURCES,
   BRIEF_CATEGORIES,
@@ -119,6 +120,14 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
   return (
     <section className="border-t border-white/10 bg-background/72">
       <Container className="pb-12 pt-5 lg:pb-16">
+        <div className="mb-6 flex flex-col gap-4 border-b border-white/10 pb-5 sm:flex-row sm:items-end sm:justify-between">
+          <BrandLogo full />
+          <p className="max-w-xl text-sm leading-6 text-muted">
+            A compact crypto RSS briefing feed with live refresh, category
+            filters, source controls, and Korean-English summary formatting.
+          </p>
+        </div>
+
         <LiveIssueBar articles={liveIssues} isLoading={isLoading} />
 
         <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -597,7 +606,7 @@ function getCopy(language: BriefPreferences["language"]) {
       category: "카테고리",
       customizeFeed: "피드 설정",
       disclaimer:
-        "Chain Brief는 공개 RSS 메타데이터만 사용합니다. 빠른 스캔용 정보이며 투자 조언이 아닙니다. 의사결정 전 원문을 확인하세요.",
+        "Chain Brief는 공개 RSS 메타데이터만 사용합니다. 빠른 스캐닝용 정보이며 투자 조언이 아닙니다. 의사결정 전 원문을 확인하세요.",
       disclaimerTitle: "안내",
       exclude: "제외",
       headline: "Crypto news, simplified.",
