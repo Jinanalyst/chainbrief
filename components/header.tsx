@@ -16,9 +16,9 @@ export function Header() {
   const navItems = [
     { href: "/", label: copy.nav.home },
     { href: "/briefs", label: copy.nav.briefs },
+    { href: "/community", label: copy.nav.community },
     { href: "/sns", label: copy.nav.sns },
     { href: "/settings", label: copy.nav.settings },
-    { href: "/about", label: copy.nav.about },
   ];
 
   function setLanguage(language: typeof preferences.language) {

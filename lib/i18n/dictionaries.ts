@@ -34,6 +34,7 @@ export const dictionaries = {
     nav: {
       home: "홈",
       briefs: "브리프",
+      community: "커뮤니티",
       sns: "SNS",
       settings: "설정",
       about: "소개",
@@ -62,6 +63,9 @@ export const dictionaries = {
       homeLabel: "홈",
       include: "포함",
       language: "언어",
+      marketPulse: "시장 동향",
+      marketUnavailable: "시장 데이터를 불러오는 중입니다.",
+      marketWatch: "실시간 가격",
       lastUpdated: (value: string) =>
         `자동 새로고침: 5분마다 · 최근 업데이트 ${value}`,
       lastUpdatedShort: "최근 업데이트",
@@ -75,6 +79,7 @@ export const dictionaries = {
       noMatchesTitle: "현재 설정과 일치하는 브리프가 없습니다.",
       none: "없음",
       originalLink: "원문 보기",
+      repostToCommunity: "커뮤니티에 공유",
       reloadBriefs: "새로고침",
       refreshing: "새 브리프 확인 중...",
       showBrief: "브리프 보기",
@@ -124,7 +129,13 @@ export const dictionaries = {
       permissionStatus: "권한 상태",
       title: "브라우저 알림",
     },
-    pages: {
+      pages: {
+      communityDescription:
+        "브리프에서 본 시장 메모와 관점을 공유하는 짧은 커뮤니티 공간입니다.",
+      communityEyebrow: "커뮤니티",
+      communityPrompt:
+        "시장 의견을 짧게 남기고, 브리프에서 본 기사를 다시 공유하세요.",
+      communityTitle: "Crypto community pulse.",
       aboutDescription:
         "Chain Brief는 공개 RSS 헤드라인을 소스, 카테고리, 키워드 제어가 있는 간결한 브리핑 화면으로 정리합니다.",
       aboutEyebrow: "소개",
@@ -149,6 +160,7 @@ export const dictionaries = {
     nav: {
       home: "Home",
       briefs: "Briefs",
+      community: "Community",
       sns: "SNS",
       settings: "Settings",
       about: "About",
@@ -177,6 +189,9 @@ export const dictionaries = {
       homeLabel: "Home",
       include: "Include",
       language: "Language",
+      marketPulse: "Market Pulse",
+      marketUnavailable: "Loading market data.",
+      marketWatch: "Live prices",
       lastUpdated: (value: string) =>
         `Auto-refresh: every 5 min · Last updated ${value}`,
       lastUpdatedShort: "Last updated",
@@ -190,6 +205,7 @@ export const dictionaries = {
       noMatchesTitle: "No briefs match your current settings.",
       none: "None",
       originalLink: "Original link",
+      repostToCommunity: "Share to community",
       reloadBriefs: "Reload",
       refreshing: "Checking for new briefs...",
       showBrief: "Show brief",
@@ -240,7 +256,13 @@ export const dictionaries = {
       permissionStatus: "Permission status",
       title: "Browser Notifications",
     },
-    pages: {
+      pages: {
+      communityDescription:
+        "A compact community space for posting market takes and sharing brief items from the feed.",
+      communityEyebrow: "Community",
+      communityPrompt:
+        "Post a quick take on the market or share a brief into the community feed.",
+      communityTitle: "Crypto community pulse.",
       aboutDescription:
         "Chain Brief organizes public RSS headlines into a compact briefing interface with source, category, and keyword controls.",
       aboutEyebrow: "About",
