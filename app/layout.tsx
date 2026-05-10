@@ -5,6 +5,10 @@ export const metadata: Metadata = {
   title: "Chain Brief | Crypto News Briefing",
   description:
     "Simple, easy-to-read crypto briefings across Bitcoin, Ethereum, Solana, DeFi, blockchain, and macro markets.",
+  icons: {
+    icon: "/icon.svg",
+    apple: "/apple-icon.svg",
+  },
 };
 
 export default function RootLayout({
