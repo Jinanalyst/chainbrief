@@ -1,0 +1,28 @@
+<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="glow" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="16" result="blur" />
+      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.184 0 0 0 0 0.482 0 0 0 0 1 0 0 0 0.82 0" result="glow" />
+      <feMerge>
+        <feMergeNode in="glow" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+  <rect width="256" height="256" rx="32" fill="#070A12" />
+  <path
+    d="M86 170C63.9 170 46 152.1 46 130V121C46 98.9 63.9 81 86 81H96C107 81 116 90 116 101V117C116 128 107 137 96 137H84C76.8 137 71 142.8 71 150C71 157.2 76.8 163 84 163H96C110.4 163 122 174.6 122 189V193C122 202.9 114.9 211 105 211H91C63.4 211 41 188.6 41 161V155C41 149.2 42.3 143.5 44.8 138.3C50 127.8 60.4 121 72 121H78C87.9 121 96 112.9 96 103V96C96 90.5 100.5 86 106 86H111C116.5 86 121 90.5 121 96V100C121 107.7 127.3 114 135 114H145C154.4 114 162 121.6 162 131V135C162 143.3 155.3 150 147 150H139C132.4 150 127 155.4 127 162C127 168.6 132.4 174 139 174H147C158.5 174 168 183.5 168 195V199C168 204 163.9 208 159 208H149C130 208 115 193 115 174V169C115 161.8 109.2 156 102 156H92C86.5 156 82 160.5 82 166V170Z"
+    fill="#2F7BFF"
+    filter="url(#glow)"
+  />
+  <path
+    d="M134 57H200C210.5 57 219 65.5 219 76V181C219 191.5 210.5 200 200 200H134C123.5 200 115 191.5 115 181V76C115 65.5 123.5 57 134 57Z"
+    stroke="#020617"
+    stroke-width="8"
+  />
+  <path d="M188 57L219 88V57H188Z" fill="#070A12" stroke="#020617" stroke-width="8" stroke-linejoin="round" />
+  <path d="M188 57V88H219" stroke="#020617" stroke-width="8" stroke-linecap="round" />
+  <path d="M141 104H208" stroke="#121826" stroke-width="11" stroke-linecap="round" />
+  <path d="M141 132H208" stroke="#121826" stroke-width="11" stroke-linecap="round" />
+  <path d="M141 160H197" stroke="#121826" stroke-width="11" stroke-linecap="round" />
+</svg>
