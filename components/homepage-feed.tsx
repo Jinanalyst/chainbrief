@@ -36,6 +36,8 @@ type HomepageFeedProps = {
 };
 
 const FEED_REFRESH_MS = 5 * 60 * 1000;
+const INITIAL_VISIBLE_ARTICLES = 12;
+const VISIBLE_ARTICLE_STEP = 12;
 
 export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
   const [articles, setArticles] = useState<Article[]>([]);
@@ -45,12 +47,21 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<string | null>(null);
+  const [pendingArticles, setPendingArticles] = useState<Article[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [visibleArticleCount, setVisibleArticleCount] = useState(
+    INITIAL_VISIBLE_ARTICLES,
+  );
   const preferencesRef = useRef(preferences);
+  const articlesRef = useRef<Article[]>([]);
 
   useEffect(() => {
     preferencesRef.current = preferences;
   }, [preferences]);
+
+  useEffect(() => {
+    articlesRef.current = articles;
+  }, [articles]);
 
   useEffect(() => {
     let isMounted = true;
@@ -76,7 +87,12 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
         if (isMounted) {
           const nextArticles = data.articles ?? [];
 
-          setArticles(nextArticles);
+          if (mode === "refresh" && hasNewArticles(articlesRef.current, nextArticles)) {
+            setPendingArticles(nextArticles);
+          } else {
+            setArticles(nextArticles);
+            setPendingArticles(null);
+          }
           setLastUpdatedAt(data.refreshedAt ?? new Date().toISOString());
           notifyMatchingArticles(nextArticles, preferencesRef.current);
         }
@@ -107,6 +123,8 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
     () => filterArticles(articles, preferences),
     [articles, preferences],
   );
+  const visibleArticles = filteredArticles.slice(0, visibleArticleCount);
+  const hasMoreArticles = visibleArticles.length < filteredArticles.length;
   const categoryCounts = useMemo(
     () => getCategoryCounts(articles, preferences),
     [articles, preferences],
@@ -115,6 +133,29 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
 
   function setCategory(category: string) {
     setPreferences({ ...preferences, category });
+    setVisibleArticleCount(INITIAL_VISIBLE_ARTICLES);
+  }
+
+  function setSource(source: string) {
+    setPreferences({
+      ...preferences,
+      sources: source === "All" ? ACTIVE_SOURCES : [source],
+    });
+    setVisibleArticleCount(INITIAL_VISIBLE_ARTICLES);
+  }
+
+  function reloadPendingArticles() {
+    if (!pendingArticles) {
+      return;
+    }
+
+    setArticles(pendingArticles);
+    setPendingArticles(null);
+    setVisibleArticleCount(INITIAL_VISIBLE_ARTICLES);
+  }
+
+  function showMoreArticles() {
+    setVisibleArticleCount((current) => current + VISIBLE_ARTICLE_STEP);
   }
 
   function toggleExpanded(articleId: string) {
@@ -133,9 +174,9 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
 
   return (
     <section className="border-t border-white/10 bg-background/72">
-      <Container className="pb-12 pt-5 lg:pb-16">
-        <div className="mb-6 flex flex-col gap-4 border-b border-white/10 pb-5 sm:flex-row sm:items-end sm:justify-between">
-          <BrandLogo full />
+      <Container className="min-w-0 pb-10 pt-4 sm:pb-12 sm:pt-5 lg:pb-16">
+        <div className="mb-5 flex min-w-0 flex-col gap-4 border-b border-white/10 pb-5 sm:mb-6 sm:flex-row sm:items-end sm:justify-between">
+          <BrandLogo full className="max-w-full sm:max-w-[22rem]" />
           <p className="max-w-xl text-sm leading-6 text-muted">
             {copy.feed.brandDescription}
           </p>
@@ -147,12 +188,12 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
           label={copy.feed.liveIssues}
         />
 
-        <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
+        <div className="mt-6 flex min-w-0 flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">
               {showIntro ? copy.feed.briefsLabel : copy.feed.homeLabel}
             </p>
-            <h1 className="mt-2 text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
+            <h1 className="mt-2 break-words text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
               {copy.feed.headline}
             </h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
@@ -163,8 +204,22 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
                 ? copy.feed.refreshing
                 : copy.feed.lastUpdated(formatLastUpdated(lastUpdatedAt, language))}
             </p>
+            {pendingArticles ? (
+              <div className="mt-3 flex flex-wrap items-center gap-3 rounded-md border border-accent/30 bg-accent-soft/30 px-3 py-2">
+                <span className="text-xs font-semibold text-blue-100">
+                  {copy.feed.newBriefsReady}
+                </span>
+                <button
+                  className="text-xs font-bold text-accent transition hover:text-blue-200"
+                  onClick={reloadPendingArticles}
+                  type="button"
+                >
+                  {copy.feed.reloadBriefs}
+                </button>
+              </div>
+            ) : null}
           </div>
-          <Button href="/settings" variant="secondary">
+          <Button className="w-full sm:w-auto" href="/settings" variant="secondary">
             {copy.feed.customizeFeed}
           </Button>
         </div>
@@ -176,8 +231,8 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
           onChange={setCategory}
         />
 
-        <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_18rem]">
-          <div>
+        <div className="mt-5 grid min-w-0 gap-5 lg:grid-cols-[minmax(0,1fr)_18rem]">
+          <div className="min-w-0">
             {isLoading ? <LoadingState /> : null}
             {!isLoading && error ? (
               <ErrorState message={error} language={preferences.language} />
@@ -194,16 +249,16 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
 
             {!isLoading && !error && filteredArticles.length > 0 ? (
               <div className="overflow-hidden rounded-lg border border-white/10 bg-surface/78">
-                <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+                <div className="flex min-w-0 items-center justify-between gap-3 border-b border-white/10 px-3 py-3 sm:px-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
                     {copy.feed.mainFeed}
                   </p>
-                  <span className="text-xs font-medium text-muted-2">
+                  <span className="shrink-0 text-xs font-medium text-muted-2">
                     {copy.feed.briefCount(filteredArticles.length)}
                   </span>
                 </div>
                 <div className="divide-y divide-white/10">
-                  {filteredArticles.slice(0, 50).map((article) => (
+                  {visibleArticles.map((article) => (
                     <TimelineItem
                       article={article}
                       expanded={expandedIds.has(article.id)}
@@ -213,6 +268,18 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
                     />
                   ))}
                 </div>
+                {hasMoreArticles ? (
+                  <div className="border-t border-white/10 p-3 sm:p-4">
+                    <Button
+                      className="w-full"
+                      onClick={showMoreArticles}
+                      type="button"
+                      variant="secondary"
+                    >
+                      {copy.feed.showMore}
+                    </Button>
+                  </div>
+                ) : null}
               </div>
             ) : null}
           </div>
@@ -221,6 +288,7 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
             articleCount={filteredArticles.length}
             preferences={preferences}
             lastUpdatedAt={lastUpdatedAt}
+            onSourceChange={setSource}
           />
         </div>
       </Container>
@@ -240,8 +308,8 @@ function LiveIssueBar({
   const tickerArticles = articles.length > 0 ? [...articles, ...articles] : [];
 
   return (
-    <div className="overflow-hidden rounded-lg border border-accent/25 bg-accent-soft/45 shadow-[0_18px_45px_rgba(0,0,0,0.18)]">
-      <div className="grid gap-3 px-4 py-3 lg:grid-cols-[8rem_minmax(0,1fr)] lg:items-center">
+    <div className="max-w-full overflow-hidden rounded-lg border border-accent/25 bg-accent-soft/45 shadow-[0_18px_45px_rgba(0,0,0,0.18)]">
+      <div className="grid min-w-0 gap-3 px-3 py-3 sm:px-4 lg:grid-cols-[8rem_minmax(0,1fr)] lg:items-center">
         <div className="flex shrink-0 items-center gap-2 whitespace-nowrap">
           <span className="h-2 w-2 rounded-full bg-accent shadow-[0_0_16px_rgba(47,123,255,0.9)]" />
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-100">
@@ -263,7 +331,7 @@ function LiveIssueBar({
             <div className="live-issues-track flex gap-3 will-change-transform">
               {tickerArticles.map((article, index) => (
                 <a
-                  className="flex min-w-[18rem] max-w-sm items-center gap-2 rounded-full border border-white/10 bg-background/60 px-3 py-2 text-sm font-medium text-ink transition hover:border-accent/50 hover:text-blue-200"
+                className="flex min-w-[15rem] max-w-[85vw] items-center gap-2 rounded-full border border-white/10 bg-background/60 px-3 py-2 text-sm font-medium text-ink transition hover:border-accent/50 hover:text-blue-200 sm:min-w-[18rem] sm:max-w-sm"
                   href={article.originalUrl}
                   key={`${article.id}-${index}`}
                   rel="noreferrer"
@@ -295,12 +363,12 @@ function CategoryTabs({
   onChange: (category: string) => void;
 }) {
   return (
-    <div className="mt-5 overflow-x-auto border-b border-white/10">
-      <div className="flex min-w-max gap-1">
+    <div className="mt-5 max-w-full overflow-x-auto overscroll-x-contain border-b border-white/10 [-webkit-overflow-scrolling:touch]">
+      <div className="flex w-max min-w-full gap-1">
         {BRIEF_CATEGORIES.filter((category) => category !== "Web3").map((category) => (
           <button
             className={cn(
-              "border-b-2 px-3 py-3 text-sm font-semibold transition",
+              "shrink-0 border-b-2 px-3 py-3 text-sm font-semibold transition",
               activeCategory === category
                 ? "border-accent text-ink"
                 : "border-transparent text-muted hover:text-ink",
@@ -331,7 +399,7 @@ function TimelineItem({
   const { t: copy } = useI18n(language);
 
   return (
-    <article className="group grid gap-3 px-4 py-3 transition hover:bg-white/[0.03] sm:grid-cols-[4.5rem_1fr]">
+    <article className="group grid min-w-0 gap-3 px-3 py-3 transition hover:bg-white/[0.03] sm:grid-cols-[4.5rem_1fr] sm:px-4">
       <time
         className="text-xs font-semibold tabular-nums text-muted-2"
         dateTime={article.publishedAt}
@@ -339,8 +407,8 @@ function TimelineItem({
       >
         {formatRelativeTime(article.publishedAt, language)}
       </time>
-      <div>
-        <div className="flex flex-wrap items-center gap-2">
+      <div className="min-w-0">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
           <span className="rounded bg-accent/15 px-2 py-1 text-[0.68rem] font-bold uppercase tracking-[0.12em] text-blue-200">
             {article.sourceName}
           </span>
@@ -354,12 +422,12 @@ function TimelineItem({
         </div>
 
         <a href={article.originalUrl} rel="noreferrer" target="_blank">
-          <h2 className="mt-2 text-base font-semibold leading-snug text-ink transition group-hover:text-blue-100 sm:text-lg">
+          <h2 className="mt-2 break-words text-base font-semibold leading-snug text-ink transition group-hover:text-blue-100 sm:text-lg">
             {article.title}
           </h2>
         </a>
 
-        <div className="mt-2 flex flex-wrap items-center gap-3">
+        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
           <button
             className="text-sm font-semibold text-accent transition hover:text-blue-300"
             onClick={onToggle}
@@ -379,10 +447,10 @@ function TimelineItem({
 
         {expanded ? (
           <div className="mt-3 rounded-md border border-white/10 bg-background/70 p-3">
-            <p className="text-sm leading-6 text-ink">
+            <p className="break-words text-sm leading-6 text-ink">
               {formatBriefSummary(article, language)}
             </p>
-            <p className="mt-2 text-sm leading-6 text-muted">{article.excerpt}</p>
+            <p className="mt-2 break-words text-sm leading-6 text-muted">{article.excerpt}</p>
             {article.tags.length > 0 ? (
               <div className="mt-3 flex flex-wrap gap-2">
                 {article.tags.map((tag) => (
@@ -405,45 +473,66 @@ function TimelineItem({
 function FeedSidebar({
   articleCount,
   lastUpdatedAt,
+  onSourceChange,
   preferences,
 }: {
   articleCount: number;
   lastUpdatedAt: string | null;
+  onSourceChange: (source: string) => void;
   preferences: BriefPreferences;
 }) {
   const hasIncludeKeywords = preferences.includeKeywords.trim().length > 0;
   const hasExcludeKeywords = preferences.excludeKeywords.trim().length > 0;
   const { t: copy } = useI18n(preferences.language);
+  const allSourcesSelected = preferences.sources.length === ACTIVE_SOURCES.length;
 
   return (
     <aside className="space-y-3 lg:sticky lg:top-24 lg:self-start">
-      <Card className="p-4">
+      <Card className="min-w-0 p-4">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
           {copy.feed.activeSources}
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
+          <button
+            aria-pressed={allSourcesSelected}
+            className={cn(
+              "rounded-full border px-3 py-1.5 text-xs font-bold transition",
+              allSourcesSelected
+                ? "border-accent/60 bg-accent/20 text-blue-100"
+                : "border-white/10 bg-white/[0.03] text-muted hover:border-accent/50 hover:text-ink",
+            )}
+            onClick={() => onSourceChange("All")}
+            type="button"
+          >
+            {getCategoryLabel("All", preferences.language)}
+          </button>
           {ACTIVE_SOURCES.map((source) => (
-            <Badge
-              className={
-                preferences.sources.includes(source) ? undefined : "opacity-45"
-              }
+            <button
+              aria-pressed={!allSourcesSelected && preferences.sources.includes(source)}
+              className={cn(
+                "rounded-full border px-3 py-1.5 text-xs font-bold transition",
+                !allSourcesSelected && preferences.sources.includes(source)
+                  ? "border-accent/60 bg-accent/20 text-blue-100"
+                  : "border-white/10 bg-white/[0.03] text-muted hover:border-accent/50 hover:text-ink",
+              )}
               key={source}
-              tone="muted"
+              onClick={() => onSourceChange(source)}
+              type="button"
             >
               {source}
-            </Badge>
+            </button>
           ))}
         </div>
       </Card>
 
-      <Card className="p-4">
+      <Card className="min-w-0 p-4">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
           {copy.feed.activeFilters}
         </p>
         <dl className="mt-3 grid gap-2 text-sm">
-          <div className="flex justify-between gap-3">
+          <div className="flex min-w-0 justify-between gap-3">
             <dt className="text-muted">{copy.feed.category}</dt>
-            <dd className="font-semibold text-ink">
+            <dd className="break-words text-right font-semibold text-ink">
               {getCategoryLabel(preferences.category, preferences.language)}
             </dd>
           </div>
@@ -453,7 +542,7 @@ function FeedSidebar({
           </div>
           <div className="flex justify-between gap-3">
             <dt className="text-muted">{copy.feed.language}</dt>
-            <dd className="font-semibold text-ink">
+            <dd className="text-right font-semibold text-ink">
               {preferences.language === "ko"
                 ? copy.preferences.korean
                 : copy.preferences.english}
@@ -461,13 +550,13 @@ function FeedSidebar({
           </div>
           <div>
             <dt className="text-muted">{copy.feed.lastUpdatedShort}</dt>
-            <dd className="mt-1 text-ink">
+            <dd className="mt-1 break-words text-ink">
               {formatLastUpdated(lastUpdatedAt, preferences.language)}
             </dd>
           </div>
           <div>
             <dt className="text-muted">{copy.feed.include}</dt>
-            <dd className="mt-1 text-ink">
+            <dd className="mt-1 break-words text-ink">
               {hasIncludeKeywords ? preferences.includeKeywords : copy.feed.none}
             </dd>
           </div>
@@ -483,11 +572,11 @@ function FeedSidebar({
         </Button>
       </Card>
 
-      <Card className="p-4">
+      <Card className="min-w-0 p-4">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
           {copy.feed.disclaimerTitle}
         </p>
-        <p className="mt-3 text-sm leading-6 text-muted">
+        <p className="mt-3 break-words text-sm leading-6 text-muted">
           {copy.feed.disclaimer}
         </p>
       </Card>
@@ -554,7 +643,7 @@ function NoMatchesState({ language }: { language: BriefPreferences["language"] }
       <p className="mt-2 text-sm leading-6 text-muted">
         {copy.feed.noMatchesDescription}
       </p>
-      <Button className="mt-5" href="/settings" variant="secondary">
+      <Button className="mt-5 w-full sm:w-auto" href="/settings" variant="secondary">
         {copy.feed.updateSettings}
       </Button>
     </Card>
@@ -563,6 +652,12 @@ function NoMatchesState({ language }: { language: BriefPreferences["language"] }
 
 function filterArticles(articles: Article[], preferences: BriefPreferences) {
   return filterArticlesWithOptions(articles, preferences, { includeCategory: true });
+}
+
+function hasNewArticles(currentArticles: Article[], nextArticles: Article[]) {
+  const currentIds = new Set(currentArticles.map((article) => article.id));
+
+  return nextArticles.some((article) => !currentIds.has(article.id));
 }
 
 function getCategoryCounts(articles: Article[], preferences: BriefPreferences) {

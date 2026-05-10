@@ -38,6 +38,7 @@ export const dictionaries = {
       settings: "설정",
       about: "소개",
       readBriefs: "브리프 읽기",
+      login: "로그인",
     },
     feed: {
       activeFilters: "활성 필터",
@@ -68,13 +69,16 @@ export const dictionaries = {
       loadErrorMessage: "Chain Brief가 현재 RSS 브리핑을 불러올 수 없습니다.",
       mainFeed: "메인 피드",
       matches: "매칭",
+      newBriefsReady: "새 RSS 브리프가 도착했습니다.",
       noMatchesDescription:
         "더 넓은 카테고리, 소스 선택 또는 키워드 필터를 사용해 보세요.",
       noMatchesTitle: "현재 설정과 일치하는 브리프가 없습니다.",
       none: "없음",
       originalLink: "원문 보기",
+      reloadBriefs: "새로고침",
       refreshing: "새 브리프 확인 중...",
       showBrief: "브리프 보기",
+      showMore: "더 보기",
       subheadline:
         "RSS 헤드라인을 자동으로 새로고침하고, 소스·카테고리·키워드 기준으로 빠르게 필터링합니다.",
       updateSettings: "설정 변경",
@@ -149,6 +153,7 @@ export const dictionaries = {
       settings: "Settings",
       about: "About",
       readBriefs: "Read Briefs",
+      login: "Log in",
     },
     feed: {
       activeFilters: "Active Filters",
@@ -179,13 +184,16 @@ export const dictionaries = {
       loadErrorMessage: "Chain Brief could not load RSS briefings right now.",
       mainFeed: "Main Feed",
       matches: "Matches",
+      newBriefsReady: "New RSS briefs are ready.",
       noMatchesDescription:
         "Try a broader category, source selection, or keyword filter.",
       noMatchesTitle: "No briefs match your current settings.",
       none: "None",
       originalLink: "Original link",
+      reloadBriefs: "Reload",
       refreshing: "Checking for new briefs...",
       showBrief: "Show brief",
+      showMore: "Show more",
       subheadline:
         "Auto-refreshing RSS headlines with source, category, and keyword filters for fast scanning.",
       updateSettings: "Update Settings",
