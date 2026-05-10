@@ -249,7 +249,12 @@ function stripHtml(value?: string) {
 }
 
 function cleanText(value?: unknown) {
-  return String(value ?? "")
+  const text =
+    typeof value === "string" || typeof value === "number" || typeof value === "boolean"
+      ? String(value)
+      : "";
+
+  return text
     .replace(/&nbsp;/g, " ")
     .replace(/&amp;/g, "&")
     .replace(/&quot;/g, '"')

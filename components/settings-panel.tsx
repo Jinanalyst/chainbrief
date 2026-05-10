@@ -26,15 +26,15 @@ export function SettingsPanel() {
   }
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[1fr_20rem]">
-      <Card className="p-5 sm:p-6">
+    <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
+      <Card className="min-w-0 p-4 sm:p-6">
         <BriefPreferenceControls preferences={preferences} onChange={setPreferences} />
         <NotificationSettings preferences={preferences} onChange={setPreferences} />
         <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
-          <Button onClick={savePreferences} type="button">
+          <Button className="w-full sm:w-auto" onClick={savePreferences} type="button">
             {copy.preferences.save}
           </Button>
-          <Button onClick={resetPreferences} type="button" variant="secondary">
+          <Button className="w-full sm:w-auto" onClick={resetPreferences} type="button" variant="secondary">
             {copy.preferences.reset}
           </Button>
           {saved ? (
@@ -45,14 +45,14 @@ export function SettingsPanel() {
         </div>
       </Card>
 
-      <Card className="p-5">
+      <Card className="min-w-0 p-4 sm:p-5">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
           {copy.preferences.translationLayout}
         </p>
         <h2 className="mt-3 text-xl font-semibold text-ink">
           {copy.preferences.languageTitle}
         </h2>
-        <p className="mt-3 text-sm leading-6 text-muted">
+        <p className="mt-3 break-words text-sm leading-6 text-muted">
           {copy.preferences.languageHelp} {copy.preferences.languageNote}
         </p>
         <div className="mt-4 rounded-md border border-white/10 bg-background/70 p-3">

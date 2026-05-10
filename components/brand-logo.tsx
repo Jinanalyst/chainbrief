@@ -19,8 +19,12 @@ export function BrandLogo({
 
   if (full) {
     return (
-      <Link href="/" aria-label="Chain Brief" className={cn("inline-flex shrink-0 items-center", className)}>
-        <span className="relative block aspect-[1400/900] w-full max-w-[760px] overflow-hidden rounded-2xl border border-white/10 bg-[#070A12] shadow-[0_24px_80px_rgba(0,0,0,0.35)]">
+      <Link
+        href="/"
+        aria-label="Chain Brief"
+        className={cn("inline-flex w-full max-w-[22rem] shrink-0 items-center sm:max-w-[28rem] lg:max-w-[34rem]", className)}
+      >
+        <span className="relative block aspect-[1400/900] w-full overflow-hidden rounded-lg border border-white/10 bg-[#070A12] shadow-[0_24px_80px_rgba(0,0,0,0.35)] sm:rounded-xl">
           <Image alt="" className="object-cover" fill priority={priority} sizes="(max-width: 768px) 100vw, 760px" src={asset} />
         </span>
       </Link>
@@ -31,7 +35,7 @@ export function BrandLogo({
     <Link
       href="/"
       aria-label="Chain Brief"
-      className={cn("inline-flex items-center", compact ? "gap-2" : "gap-3", className)}
+      className={cn("inline-flex min-w-0 items-center", compact ? "gap-2" : "gap-3", className)}
     >
       <span className={cn("relative shrink-0 overflow-hidden rounded-md", compact ? "h-10 w-10" : "h-12 w-12")}>
         <Image
@@ -43,11 +47,11 @@ export function BrandLogo({
           src={asset}
         />
       </span>
-      <span className="leading-none">
-        <span className={cn("block font-semibold tracking-tight text-ink", compact ? "text-lg" : "text-xl")}>
+      <span className="min-w-0 leading-none">
+        <span className={cn("block truncate font-semibold tracking-tight text-ink", compact ? "text-base sm:text-lg" : "text-xl")}>
           Chain Brief
         </span>
-        <span className="block text-[0.7rem] font-medium uppercase tracking-[0.18em] text-muted-2">
+        <span className="hidden text-[0.7rem] font-medium uppercase tracking-[0.18em] text-muted-2 sm:block">
           Crypto news, simplified.
         </span>
       </span>

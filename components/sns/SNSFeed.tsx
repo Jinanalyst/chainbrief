@@ -99,21 +99,21 @@ export function SNSFeed() {
 
   return (
     <section className="border-t border-white/10 bg-background/72">
-      <Container className="pb-12 pt-5 lg:pb-16">
-        <div className="mb-6 flex flex-col gap-4 border-b border-white/10 pb-5 sm:flex-row sm:items-end sm:justify-between">
-          <BrandLogo full />
+      <Container className="min-w-0 pb-10 pt-4 sm:pb-12 sm:pt-5 lg:pb-16">
+        <div className="mb-5 flex min-w-0 flex-col gap-4 border-b border-white/10 pb-5 sm:mb-6 sm:flex-row sm:items-end sm:justify-between">
+          <BrandLogo full className="max-w-full sm:max-w-[22rem]" />
           <p className="max-w-xl text-sm leading-6 text-muted">
             A fast research feed for crypto creator and protocol content,
             starting with official YouTube RSS feeds.
           </p>
         </div>
 
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
+        <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">
               SNS
             </p>
-            <h1 className="mt-2 text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
+            <h1 className="mt-2 break-words text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
               Crypto research from creator feeds.
             </h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
@@ -134,9 +134,9 @@ export function SNSFeed() {
           onChange={setActiveCategory}
         />
 
-        <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_18rem]">
-          <div>
-            <div className="mb-4 rounded-lg border border-white/10 bg-surface/78 p-4">
+        <div className="mt-5 grid min-w-0 gap-5 lg:grid-cols-[minmax(0,1fr)_18rem]">
+          <div className="min-w-0">
+            <div className="mb-4 min-w-0 rounded-lg border border-white/10 bg-surface/78 p-3 sm:p-4">
               <label className="block">
                 <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
                   Search SNS Feed
@@ -159,11 +159,11 @@ export function SNSFeed() {
 
             {!isLoading && !error && filteredVideos.length > 0 ? (
               <div className="overflow-hidden rounded-lg border border-white/10 bg-surface/78">
-                <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+                <div className="flex min-w-0 items-center justify-between gap-3 border-b border-white/10 px-3 py-3 sm:px-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
                     Research Feed
                   </p>
-                  <span className="text-xs font-medium text-muted-2">
+                  <span className="shrink-0 text-xs font-medium text-muted-2">
                     {filteredVideos.length} videos
                   </span>
                 </div>
@@ -177,7 +177,7 @@ export function SNSFeed() {
           </div>
 
           <aside className="space-y-3 lg:sticky lg:top-24 lg:self-start">
-            <Card className="p-4">
+            <Card className="min-w-0 p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
                 Sources
               </p>
@@ -200,7 +200,7 @@ export function SNSFeed() {
               </div>
             </Card>
 
-            <Card className="p-4">
+            <Card className="min-w-0 p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
                 Future Integrations
               </p>
@@ -249,7 +249,7 @@ function ErrorState({ message }: { message: string }) {
   return (
     <Card className="border-danger/30 bg-danger/10 p-6">
       <p className="text-lg font-semibold text-ink">SNS fetching failed.</p>
-      <p className="mt-2 text-sm leading-6 text-muted">{message}</p>
+      <p className="mt-2 break-words text-sm leading-6 text-muted">{message}</p>
     </Card>
   );
 }

@@ -59,13 +59,13 @@ export function NotificationSettings({
     preferences.notificationPermission === "unsupported";
 
   return (
-    <div className="mt-4 rounded-lg border border-white/10 bg-background/60 p-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
+    <div className="mt-4 min-w-0 rounded-lg border border-white/10 bg-background/60 p-3 sm:p-4">
+      <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
             {copy.notifications.title}
           </p>
-          <p className="mt-2 text-sm leading-6 text-muted">
+          <p className="mt-2 break-words text-sm leading-6 text-muted">
             {copy.notifications.description}
           </p>
         </div>
@@ -85,26 +85,26 @@ export function NotificationSettings({
         </button>
       </div>
 
-      <div className="mt-4 grid gap-3 text-sm md:grid-cols-2">
-        <div className="rounded-md border border-white/10 bg-white/[0.03] p-3">
+      <div className="mt-4 grid min-w-0 gap-3 text-sm md:grid-cols-2">
+        <div className="min-w-0 rounded-md border border-white/10 bg-white/[0.03] p-3">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
             {copy.notifications.enabledState}
           </p>
-          <p className="mt-2 font-semibold text-ink">
+          <p className="mt-2 break-words font-semibold text-ink">
             {preferences.notificationsEnabled
               ? copy.notifications.enabled
               : copy.notifications.disabled}
           </p>
         </div>
-        <div className="rounded-md border border-white/10 bg-white/[0.03] p-3">
+        <div className="min-w-0 rounded-md border border-white/10 bg-white/[0.03] p-3">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
             {copy.notifications.permissionStatus}
           </p>
-          <p className="mt-2 font-semibold text-ink">{permissionStatus}</p>
+          <p className="mt-2 break-words font-semibold text-ink">{permissionStatus}</p>
         </div>
       </div>
 
-      <label className="mt-4 block">
+      <label className="mt-4 block min-w-0">
         <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
           {copy.notifications.keywords}
         </span>
@@ -128,13 +128,13 @@ export function NotificationSettings({
           ))}
         </div>
       ) : (
-        <p className="mt-3 text-sm leading-6 text-muted-2">
+        <p className="mt-3 break-words text-sm leading-6 text-muted-2">
           {copy.notifications.emptyKeywords}
         </p>
       )}
 
       {isBlocked ? (
-        <p className="mt-3 text-sm leading-6 text-muted-2">
+        <p className="mt-3 break-words text-sm leading-6 text-muted-2">
           {copy.notifications.blockedHelp}
         </p>
       ) : null}

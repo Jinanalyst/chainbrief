@@ -14,12 +14,12 @@ export function CategoryTabs({
   onChange,
 }: CategoryTabsProps) {
   return (
-    <div className="mt-5 overflow-x-auto border-b border-white/10">
-      <div className="flex min-w-max gap-1">
+    <div className="mt-5 max-w-full overflow-x-auto overscroll-x-contain border-b border-white/10 [-webkit-overflow-scrolling:touch]">
+      <div className="flex w-max min-w-full gap-1">
         {SNS_CATEGORIES.map((category) => (
           <button
             className={cn(
-              "border-b-2 px-3 py-3 text-sm font-semibold transition",
+              "shrink-0 border-b-2 px-3 py-3 text-sm font-semibold transition",
               activeCategory === category
                 ? "border-accent text-ink"
                 : "border-transparent text-muted hover:text-ink",

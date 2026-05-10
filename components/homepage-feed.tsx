@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
-import { repostArticleToCommunity } from "@/lib/community";
+import { storeCommunityQuoteTarget } from "@/lib/community";
 import {
   ACTIVE_SOURCES,
   BRIEF_CATEGORIES,
@@ -239,8 +239,8 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
     setVisibleArticleCount((current) => current + VISIBLE_ARTICLE_STEP);
   }
 
-  function repostArticle(article: Article) {
-    repostArticleToCommunity(article);
+  function quoteArticle(article: Article) {
+    storeCommunityQuoteTarget(article);
     window.location.assign("/community");
   }
 
@@ -348,7 +348,7 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
                       expanded={expandedIds.has(article.id)}
                       key={article.id}
                       language={preferences.language}
-                      onRepost={() => repostArticle(article)}
+                      onQuote={() => quoteArticle(article)}
                       onToggle={() => toggleExpanded(article.id)}
                     />
                   ))}
@@ -474,13 +474,13 @@ function TimelineItem({
   article,
   expanded,
   language,
-  onRepost,
+  onQuote,
   onToggle,
 }: {
   article: Article;
   expanded: boolean;
   language: BriefPreferences["language"];
-  onRepost: () => void;
+  onQuote: () => void;
   onToggle: () => void;
 }) {
   const { t: copy } = useI18n(language);
@@ -531,11 +531,13 @@ function TimelineItem({
             {copy.feed.originalLink}
           </a>
           <button
-            className="text-sm font-semibold text-muted transition hover:text-ink"
-            onClick={onRepost}
+            aria-label={copy.feed.quoteToCommunity}
+            className="inline-flex h-7 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] px-3 text-xs font-bold text-muted transition hover:border-accent/50 hover:text-ink"
+            onClick={onQuote}
             type="button"
+            title={copy.feed.quoteToCommunity}
           >
-            {copy.feed.repostToCommunity}
+            {copy.feed.discuss}
           </button>
         </div>
 

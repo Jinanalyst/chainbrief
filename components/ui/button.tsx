@@ -29,7 +29,7 @@ const variants = {
 export function Button(props: ButtonProps | ButtonLinkProps) {
   const { children, className, variant = "primary" } = props;
   const buttonClassName = cn(
-    "inline-flex min-h-11 items-center justify-center rounded-md border px-5 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-accent/70 focus:ring-offset-2 focus:ring-offset-background",
+    "inline-flex min-h-11 max-w-full items-center justify-center rounded-md border px-5 text-center text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-accent/70 focus:ring-offset-2 focus:ring-offset-background",
     variants[variant],
     className,
   );

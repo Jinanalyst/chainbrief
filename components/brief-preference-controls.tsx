@@ -28,9 +28,9 @@ export function BriefPreferenceControls({
   }
 
   return (
-    <div className="rounded-lg border border-white/10 bg-surface/78 p-4 shadow-soft">
-      <div className="grid gap-4 lg:grid-cols-[1fr_0.9fr]">
-        <div>
+    <div className="min-w-0 rounded-lg border border-white/10 bg-surface/78 p-3 shadow-soft sm:p-4">
+      <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]">
+        <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
             {copy.preferences.sources}
           </p>
@@ -57,11 +57,11 @@ export function BriefPreferenceControls({
           </div>
         </div>
 
-        <div>
+        <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
             {copy.preferences.category}
           </p>
-          <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+          <div className="mt-3 flex max-w-full gap-2 overflow-x-auto overscroll-x-contain pb-1 [-webkit-overflow-scrolling:touch]">
             {BRIEF_CATEGORIES.map((category) => (
               <button
                 className={cn(
@@ -82,7 +82,7 @@ export function BriefPreferenceControls({
       </div>
 
       <div className="mt-4 grid gap-3 md:grid-cols-2">
-        <label className="block">
+        <label className="block min-w-0">
           <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
             {copy.preferences.includeKeywords}
           </span>
@@ -95,7 +95,7 @@ export function BriefPreferenceControls({
             value={preferences.includeKeywords}
           />
         </label>
-        <label className="block">
+        <label className="block min-w-0">
           <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
             {copy.preferences.excludeKeywords}
           </span>
@@ -110,7 +110,7 @@ export function BriefPreferenceControls({
         </label>
       </div>
 
-      <div className="mt-4 rounded-lg border border-white/10 bg-background/60 p-4">
+      <div className="mt-4 min-w-0 rounded-lg border border-white/10 bg-background/60 p-3 sm:p-4">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
           {copy.feed.language}
         </p>

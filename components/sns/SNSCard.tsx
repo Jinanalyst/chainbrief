@@ -12,17 +12,17 @@ type SNSCardProps = {
 
 export function SNSCard({ language, video }: SNSCardProps) {
   return (
-    <article className="group grid gap-4 px-4 py-4 transition hover:bg-white/[0.03] md:grid-cols-[15rem_minmax(0,1fr)]">
+    <article className="group grid min-w-0 gap-3 px-3 py-4 transition hover:bg-white/[0.03] sm:gap-4 sm:px-4 md:grid-cols-[13rem_minmax(0,1fr)] lg:grid-cols-[15rem_minmax(0,1fr)]">
       <a href={video.url} rel="noreferrer" target="_blank">
         <VideoThumbnail alt={video.title} src={video.thumbnailUrl} />
       </a>
 
       <div className="min-w-0">
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
           <span className="rounded bg-red-500/15 px-2 py-1 text-[0.68rem] font-bold uppercase tracking-[0.12em] text-red-200">
             YouTube
           </span>
-          <span className="text-xs font-semibold uppercase tracking-[0.14em] text-accent">
+          <span className="max-w-full truncate text-xs font-semibold uppercase tracking-[0.14em] text-accent">
             {video.sourceName}
           </span>
           <Badge tone="muted">{video.category}</Badge>
@@ -32,12 +32,12 @@ export function SNSCard({ language, video }: SNSCardProps) {
         </div>
 
         <a href={video.url} rel="noreferrer" target="_blank">
-          <h2 className="mt-3 text-base font-semibold leading-snug text-ink transition group-hover:text-blue-100 sm:text-lg">
+          <h2 className="mt-3 break-words text-base font-semibold leading-snug text-ink transition group-hover:text-blue-100 sm:text-lg">
             {video.title}
           </h2>
         </a>
 
-        <p className="mt-2 line-clamp-2 text-sm leading-6 text-muted">
+        <p className="mt-2 break-words text-sm leading-6 text-muted sm:line-clamp-2">
           {video.description}
         </p>
 
@@ -56,7 +56,7 @@ export function SNSCard({ language, video }: SNSCardProps) {
 
         <div className="mt-4">
           <Button
-            className="min-h-10 px-4"
+            className="min-h-10 w-full px-4 sm:w-auto"
             href={video.url}
             rel="noreferrer"
             target="_blank"
