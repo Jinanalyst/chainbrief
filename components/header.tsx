@@ -33,9 +33,6 @@ export function Header() {
           <Link className="transition hover:text-ink" href="/settings">
             {copy.nav.settings}
           </Link>
-          <Link className="transition hover:text-ink" href="/about">
-            {copy.nav.about}
-          </Link>
         </nav>
 
         <div className="flex items-center gap-2">

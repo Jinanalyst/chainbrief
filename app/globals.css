@@ -66,6 +66,38 @@ a {
     padding-top: theme(spacing.section-sm);
   }
 
+  .landing-signal-bg {
+    background:
+      linear-gradient(120deg, rgba(47, 123, 255, 0.16), transparent 34rem),
+      linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+    background-size: auto, 28px 28px, 28px 28px;
+    mask-image: linear-gradient(180deg, #000, transparent 88%);
+  }
+
+  .landing-radar {
+    background-image:
+      linear-gradient(rgba(47, 123, 255, 0.18) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(47, 123, 255, 0.14) 1px, transparent 1px);
+    background-size: 34px 34px;
+    overflow: hidden;
+  }
+
+  .landing-radar::after {
+    animation: landing-scan 4.8s ease-in-out infinite;
+    background: linear-gradient(180deg, transparent, rgba(47, 123, 255, 0.28), transparent);
+    content: "";
+    height: 8rem;
+    left: 0;
+    position: absolute;
+    right: 0;
+    top: -8rem;
+  }
+
+  .landing-float {
+    animation: landing-float 6s ease-in-out infinite;
+  }
+
   @screen lg {
     .section-space {
       padding-bottom: theme(spacing.section);
@@ -84,8 +116,32 @@ a {
   }
 }
 
+@keyframes landing-scan {
+  0% {
+    transform: translateY(0);
+  }
+
+  55%,
+  100% {
+    transform: translateY(36rem);
+  }
+}
+
+@keyframes landing-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-0.45rem);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .live-issues-track {
+  .live-issues-track,
+  .landing-float,
+  .landing-radar::after {
     animation: none;
   }
 }
