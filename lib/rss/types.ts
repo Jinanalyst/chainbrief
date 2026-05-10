@@ -1,0 +1,15 @@
+export type Article = {
+  id: string;
+  title: string;
+  slug: string;
+  sourceId: string;
+  sourceName: string;
+  originalUrl: string;
+  publishedAt: string;
+  excerpt: string;
+  category: string;
+  tags: string[];
+  readingTime: string;
+  briefSummary: string;
+  rawContentSnippet: string;
+};
