@@ -1,0 +1,217 @@
+import type { BriefPreferences } from "@/lib/preferences";
+
+export type Language = BriefPreferences["language"];
+
+export const CATEGORY_LABELS: Record<Language, Record<string, string>> = {
+  ko: {
+    All: "전체",
+    Bitcoin: "비트코인",
+    Ethereum: "이더리움",
+    Solana: "솔라나",
+    DeFi: "디파이",
+    Macro: "매크로",
+    Regulation: "규제",
+    Stablecoins: "스테이블코인",
+    "AI & Crypto": "AI & 크립토",
+    Web3: "웹3",
+  },
+  en: {
+    All: "All",
+    Bitcoin: "Bitcoin",
+    Ethereum: "Ethereum",
+    Solana: "Solana",
+    DeFi: "DeFi",
+    Macro: "Macro",
+    Regulation: "Regulation",
+    Stablecoins: "Stablecoins",
+    "AI & Crypto": "AI & Crypto",
+    Web3: "Web3",
+  },
+};
+
+export const dictionaries = {
+  ko: {
+    nav: {
+      home: "홈",
+      briefs: "브리프",
+      settings: "설정",
+      about: "소개",
+      readBriefs: "브리프 읽기",
+    },
+    feed: {
+      activeFilters: "활성 필터",
+      activeSources: "활성 RSS 소스",
+      briefCount: (count: number) => `${count}개 브리프`,
+      briefsLabel: "브리프",
+      brandDescription:
+        "실시간 새로고침, 카테고리 필터, 소스 제어, 한국어·영어 요약 형식을 갖춘 간결한 크립토 RSS 브리핑 피드입니다.",
+      category: "카테고리",
+      customizeFeed: "피드 설정",
+      disclaimer:
+        "Chain Brief는 공개 RSS 메타데이터만 사용합니다. 빠른 스캐닝용 정보이며 투자 조언이 아닙니다. 의사결정 전 원문을 확인하세요.",
+      disclaimerTitle: "안내",
+      emptyDescription:
+        "활성 RSS 피드에서 불러온 기사가 없습니다. Chain Brief가 다음 새로고침 때 다시 확인합니다.",
+      emptyTitle: "사용 가능한 브리프가 없습니다.",
+      errorTitle: "RSS 가져오기에 실패했습니다.",
+      exclude: "제외",
+      headline: "Crypto news, simplified.",
+      hideBrief: "브리프 숨기기",
+      homeLabel: "홈",
+      include: "포함",
+      language: "언어",
+      lastUpdated: (value: string) =>
+        `자동 새로고침: 5분마다 · 최근 업데이트 ${value}`,
+      lastUpdatedShort: "최근 업데이트",
+      liveIssues: "라이브 이슈",
+      loadErrorMessage: "Chain Brief가 현재 RSS 브리핑을 불러올 수 없습니다.",
+      mainFeed: "메인 피드",
+      matches: "매칭",
+      noMatchesDescription:
+        "더 넓은 카테고리, 소스 선택 또는 키워드 필터를 사용해 보세요.",
+      noMatchesTitle: "현재 설정과 일치하는 브리프가 없습니다.",
+      none: "없음",
+      originalLink: "원문 보기",
+      refreshing: "새 브리프 확인 중...",
+      showBrief: "브리프 보기",
+      subheadline:
+        "RSS 헤드라인을 자동으로 새로고침하고, 소스·카테고리·키워드 기준으로 빠르게 필터링합니다.",
+      updateSettings: "설정 변경",
+      waitingForRefresh: "첫 새로고침 대기 중",
+    },
+    preferences: {
+      category: "카테고리",
+      currentLanguage: "현재 언어",
+      english: "영어",
+      englishDescription: "영어 UI 라벨과 영어 브리프 문장을 표시합니다.",
+      excludeKeywords: "제외 키워드",
+      includeKeywords: "포함 키워드",
+      korean: "한국어",
+      koreanDescription: "한국어 UI 라벨과 한국어식 브리프 문장을 표시합니다.",
+      languageHelp:
+        "언어 설정은 브라우저 localStorage에 저장되며 피드, 탐색, 설정, 카테고리 라벨과 브리프 형식에 즉시 적용됩니다.",
+      languageNote:
+        "아직 외부 번역 제공자는 연결하지 않습니다. RSS 제목과 본문 조각은 원문을 유지하고 메타데이터로 브리프를 구성합니다.",
+      languageTitle: "한국어와 영어 지원",
+      noLogin: "로그인이나 데이터베이스 없이 이 브라우저에만 저장됩니다.",
+      reset: "초기화",
+      save: "설정 저장",
+      saved: "설정이 저장되었습니다.",
+      sources: "소스",
+      translationLayout: "번역 구조",
+    },
+    pages: {
+      aboutDescription:
+        "Chain Brief는 공개 RSS 헤드라인을 소스, 카테고리, 키워드 제어가 있는 간결한 브리핑 화면으로 정리합니다.",
+      aboutEyebrow: "소개",
+      aboutFeatures: ["RSS 우선", "한국어 브리프", "개인 필터"],
+      aboutFeatureText:
+        "빠른 스캔을 위한 시간, 소스 라벨, 원문 링크 중심으로 구성했습니다.",
+      aboutTitle: "빠른 크립토 RSS 브리핑 피드.",
+      settingsDescription:
+        "간결한 Chain Brief RSS 피드의 기본 소스, 카테고리, 키워드 필터를 선택하세요.",
+      settingsEyebrow: "설정",
+      settingsTitle: "브리핑 피드를 개인화하세요.",
+    },
+    summary: {
+      context: "맥락",
+      fallback: "원문에서 이 크립토 이슈의 전체 맥락을 확인하세요.",
+      key: "핵심",
+      source: "출처",
+      tags: "태그",
+    },
+  },
+  en: {
+    nav: {
+      home: "Home",
+      briefs: "Briefs",
+      settings: "Settings",
+      about: "About",
+      readBriefs: "Read Briefs",
+    },
+    feed: {
+      activeFilters: "Active Filters",
+      activeSources: "Active RSS Sources",
+      briefCount: (count: number) => `${count} briefs`,
+      briefsLabel: "Briefs",
+      brandDescription:
+        "A compact crypto RSS briefing feed with live refresh, category filters, source controls, and Korean-English summary formatting.",
+      category: "Category",
+      customizeFeed: "Customize Feed",
+      disclaimer:
+        "Chain Brief uses public RSS metadata only. Briefs are for fast scanning, not financial advice. Open original sources before making decisions.",
+      disclaimerTitle: "Disclaimer",
+      emptyDescription:
+        "The active RSS feeds returned no articles. Chain Brief will check again on the next refresh interval.",
+      emptyTitle: "No briefings available.",
+      errorTitle: "RSS fetching failed.",
+      exclude: "Exclude",
+      headline: "Crypto news, simplified.",
+      hideBrief: "Hide brief",
+      homeLabel: "Home",
+      include: "Include",
+      language: "Language",
+      lastUpdated: (value: string) =>
+        `Auto-refresh: every 5 min · Last updated ${value}`,
+      lastUpdatedShort: "Last updated",
+      liveIssues: "Live Issues",
+      loadErrorMessage: "Chain Brief could not load RSS briefings right now.",
+      mainFeed: "Main Feed",
+      matches: "Matches",
+      noMatchesDescription:
+        "Try a broader category, source selection, or keyword filter.",
+      noMatchesTitle: "No briefs match your current settings.",
+      none: "None",
+      originalLink: "Original link",
+      refreshing: "Checking for new briefs...",
+      showBrief: "Show brief",
+      subheadline:
+        "Auto-refreshing RSS headlines with source, category, and keyword filters for fast scanning.",
+      updateSettings: "Update Settings",
+      waitingForRefresh: "Waiting for first refresh",
+    },
+    preferences: {
+      category: "Category",
+      currentLanguage: "Current language",
+      english: "English",
+      englishDescription: "Show English UI labels and English brief phrasing.",
+      excludeKeywords: "Exclude Keywords",
+      includeKeywords: "Include Keywords",
+      korean: "Korean",
+      koreanDescription:
+        "Show Korean UI labels and Korean-style brief phrasing.",
+      languageHelp:
+        "Language preference is saved locally and applied immediately to feed labels, navigation, settings, category labels, and brief summary formatting.",
+      languageNote:
+        "No external translation provider is connected yet. RSS titles and snippets remain as provided while metadata is shaped into briefs.",
+      languageTitle: "Korean and English ready.",
+      noLogin: "No login or database is required; this stays in browser localStorage.",
+      reset: "Reset",
+      save: "Save Preferences",
+      saved: "Preferences saved.",
+      sources: "Sources",
+      translationLayout: "Translation Layout",
+    },
+    pages: {
+      aboutDescription:
+        "Chain Brief organizes public RSS headlines into a compact briefing interface with source, category, and keyword controls.",
+      aboutEyebrow: "About",
+      aboutFeatures: ["RSS first", "Brief Korean summaries", "Personal filters"],
+      aboutFeatureText:
+        "Built around quick scanning, timestamps, source labels, and original article links.",
+      aboutTitle: "A fast crypto RSS briefing feed.",
+      settingsDescription:
+        "Choose default sources, categories, and keyword filters for the compact Chain Brief RSS feed.",
+      settingsEyebrow: "Settings",
+      settingsTitle: "Personalize your briefing feed.",
+    },
+    summary: {
+      context: "Context",
+      fallback:
+        "Read the original source for the full context behind this developing crypto story.",
+      key: "Key point",
+      source: "Source",
+      tags: "Tags",
+    },
+  },
+} as const;

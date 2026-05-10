@@ -1,9 +1,13 @@
+"use client";
+
 import type { Article } from "@/lib/rss/types";
 import { cn } from "@/lib/cn";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { formatBriefSummary } from "@/lib/summary";
+import { formatRelativeTime, getCategoryLabel } from "@/lib/i18n";
+import { useI18n, usePreferences } from "@/lib/i18n/use-i18n";
 
 type BriefingCardProps = {
   article: Article;
@@ -11,6 +15,9 @@ type BriefingCardProps = {
 };
 
 export function BriefingCard({ article, featured = false }: BriefingCardProps) {
+  const [preferences] = usePreferences();
+  const { t: copy } = useI18n(preferences.language);
+
   return (
     <Card
       as="article"
@@ -23,9 +30,11 @@ export function BriefingCard({ article, featured = false }: BriefingCardProps) {
         <span className="text-xs font-semibold uppercase tracking-[0.16em] text-accent">
           {article.sourceName}
         </span>
-        <Badge tone={featured ? "accent" : "muted"}>{article.category}</Badge>
+        <Badge tone={featured ? "accent" : "muted"}>
+          {getCategoryLabel(article.category, preferences.language)}
+        </Badge>
         <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-2">
-          {formatDate(article.publishedAt)}
+          {formatRelativeTime(article.publishedAt, preferences.language)}
         </span>
         <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-2">
           {article.readingTime}
@@ -49,7 +58,7 @@ export function BriefingCard({ article, featured = false }: BriefingCardProps) {
           featured ? "text-base" : "text-sm",
         )}
       >
-        {formatBriefSummary(article, "ko")}
+        {formatBriefSummary(article, preferences.language)}
       </p>
 
       <p className="mt-3 text-sm leading-6 text-muted-2">{article.excerpt}</p>
@@ -73,16 +82,9 @@ export function BriefingCard({ article, featured = false }: BriefingCardProps) {
           rel="noreferrer"
           variant={featured ? "primary" : "secondary"}
         >
-          Read Original
+          {copy.feed.originalLink}
         </Button>
       </div>
     </Card>
   );
-}
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en", {
-    month: "short",
-    day: "numeric",
-  }).format(new Date(value));
 }

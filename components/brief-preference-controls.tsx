@@ -2,6 +2,8 @@
 
 import { ACTIVE_SOURCES, BRIEF_CATEGORIES, type BriefPreferences } from "@/lib/preferences";
 import { cn } from "@/lib/cn";
+import { getCategoryLabel } from "@/lib/i18n";
+import { useI18n } from "@/lib/i18n/use-i18n";
 
 type BriefPreferenceControlsProps = {
   preferences: BriefPreferences;
@@ -12,6 +14,8 @@ export function BriefPreferenceControls({
   preferences,
   onChange,
 }: BriefPreferenceControlsProps) {
+  const { t: copy } = useI18n(preferences.language);
+
   function toggleSource(source: string) {
     const nextSources = preferences.sources.includes(source)
       ? preferences.sources.filter((item) => item !== source)
@@ -28,7 +32,7 @@ export function BriefPreferenceControls({
       <div className="grid gap-4 lg:grid-cols-[1fr_0.9fr]">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
-            Sources
+            {copy.preferences.sources}
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             {ACTIVE_SOURCES.map((source) => {
@@ -55,7 +59,7 @@ export function BriefPreferenceControls({
 
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
-            Category
+            {copy.preferences.category}
           </p>
           <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
             {BRIEF_CATEGORIES.map((category) => (
@@ -70,7 +74,7 @@ export function BriefPreferenceControls({
                 onClick={() => onChange({ ...preferences, category })}
                 type="button"
               >
-                {category}
+                {getCategoryLabel(category, preferences.language)}
               </button>
             ))}
           </div>
@@ -80,7 +84,7 @@ export function BriefPreferenceControls({
       <div className="mt-4 grid gap-3 md:grid-cols-2">
         <label className="block">
           <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
-            Include Keywords
+            {copy.preferences.includeKeywords}
           </span>
           <input
             className="mt-2 min-h-11 w-full rounded-md border border-white/10 bg-background px-4 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
@@ -93,7 +97,7 @@ export function BriefPreferenceControls({
         </label>
         <label className="block">
           <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
-            Exclude Keywords
+            {copy.preferences.excludeKeywords}
           </span>
           <input
             className="mt-2 min-h-11 w-full rounded-md border border-white/10 bg-background px-4 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
@@ -108,19 +112,19 @@ export function BriefPreferenceControls({
 
       <div className="mt-4 rounded-lg border border-white/10 bg-background/60 p-4">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
-          Brief Language
+          {copy.feed.language}
         </p>
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
           {[
             {
               value: "ko",
-              label: "Korean",
-              description: "Show Korean UI labels and Korean-style brief prefix.",
+              label: copy.preferences.korean,
+              description: copy.preferences.koreanDescription,
             },
             {
               value: "en",
-              label: "English",
-              description: "Show English UI labels and brief prefix.",
+              label: copy.preferences.english,
+              description: copy.preferences.englishDescription,
             },
           ].map((language) => {
             const isActive = preferences.language === language.value;
