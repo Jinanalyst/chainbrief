@@ -105,6 +105,52 @@ export function BriefPreferenceControls({
           />
         </label>
       </div>
+
+      <div className="mt-4 rounded-lg border border-white/10 bg-background/60 p-4">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
+          Brief Language
+        </p>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          {[
+            {
+              value: "ko",
+              label: "Korean",
+              description: "Show Korean UI labels and Korean-style brief prefix.",
+            },
+            {
+              value: "en",
+              label: "English",
+              description: "Show English UI labels and brief prefix.",
+            },
+          ].map((language) => {
+            const isActive = preferences.language === language.value;
+
+            return (
+              <button
+                className={cn(
+                  "rounded-md border p-3 text-left transition",
+                  isActive
+                    ? "border-accent bg-accent/15 text-ink"
+                    : "border-white/10 bg-white/[0.03] text-muted hover:text-ink",
+                )}
+                key={language.value}
+                onClick={() =>
+                  onChange({
+                    ...preferences,
+                    language: language.value as BriefPreferences["language"],
+                  })
+                }
+                type="button"
+              >
+                <span className="block text-sm font-semibold">{language.label}</span>
+                <span className="mt-1 block text-xs leading-5 text-muted-2">
+                  {language.description}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { cn } from "@/lib/cn";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { formatBriefSummary } from "@/lib/summary";
 
 type BriefingCardProps = {
   article: Article;
@@ -48,7 +49,7 @@ export function BriefingCard({ article, featured = false }: BriefingCardProps) {
           featured ? "text-base" : "text-sm",
         )}
       >
-        {article.briefSummary}
+        {formatBriefSummary(article, "ko")}
       </p>
 
       <p className="mt-3 text-sm leading-6 text-muted-2">{article.excerpt}</p>

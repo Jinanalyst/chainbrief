@@ -18,6 +18,7 @@ export type BriefPreferences = {
   category: string;
   includeKeywords: string;
   excludeKeywords: string;
+  language: "ko" | "en";
 };
 
 export const defaultPreferences: BriefPreferences = {
@@ -25,6 +26,7 @@ export const defaultPreferences: BriefPreferences = {
   category: "All",
   includeKeywords: "",
   excludeKeywords: "",
+  language: "ko",
 };
 
 export const PREFERENCES_STORAGE_KEY = "chain-brief-preferences";

@@ -161,7 +161,7 @@ function createExcerpt(value?: string) {
 
 function createBriefSummary(title: string, rawContentSnippet: string) {
   const sourceText = rawContentSnippet || title;
-  return `요약: ${truncate(sourceText, 150)}`;
+  return `Brief: ${truncate(sourceText, 150)}`;
 }
 
 function createTags(categories: string[] | undefined, title: string, fallback: string) {
