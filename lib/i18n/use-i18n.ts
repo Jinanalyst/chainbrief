@@ -50,13 +50,14 @@ export function writeStoredPreferences(preferences: BriefPreferences) {
 
 export function usePreferences() {
   const [preferences, setPreferencesState] =
-    useState<BriefPreferences>(() => readStoredPreferences());
+    useState<BriefPreferences>(defaultPreferences);
 
   useEffect(() => {
     function syncPreferences() {
       setPreferencesState(readStoredPreferences());
     }
 
+    syncPreferences();
     window.addEventListener("storage", syncPreferences);
     window.addEventListener(PREFERENCES_CHANGED_EVENT, syncPreferences);
 

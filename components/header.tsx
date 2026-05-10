@@ -27,6 +27,9 @@ export function Header() {
           <Link className="transition hover:text-ink" href="/briefs">
             {copy.nav.briefs}
           </Link>
+          <Link className="transition hover:text-ink" href="/sns">
+            {copy.nav.sns}
+          </Link>
           <Link className="transition hover:text-ink" href="/settings">
             {copy.nav.settings}
           </Link>

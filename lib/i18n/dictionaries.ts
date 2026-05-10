@@ -34,6 +34,7 @@ export const dictionaries = {
     nav: {
       home: "홈",
       briefs: "브리프",
+      sns: "SNS",
       settings: "설정",
       about: "소개",
       readBriefs: "브리프 읽기",
@@ -144,6 +145,7 @@ export const dictionaries = {
     nav: {
       home: "Home",
       briefs: "Briefs",
+      sns: "SNS",
       settings: "Settings",
       about: "About",
       readBriefs: "Read Briefs",
