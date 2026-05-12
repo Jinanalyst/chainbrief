@@ -18,6 +18,8 @@ export type CustomRssSourceInput = Pick<
 >;
 
 export const CUSTOM_RSS_SOURCES_STORAGE_KEY = "chain-brief-custom-rss-sources";
+const YOUTUBE_CHANNEL_ID_PATTERN = /^UC[A-Za-z0-9_-]{22}$/;
+const YOUTUBE_FEED_PATH = "/feeds/videos.xml";
 
 export function readCustomRssSources(): CustomRssSource[] {
   if (typeof window === "undefined") {
@@ -100,6 +102,89 @@ export function sanitizeCustomRssSourceInput(
       input.language === "ko" || input.language === "en" ? input.language : "mixed",
     enabled: Boolean(input.enabled),
   };
+}
+
+export function createYouTubeChannelFeedUrl(channelId: string) {
+  return `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
+}
+
+export function getYouTubeFeedUrlFromUrl(value: string) {
+  try {
+    const url = new URL(value.trim());
+    const host = url.hostname.replace(/^www\./, "");
+
+    if (
+      (host !== "youtube.com" && host !== "m.youtube.com") ||
+      url.pathname !== YOUTUBE_FEED_PATH
+    ) {
+      return null;
+    }
+
+    const channelId = url.searchParams.get("channel_id");
+    const playlistId = url.searchParams.get("playlist_id");
+    const user = url.searchParams.get("user");
+
+    if (
+      (channelId && YOUTUBE_CHANNEL_ID_PATTERN.test(channelId)) ||
+      Boolean(playlistId?.trim()) ||
+      Boolean(user?.trim())
+    ) {
+      url.hostname = "www.youtube.com";
+      url.protocol = "https:";
+      return url.toString();
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export function getYouTubeChannelIdFromUrl(value: string) {
+  const trimmed = value.trim();
+
+  if (YOUTUBE_CHANNEL_ID_PATTERN.test(trimmed)) {
+    return trimmed;
+  }
+
+  try {
+    const url = new URL(trimmed);
+    const channelId = url.searchParams.get("channel_id");
+
+    if (channelId && YOUTUBE_CHANNEL_ID_PATTERN.test(channelId)) {
+      return channelId;
+    }
+
+    const channelMatch = url.pathname.match(/\/channel\/(UC[A-Za-z0-9_-]{22})/);
+    return channelMatch?.[1] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export function isLikelyYouTubeChannelInput(value: string) {
+  const trimmed = value.trim();
+
+  if (!trimmed) {
+    return false;
+  }
+
+  if (trimmed.startsWith("@") || YOUTUBE_CHANNEL_ID_PATTERN.test(trimmed)) {
+    return true;
+  }
+
+  try {
+    const url = new URL(trimmed);
+    const host = url.hostname.replace(/^www\./, "");
+
+    return (
+      host === "youtube.com" ||
+      host === "m.youtube.com" ||
+      host === "youtube-nocookie.com"
+    );
+  } catch {
+    return false;
+  }
 }
 
 export function isValidRssUrl(value: string) {

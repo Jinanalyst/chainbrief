@@ -108,7 +108,14 @@ function isValidHttpUrl(value: string) {
 
 function normalizeItem(item: FeedItem, source: CustomRssSource): SnsVideo | null {
   const title = cleanText(item.title);
-  const url = item.link ?? item.guid;
+  const videoId =
+    source.type === "youtube"
+      ? item.videoId ?? parseVideoId(item.id) ?? parseVideoId(item.link)
+      : null;
+  const url =
+    source.type === "youtube" && videoId
+      ? createYouTubeVideoUrl(videoId)
+      : item.link ?? item.guid;
 
   if (!title || !url) {
     return null;
@@ -120,10 +127,6 @@ function normalizeItem(item: FeedItem, source: CustomRssSource): SnsVideo | null
         stripHtml(item.contentSnippet ?? item.summary ?? item.content),
     ),
   );
-  const videoId =
-    source.type === "youtube"
-      ? item.videoId ?? parseVideoId(item.id) ?? parseVideoId(item.link)
-      : null;
   const tags = createTags(title, description);
   const category = inferCategory(title, description, tags);
 
@@ -160,8 +163,14 @@ function parseVideoId(value?: string) {
 
   const idMatch = value.match(/yt:video:([^/?#]+)/);
   const queryMatch = value.match(/[?&]v=([^&#]+)/);
+  const shortMatch = value.match(/youtu\.be\/([^/?#]+)/);
+  const pathMatch = value.match(/youtube\.com\/(?:embed|shorts)\/([^/?#]+)/);
 
-  return idMatch?.[1] ?? queryMatch?.[1] ?? null;
+  return idMatch?.[1] ?? queryMatch?.[1] ?? shortMatch?.[1] ?? pathMatch?.[1] ?? null;
+}
+
+function createYouTubeVideoUrl(videoId: string) {
+  return `https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}`;
 }
 
 function createDescription(value?: string) {

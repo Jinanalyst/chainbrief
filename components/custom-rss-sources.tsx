@@ -5,7 +5,11 @@ import type { User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import {
+  createYouTubeChannelFeedUrl,
   createCustomRssSource,
+  getYouTubeFeedUrlFromUrl,
+  getYouTubeChannelIdFromUrl,
+  isLikelyYouTubeChannelInput,
   isValidRssUrl,
   normalizeCustomRssSources,
   readCustomRssSources,
@@ -37,11 +41,14 @@ type CustomRssCopy = {
   namePlaceholder: string;
   normalRss: string;
   rssUrl: string;
+  resolving: string;
   save: string;
   sourceType: string;
   title: string;
   urlInvalid: string;
   urlPlaceholder: string;
+  youtubeHelp: string;
+  youtubeInvalid: string;
   youtube: string;
 };
 
@@ -70,13 +77,18 @@ function getCopy(language: BriefPreferences["language"]): CustomRssCopy {
       name: "소스 이름",
       namePlaceholder: "예: ChainCatcher, Bankless Clips",
       normalRss: "일반 RSS",
-      rssUrl: "RSS URL",
+      rssUrl: "RSS or channel URL",
+      resolving: "Resolving YouTube channel...",
       save: "저장",
       sourceType: "소스 타입",
       title: "Custom RSS Sources",
       urlInvalid: "올바른 http 또는 https RSS URL을 입력해 주세요.",
       urlPlaceholder: "https://example.com/feed.xml",
       youtube: "YouTube RSS",
+      youtubeHelp:
+        "Paste a YouTube channel URL, @handle URL, channel ID, or YouTube RSS feed URL.",
+      youtubeInvalid:
+        "Enter a valid YouTube channel URL, @handle URL, channel ID, or RSS feed URL.",
     };
   }
 
@@ -95,30 +107,86 @@ function getCopy(language: BriefPreferences["language"]): CustomRssCopy {
     name: "Source name",
     namePlaceholder: "Ex: ChainCatcher, Bankless Clips",
     normalRss: "Normal RSS",
-    rssUrl: "RSS URL",
+    rssUrl: "RSS or channel URL",
+    resolving: "Resolving YouTube channel...",
     save: "Save",
     sourceType: "Source type",
     title: "Custom RSS Sources",
     urlInvalid: "Enter a valid http or https RSS URL.",
     urlPlaceholder: "https://example.com/feed.xml",
     youtube: "YouTube RSS",
+    youtubeHelp:
+      "Paste a YouTube channel URL, @handle URL, channel ID, or YouTube RSS feed URL.",
+    youtubeInvalid:
+      "Enter a valid YouTube channel URL, @handle URL, channel ID, or RSS feed URL.",
   };
+}
+
+async function resolveYouTubeSource(value: string) {
+  const feedUrl = getYouTubeFeedUrlFromUrl(value);
+
+  if (feedUrl) {
+    return {
+      feedUrl,
+      title: null as string | null,
+    };
+  }
+
+  const channelId = getYouTubeChannelIdFromUrl(value);
+
+  if (channelId) {
+    return {
+      feedUrl: createYouTubeChannelFeedUrl(channelId),
+      title: null as string | null,
+    };
+  }
+
+  try {
+    const response = await fetch("/api/custom-rss/resolve-youtube", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ url: value }),
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const data = (await response.json()) as {
+      feedUrl?: string;
+      title?: string | null;
+    };
+
+    return data.feedUrl
+      ? {
+          feedUrl: data.feedUrl,
+          title: data.title ?? null,
+        }
+      : null;
+  } catch {
+    return null;
+  }
 }
 
 export function CustomRssSources({ language }: CustomRssSourcesProps) {
   const copy = getCopy(language);
-  const [sources, setSources] = useState<CustomRssSource[]>(() =>
-    readCustomRssSources(),
-  );
+  const [sources, setSources] = useState<CustomRssSource[]>([]);
   const [form, setForm] = useState<CustomRssSourceInput>(EMPTY_FORM);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [resolving, setResolving] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const supabase = useMemo(() => (hasSupabaseConfig ? createClient() : null), []);
 
   useEffect(() => {
     if (!supabase) {
-      return;
+      const timer = window.setTimeout(() => {
+        setSources(readCustomRssSources());
+      }, 0);
+
+      return () => window.clearTimeout(timer);
     }
 
     supabase.auth.getUser().then(({ data }) => {
@@ -170,11 +238,35 @@ export function CustomRssSources({ language }: CustomRssSourcesProps) {
     setError(null);
   }
 
-  function submitSource() {
+  async function submitSource() {
     const trimmedName = form.name.trim();
     const trimmedUrl = form.url.trim();
+    let nextForm = form;
 
-    if (!trimmedName || !isValidRssUrl(trimmedUrl)) {
+    if (form.type === "youtube") {
+      if (!isLikelyYouTubeChannelInput(trimmedUrl)) {
+        setError(copy.youtubeInvalid);
+        return;
+      }
+
+      setResolving(true);
+      setError(null);
+
+      const resolved = await resolveYouTubeSource(trimmedUrl);
+      setResolving(false);
+
+      if (!resolved) {
+        setError(copy.youtubeInvalid);
+        return;
+      }
+
+      nextForm = {
+        ...form,
+        name: trimmedName || resolved.title || "YouTube Channel",
+        url: resolved.feedUrl,
+        type: "youtube",
+      };
+    } else if (!trimmedName || !isValidRssUrl(trimmedUrl)) {
       setError(copy.urlInvalid);
       return;
     }
@@ -182,11 +274,11 @@ export function CustomRssSources({ language }: CustomRssSourcesProps) {
     if (editingId) {
       persist(
         sources.map((source) =>
-          source.id === editingId ? updateCustomRssSource(source, form) : source,
+          source.id === editingId ? updateCustomRssSource(source, nextForm) : source,
         ),
       );
     } else {
-      persist([createCustomRssSource(form), ...sources]);
+      persist([createCustomRssSource(nextForm), ...sources]);
     }
 
     resetForm();
@@ -262,10 +354,28 @@ export function CustomRssSources({ language }: CustomRssSourcesProps) {
             </span>
             <input
               className="mt-2 min-h-10 w-full rounded-md border border-white/10 bg-background px-3 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
-              onChange={(event) => setForm({ ...form, url: event.target.value })}
-              placeholder={copy.urlPlaceholder}
+              onChange={(event) => {
+                const nextUrl = event.target.value;
+
+                setForm({
+                  ...form,
+                  url: nextUrl,
+                  type:
+                    form.type === "rss" && isLikelyYouTubeChannelInput(nextUrl)
+                      ? "youtube"
+                      : form.type,
+                });
+              }}
+              placeholder={
+                form.type === "youtube"
+                  ? "https://www.youtube.com/@Bankless or https://www.youtube.com/feeds/videos.xml?channel_id=..."
+                  : copy.urlPlaceholder
+              }
               value={form.url}
             />
+            {form.type === "youtube" ? (
+              <p className="mt-2 text-xs leading-5 text-muted-2">{copy.youtubeHelp}</p>
+            ) : null}
           </label>
 
           <label className="block min-w-0">
@@ -321,8 +431,13 @@ export function CustomRssSources({ language }: CustomRssSourcesProps) {
           </label>
 
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-            <Button className="w-full sm:w-auto" onClick={submitSource} type="button">
-              {editingId ? copy.save : copy.add}
+            <Button
+              className="w-full sm:w-auto"
+              disabled={resolving}
+              onClick={submitSource}
+              type="button"
+            >
+              {resolving ? copy.resolving : editingId ? copy.save : copy.add}
             </Button>
             {editingId ? (
               <Button

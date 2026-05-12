@@ -33,6 +33,7 @@ const SNS_CATEGORY_LABELS: Record<Language, Record<SnsVideo["category"], string>
 
 export function SNSCard({ language, video }: SNSCardProps) {
   const isYouTube = video.provider === "youtube";
+  const embedUrl = isYouTube ? getYouTubeEmbedUrl(video.url) : null;
   const providerLabel = isYouTube ? "YouTube" : "RSS";
   const openLabel =
     language === "ko"
@@ -45,15 +46,25 @@ export function SNSCard({ language, video }: SNSCardProps) {
 
   return (
     <article className="group grid min-w-0 gap-3 px-3 py-4 transition hover:bg-white/[0.03] sm:gap-4 sm:px-4 md:grid-cols-[13rem_minmax(0,1fr)] lg:grid-cols-[15rem_minmax(0,1fr)]">
-      <a href={video.url} rel="noreferrer" target="_blank">
-        {video.thumbnailUrl ? (
+      <div className="min-w-0">
+        {embedUrl ? (
+          <iframe
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowFullScreen
+            className="aspect-video w-full rounded-md border border-white/10 bg-black"
+            loading="lazy"
+            referrerPolicy="strict-origin-when-cross-origin"
+            src={embedUrl}
+            title={video.title}
+          />
+        ) : video.thumbnailUrl ? (
           <VideoThumbnail alt={video.title} src={video.thumbnailUrl} />
         ) : (
           <div className="flex aspect-video items-center justify-center rounded-md border border-white/10 bg-white/[0.04] px-4 text-center text-xs font-semibold uppercase tracking-[0.16em] text-muted">
             RSS
           </div>
         )}
-      </a>
+      </div>
 
       <div className="min-w-0">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
@@ -69,11 +80,17 @@ export function SNSCard({ language, video }: SNSCardProps) {
           </span>
         </div>
 
-        <a href={video.url} rel="noreferrer" target="_blank">
-          <h2 className="mt-3 break-words text-base font-semibold leading-snug text-ink transition group-hover:text-blue-100 sm:text-lg">
+        {isYouTube ? (
+          <h2 className="mt-3 break-words text-base font-semibold leading-snug text-ink sm:text-lg">
             {video.title}
           </h2>
-        </a>
+        ) : (
+          <a href={video.url} rel="noreferrer" target="_blank">
+            <h2 className="mt-3 break-words text-base font-semibold leading-snug text-ink transition group-hover:text-blue-100 sm:text-lg">
+              {video.title}
+            </h2>
+          </a>
+        )}
 
         <p className="mt-2 break-words text-sm leading-6 text-muted sm:line-clamp-2">
           {video.description}
@@ -92,18 +109,60 @@ export function SNSCard({ language, video }: SNSCardProps) {
           </div>
         ) : null}
 
-        <div className="mt-4">
-          <Button
-            className="min-h-10 w-full px-4 sm:w-auto"
-            href={video.url}
-            rel="noreferrer"
-            target="_blank"
-            variant="secondary"
-          >
-            {openLabel}
-          </Button>
-        </div>
+        {!isYouTube ? (
+          <div className="mt-4">
+            <Button
+              className="min-h-10 w-full px-4 sm:w-auto"
+              href={video.url}
+              rel="noreferrer"
+              target="_blank"
+              variant="secondary"
+            >
+              {openLabel}
+            </Button>
+          </div>
+        ) : null}
       </div>
     </article>
   );
+}
+
+function getYouTubeEmbedUrl(value: string) {
+  const videoId = getYouTubeVideoId(value);
+
+  return videoId ? `https://www.youtube-nocookie.com/embed/${videoId}` : null;
+}
+
+function getYouTubeVideoId(value: string) {
+  try {
+    const url = new URL(value);
+    const host = url.hostname.replace(/^www\./, "");
+
+    if (host === "youtu.be") {
+      return sanitizeYouTubeVideoId(url.pathname.slice(1));
+    }
+
+    if (
+      host === "youtube.com" ||
+      host === "m.youtube.com" ||
+      host === "youtube-nocookie.com"
+    ) {
+      const queryId = url.searchParams.get("v");
+
+      if (queryId) {
+        return sanitizeYouTubeVideoId(queryId);
+      }
+
+      const pathMatch = url.pathname.match(/\/(?:embed|shorts)\/([^/?#]+)/);
+      return sanitizeYouTubeVideoId(pathMatch?.[1]);
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function sanitizeYouTubeVideoId(value?: string | null) {
+  return value && /^[A-Za-z0-9_-]{11}$/.test(value) ? value : null;
 }
