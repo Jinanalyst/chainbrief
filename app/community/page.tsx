@@ -167,6 +167,7 @@ export default function CommunityPage() {
 
     return sortPostsForTab(filtered, activeTab);
   }, [activeTab, focusedTarget, posts, selectedArticleSlug]);
+  const analystTabActive = !focusedTarget && isAnalystTab(activeTab);
 
   const popularPosts = useMemo(() => {
     return [...posts]
@@ -256,6 +257,13 @@ export default function CommunityPage() {
                           : "No community posts yet. Share the first take."}
                     </p>
                   </Card>
+                ) : analystTabActive ? (
+                  <AnalystWorkList
+                    copy={copy}
+                    language={language}
+                    posts={visiblePosts}
+                    tier={activeTab}
+                  />
                 ) : (
                   visiblePosts.map((post) => (
                     <CommunityPostCard key={post.id} authorName={authorName} copy={copy} language={language} post={post} />
@@ -530,6 +538,144 @@ function RiskNotice() {
     <div className="rounded-md border border-amber-400/20 bg-amber-400/10 px-3 py-2">
       <p className="text-xs leading-5 text-amber-100">{INVESTMENT_NOTICE}</p>
     </div>
+  );
+}
+
+function AnalystWorkList({
+  posts,
+  tier,
+  language,
+  copy,
+}: {
+  posts: CommunityPost[];
+  tier: Extract<CommunityTab, "Rookie Analyst" | "Verified Analyst">;
+  language: "ko" | "en";
+  copy: ReturnType<typeof useI18n>["t"];
+}) {
+  const analystCount = new Set(posts.map((post) => post.author)).size;
+  const totalEngagement = posts.reduce((sum, post) => sum + Math.round(engagementScore(post)), 0);
+  const latestPost = posts.reduce<CommunityPost | null>((latest, post) => {
+    if (!latest) return post;
+    return new Date(post.publishedAt).getTime() > new Date(latest.publishedAt).getTime()
+      ? post
+      : latest;
+  }, null);
+
+  return (
+    <section className="grid min-w-0 gap-3">
+      <Card className="min-w-0 overflow-hidden border-accent/20 bg-[#07182a] p-0">
+        <div className="grid gap-4 p-4 sm:p-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge tone="accent">{tier}</Badge>
+              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-2">
+                Analyst Work
+              </span>
+            </div>
+            <h2 className="mt-3 text-xl font-semibold text-ink">
+              {tier === "Rookie Analyst" ? "Rookie analyst work" : "Verified analyst work"}
+            </h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
+              {language === "ko"
+                ? "Analyst posts are grouped here so readers can scan research, reviews, and market reasoning quickly."
+                : "A focused list of analyst posts, reviews, and research so readers can compare the work fast."}
+            </p>
+          </div>
+          <Button className="w-full sm:w-auto" href="/community/write" variant="secondary">
+            Write analyst post
+          </Button>
+        </div>
+        <div className="grid border-t border-white/10 sm:grid-cols-3">
+          <AnalystWorkStat label="Works" value={posts.length.toString()} />
+          <AnalystWorkStat label="Analysts" value={analystCount.toString()} />
+          <AnalystWorkStat
+            label="Latest"
+            value={latestPost ? formatRelativeTime(latestPost.publishedAt, language) : "-"}
+          />
+        </div>
+      </Card>
+
+      <div className="grid min-w-0 gap-3">
+        {posts.map((post, index) => (
+          <AnalystWorkItem
+            copy={copy}
+            index={index}
+            key={post.id}
+            language={language}
+            post={post}
+            totalEngagement={totalEngagement}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function AnalystWorkStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0 border-white/10 px-4 py-3 sm:border-l sm:first:border-l-0">
+      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-2">{label}</p>
+      <p className="mt-1 truncate text-lg font-semibold text-ink">{value}</p>
+    </div>
+  );
+}
+
+function AnalystWorkItem({
+  post,
+  index,
+  language,
+  copy,
+  totalEngagement,
+}: {
+  post: CommunityPost;
+  index: number;
+  language: "ko" | "en";
+  copy: ReturnType<typeof useI18n>["t"];
+  totalEngagement: number;
+}) {
+  const score = Math.round(engagementScore(post));
+  const share = totalEngagement > 0 ? Math.max(8, Math.round((score / totalEngagement) * 100)) : 8;
+
+  return (
+    <Card className="min-w-0 p-0">
+      <article className="grid min-w-0 gap-4 p-4 sm:p-5 md:grid-cols-[minmax(0,1fr)_12rem] md:items-start">
+        <div className="min-w-0">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-accent/30 bg-accent/15 text-xs font-bold text-blue-100">
+              {index + 1}
+            </span>
+            <span className="min-w-0 truncate text-sm font-semibold text-ink">{post.author}</span>
+            {post.analystTier ? <Badge tone="accent">{formatAnalystTier(post.analystTier)}</Badge> : null}
+            {post.postType ? <Badge tone="muted">{formatPostType(post.postType)}</Badge> : null}
+            <Badge tone={getBadgeTone(post.stance)}>{stanceLabel(post.stance, copy, language)}</Badge>
+          </div>
+          <h3 className="mt-3 break-words text-lg font-semibold leading-7 text-ink">{post.title}</h3>
+          <p className="mt-2 break-words text-sm leading-6 text-muted">{post.preview}</p>
+          <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-muted-2">
+            <span>{formatRelativeTime(post.publishedAt, language)}</span>
+            <span>{post.likes} likes</span>
+            <span>{post.commentsCount} {copy.community.comments}</span>
+            <span>{post.views} {copy.community.views}</span>
+            {post.relatedArticleSource ? <Badge tone="muted">{post.relatedArticleSource}</Badge> : null}
+          </div>
+        </div>
+
+        <aside className="min-w-0 rounded-md border border-white/10 bg-white/[0.03] p-3">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-2">
+              Work score
+            </span>
+            <span className="text-sm font-semibold text-blue-100">{score}</span>
+          </div>
+          <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
+            <span className="block h-full rounded-full bg-accent" style={{ width: `${share}%` }} />
+          </div>
+          <p className="mt-3 text-xs leading-5 text-muted">
+            {post.topic || getCategoryLabel(post.category, language)}
+          </p>
+        </aside>
+      </article>
+    </Card>
   );
 }
 
@@ -1155,6 +1301,10 @@ function filterPostsByTab(posts: CommunityPost[], tab: CommunityTab) {
         return true;
     }
   });
+}
+
+function isAnalystTab(tab: CommunityTab): tab is Extract<CommunityTab, "Rookie Analyst" | "Verified Analyst"> {
+  return tab === "Rookie Analyst" || tab === "Verified Analyst";
 }
 
 function isAnalysisPost(post: CommunityPost) {

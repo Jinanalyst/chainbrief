@@ -682,10 +682,8 @@ export function CommunityWriteStudio({
 
   // On mount, resolve the best available author name and save to localStorage
   useEffect(() => {
-    const saved = readAuthorName();
-    if (saved) {
-      setAuthorName(saved);
-      return; // localStorage name takes priority
+    if (readAuthorName()) {
+      return;
     }
     if (!supabase) return;
     supabase.auth.getUser().then(({ data }) => {
