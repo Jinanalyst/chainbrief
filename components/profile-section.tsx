@@ -59,10 +59,9 @@ const ZERO_SCORES: AnalystScores = {
 
 // ─── Live score algorithm ─────────────────────────────────────────────────────
 
-function computeAnalystScores(posts: CommunityPost[], authorName: string): AnalystScores {
-  const mine = posts.filter((p) =>
-    (p.author === authorName || (!authorName && p.author === "You")) && p.kind === "opinion",
-  );
+function computeAnalystScores(posts: CommunityPost[], authorKeys: string[]): AnalystScores {
+  const keySet = new Set(authorKeys);
+  const mine = posts.filter((p) => keySet.has(p.author) && p.kind === "opinion");
   if (!mine.length) return ZERO_SCORES;
 
   // 근거 충실도 — analysis post ratio + avg body depth
@@ -215,11 +214,14 @@ export function ProfileSection() {
     setBio(profile?.bio ?? "");
     setSocialLinks(profile?.socialLinks ?? DEFAULT_SOCIAL_LINKS);
 
+    // Build all author identifiers that could belong to this user
+    const authorKeys = [name, nextUser?.email ?? "", "You"].filter(Boolean);
+
     // Compute live analyst score from community posts
     const posts = readCommunityPosts();
     setAllPosts(posts);
-    setScores(computeAnalystScores(posts, name));
-    setPostCount(posts.filter((p) => (p.author === name || (!name && p.author === "You")) && p.kind === "opinion").length);
+    setScores(computeAnalystScores(posts, authorKeys));
+    setPostCount(posts.filter((p) => authorKeys.includes(p.author) && p.kind === "opinion").length);
   }, []);
 
   useEffect(() => {
@@ -288,12 +290,13 @@ export function ProfileSection() {
 
     setUser(data.user);
 
-    // Recompute scores after save with new display name
-    if (profile.displayName) {
+    // Recompute scores after save with updated display name
+    {
+      const authorKeys = [profile.displayName, data.user?.email ?? "", "You"].filter(Boolean);
       const posts = readCommunityPosts();
       setAllPosts(posts);
-      setScores(computeAnalystScores(posts, profile.displayName));
-      setPostCount(posts.filter((p) => p.author === profile.displayName && p.kind === "opinion").length);
+      setScores(computeAnalystScores(posts, authorKeys));
+      setPostCount(posts.filter((p) => authorKeys.includes(p.author) && p.kind === "opinion").length);
     }
 
     setMessage("Profile saved. Your Chain Brief identity is ready.");
@@ -524,16 +527,17 @@ export function ProfileSection() {
     </div>
 
     {/* ── Full-width post history ── */}
-    <PostHistorySection posts={allPosts} authorName={displayName} />
+    <PostHistorySection posts={allPosts} authorKeys={[displayName, user.email ?? "", "You"].filter(Boolean)} />
     </>
   );
 }
 
 // ─── Post history ─────────────────────────────────────────────────────────────
 
-function PostHistorySection({ posts, authorName }: { posts: CommunityPost[]; authorName: string }) {
+function PostHistorySection({ posts, authorKeys }: { posts: CommunityPost[]; authorKeys: string[] }) {
+  const keySet = new Set(authorKeys);
   const mine = posts
-    .filter((p) => p.author === authorName || (!authorName && p.author === "You"))
+    .filter((p) => keySet.has(p.author))
     .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
 
   return (
