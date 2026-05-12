@@ -7,6 +7,17 @@ export const COMMUNITY_QUOTE_CHANGED_EVENT = "chain-brief-community-quote-change
 
 export type CommunityPostKind = "opinion" | "repost" | "quote";
 export type CommunityStance = "Bullish" | "Bearish" | "Neutral" | "Question";
+export type CommunityAttachmentKind = "image" | "video";
+
+export type CommunityAttachment = {
+  id: string;
+  kind: CommunityAttachmentKind;
+  name: string;
+  mimeType: string;
+  dataUrl: string;
+  size: number;
+};
+
 export type CommunityPostType =
   | "general"
   | "news_interpretation"
@@ -45,6 +56,7 @@ export type CommunityPost = {
   relatedArticleTitle?: string;
   relatedArticleSource?: string;
   relatedArticleUrl?: string;
+  attachments?: CommunityAttachment[];
 };
 
 export type CommunityQuoteTarget = {
@@ -116,6 +128,7 @@ export function addOpinionPost(
     relatedArticleTitle?: string;
     relatedArticleSource?: string;
     relatedArticleUrl?: string;
+    attachments?: CommunityAttachment[];
   },
 ) {
   const title = options?.title ?? buildOpinionTitle(body);
@@ -144,6 +157,7 @@ export function addOpinionPost(
     relatedArticleTitle: options?.relatedArticleTitle,
     relatedArticleSource: options?.relatedArticleSource,
     relatedArticleUrl: options?.relatedArticleUrl,
+    attachments: options?.attachments ?? [],
   };
 
   const nextPosts = [nextPost, ...readCommunityPosts()];
@@ -392,7 +406,46 @@ function normalizeCommunityPost(value: unknown): CommunityPost | null {
     relatedArticleTitle: post.relatedArticleTitle,
     relatedArticleSource: post.relatedArticleSource,
     relatedArticleUrl: post.relatedArticleUrl,
+    attachments: normalizeAttachments(post.attachments),
   };
+}
+
+function normalizeAttachments(value: unknown): CommunityAttachment[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((item) => {
+      if (!item || typeof item !== "object") {
+        return null;
+      }
+
+      const attachment = item as Partial<CommunityAttachment>;
+      if (
+        typeof attachment.id !== "string" ||
+        typeof attachment.name !== "string" ||
+        typeof attachment.mimeType !== "string" ||
+        typeof attachment.dataUrl !== "string" ||
+        typeof attachment.size !== "number"
+      ) {
+        return null;
+      }
+
+      if (attachment.kind !== "image" && attachment.kind !== "video") {
+        return null;
+      }
+
+      return {
+        id: attachment.id,
+        kind: attachment.kind,
+        name: attachment.name,
+        mimeType: attachment.mimeType,
+        dataUrl: attachment.dataUrl,
+        size: attachment.size,
+      } satisfies CommunityAttachment;
+    })
+    .filter((item): item is CommunityAttachment => Boolean(item));
 }
 
 function truncate(value: string, maxLength: number) {

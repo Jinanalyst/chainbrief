@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
 import {
-  addOpinionPost,
   addQuotePost,
   clearCommunityQuoteTarget,
   COMMUNITY_POSTS_CHANGED_EVENT,
@@ -99,9 +98,6 @@ export default function CommunityPage() {
   const [posts, setPosts] = useState<CommunityPost[]>([]);
   const [quoteTarget, setQuoteTarget] = useState<CommunityQuoteTarget | null>(null);
   const [activeTab, setActiveTab] = useState<CommunityTab>("Latest");
-  const [title, setTitle] = useState("");
-  const [body, setBody] = useState("");
-  const [stance, setStance] = useState<CommunityStance>("Neutral");
   const [selectedArticleSlug] = useState<string | null>(() => {
     if (typeof window === "undefined") {
       return null;
@@ -155,52 +151,6 @@ export default function CommunityPage() {
       .slice(0, 5);
   }, [posts]);
 
-  function submitOpinion() {
-    const trimmedTitle = title.trim();
-    const trimmedBody = body.trim();
-
-    if (!trimmedTitle || !trimmedBody) {
-      return;
-    }
-
-    if (focusedTarget) {
-      addQuotePost(trimmedBody, focusedTarget, {
-        title: trimmedTitle,
-        stance,
-      });
-    } else {
-      addOpinionPost(trimmedBody, activeTab === "Latest" ? undefined : activeTab, {
-        title: trimmedTitle,
-        stance,
-        postType:
-          activeTab === "Chart Analysis"
-            ? "chart_analysis"
-            : activeTab === "Trade Review"
-              ? "trade_review"
-              : activeTab === "Loss Review"
-                ? "loss_review"
-                : activeTab === "News Reactions"
-                  ? "news_interpretation"
-                  : "general",
-        analystTier:
-          activeTab === "Rookie Analyst"
-            ? "rookie_analyst"
-            : activeTab === "Verified Analyst"
-              ? "verified_analyst"
-              : undefined,
-        discussionType:
-          activeTab === "Chart Analysis"
-            ? "analysis"
-            : activeTab === "News Reactions"
-              ? "news_reaction"
-              : "opinion",
-      });
-    }
-
-    setTitle("");
-    setBody("");
-  }
-
   function handleSidebarAction(action: SidebarAction) {
     switch (action) {
       case "guide":
@@ -250,38 +200,18 @@ export default function CommunityPage() {
                   <div className="lg:hidden">
                     <PopularPostsCard language={language} posts={popularPosts} />
                   </div>
-                  <OpinionComposer
-                    body={body}
-                    copy={copy}
-                    focusedTarget={null}
-                    language={language}
-                    onBodyChange={setBody}
-                    onClearTarget={() => undefined}
-                    onSubmit={submitOpinion}
-                    onTitleChange={setTitle}
-                    onStanceChange={setStance}
-                    stance={stance}
-                    title={title}
-                  />
+                  <WriteStudioCallout language={language} />
                 </div>
               ) : (
                 <div className="mt-4 grid gap-4">
                   <RelatedNewsCard copy={copy} language={language} target={focusedTarget} />
-                  <OpinionComposer
-                    body={body}
-                    copy={copy}
+                  <WriteStudioCallout
                     focusedTarget={focusedTarget}
                     language={language}
-                    onBodyChange={setBody}
                     onClearTarget={() => {
                       clearCommunityQuoteTarget();
                       setQuoteTarget(null);
                     }}
-                    onSubmit={submitOpinion}
-                    onTitleChange={setTitle}
-                    onStanceChange={setStance}
-                    stance={stance}
-                    title={title}
                   />
                 </div>
               )}
@@ -395,12 +325,56 @@ function CommunityBanner({ language }: { language: "ko" | "en" }) {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button href="/community/new" variant="primary">
+          <Button href="/community/write" variant="primary">
             {language === "ko" ? "글쓰기" : "Write post"}
           </Button>
           <Button href="#community-feed" variant="secondary">
             {language === "ko" ? "피드 보기" : "View feed"}
           </Button>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function WriteStudioCallout({
+  language,
+  focusedTarget,
+  onClearTarget,
+}: {
+  language: "ko" | "en";
+  focusedTarget?: CommunityQuoteTarget | null;
+  onClearTarget?: () => void;
+}) {
+  const writeHref = focusedTarget
+    ? `/community/write?articleSlug=${encodeURIComponent(focusedTarget.slug)}`
+    : "/community/write";
+
+  return (
+    <Card className="min-w-0 border-accent/20 bg-white/[0.03] p-4 sm:p-5">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">
+            {language === "ko" ? "Writing Studio" : "Writing Studio"}
+          </p>
+          <h3 className="mt-2 text-lg font-semibold text-ink">
+            {language === "ko"
+              ? "글쓰기는 별도 페이지에서 집중해서 작성하세요."
+              : "Write in a dedicated studio page."}
+          </h3>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
+            {language === "ko"
+              ? "이미지와 영상 첨부, 템플릿, 분석 방향 선택을 한 곳에 모았습니다."
+              : "Templates, attachments, and post direction live on a separate page."}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {onClearTarget && focusedTarget ? (
+            <Button variant="secondary" onClick={onClearTarget} type="button">
+              {language === "ko" ? "연결 해제" : "Clear target"}
+            </Button>
+          ) : null}
+          <Button href={writeHref}>{language === "ko" ? "쓰기 열기" : "Open writer"}</Button>
         </div>
       </div>
     </Card>
@@ -766,6 +740,32 @@ function CommunityPostCard({
             </div>
           ) : null}
 
+          {post.attachments?.length ? (
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              {post.attachments.map((attachment) => (
+                <figure
+                  key={attachment.id}
+                  className="overflow-hidden rounded-xl border border-white/10 bg-white/[0.03]"
+                >
+                  {attachment.kind === "image" ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      alt={attachment.name}
+                      className="aspect-video w-full object-cover"
+                      src={attachment.dataUrl}
+                    />
+                  ) : (
+                    <video className="aspect-video w-full bg-black object-cover" controls src={attachment.dataUrl} />
+                  )}
+                  <figcaption className="flex items-center justify-between gap-3 px-3 py-2 text-xs text-muted-2">
+                    <span className="truncate">{attachment.name}</span>
+                    <span>{attachment.kind === "image" ? "Image" : "Video"}</span>
+                  </figcaption>
+                </figure>
+              ))}
+            </div>
+          ) : null}
+
           <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-muted-2">
             <span>{post.likes} {language === "ko" ? "좋아요" : "likes"}</span>
             <span>{post.commentsCount} {copy.community.comments}</span>
@@ -900,7 +900,7 @@ function FloatingCommunityActions({ language }: { language: "ko" | "en" }) {
         ↑
       </button>
       <Link
-        href="/community/new"
+        href="/community/write"
         className="flex h-14 w-14 items-center justify-center rounded-full border border-accent/60 bg-accent text-xl font-semibold text-white shadow-[0_18px_40px_rgba(47,123,255,0.28)] transition hover:bg-blue-500"
         aria-label={language === "ko" ? "글쓰기" : "Write post"}
         title={language === "ko" ? "글쓰기" : "Write post"}
