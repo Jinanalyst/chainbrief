@@ -9,6 +9,8 @@ import { Card } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
 import {
   addQuotePost,
+  addThreadQuote,
+  addThreadRepost,
   clearCommunityQuoteTarget,
   COMMUNITY_POSTS_CHANGED_EVENT,
   COMMUNITY_QUOTE_CHANGED_EVENT,
@@ -17,6 +19,7 @@ import {
   type CommunityPost,
   type CommunityQuoteTarget,
   type CommunityStance,
+  type QuotedCommunityPostSnapshot,
 } from "@/lib/community";
 import { cn } from "@/lib/cn";
 import { formatLocalDateTime, formatRelativeTime, getCategoryLabel } from "@/lib/i18n";
@@ -683,16 +686,51 @@ function CommunityPostCard({
   language: "ko" | "en";
   copy: ReturnType<typeof useI18n>["t"];
 }) {
+  const [quoteOpen, setQuoteOpen] = useState(false);
+  const [quoteBody, setQuoteBody] = useState("");
+  const [quoteStance, setQuoteStance] = useState<CommunityStance>("Neutral");
+  const [reposted, setReposted] = useState(false);
+
+  const isRepost = post.kind === "thread_repost";
+  const isThreadQuote = post.kind === "thread_quote";
+  const canThread = !isRepost;
+
+  function handleRepost() {
+    if (reposted) return;
+    addThreadRepost(post);
+    setReposted(true);
+  }
+
+  function handleQuoteSubmit() {
+    const trimmed = quoteBody.trim();
+    if (!trimmed) return;
+    addThreadQuote(trimmed, post, { stance: quoteStance });
+    setQuoteOpen(false);
+    setQuoteBody("");
+    setQuoteStance("Neutral");
+  }
+
   return (
     <Card className="min-w-0 p-4 sm:p-5">
+      {isRepost ? (
+        <p className="mb-3 flex items-center gap-1.5 text-xs font-semibold text-muted-2">
+          <span>↺</span>
+          <span>{language === "ko" ? "회원님이 리포스트했습니다" : "You reposted"}</span>
+        </p>
+      ) : null}
+
       <div className="flex min-w-0 items-start gap-3">
         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-sm font-bold text-ink">
-          {post.avatar ?? avatarFromName(post.author)}
+          {isRepost && post.quotedCommunityPost
+            ? avatarFromName(post.quotedCommunityPost.author)
+            : (post.avatar ?? avatarFromName(post.author))}
         </div>
 
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-            <p className="text-sm font-semibold text-ink">{post.author}</p>
+            <p className="text-sm font-semibold text-ink">
+              {isRepost && post.quotedCommunityPost ? post.quotedCommunityPost.author : post.author}
+            </p>
             <span className="text-xs text-muted-2">
               {formatRelativeTime(post.publishedAt, language)}
             </span>
@@ -704,7 +742,9 @@ function CommunityPostCard({
             {post.postType ? <Badge tone="muted">{formatPostType(post.postType)}</Badge> : null}
           </div>
 
-          <h3 className="mt-3 break-words text-lg font-semibold text-ink">{post.title}</h3>
+          <h3 className="mt-3 break-words text-lg font-semibold text-ink">
+            {isRepost && post.quotedCommunityPost ? post.quotedCommunityPost.title : post.title}
+          </h3>
           <p
             className="mt-2 break-words text-sm leading-6 text-muted"
             style={{
@@ -714,7 +754,7 @@ function CommunityPostCard({
               overflow: "hidden",
             }}
           >
-            {post.preview}
+            {isRepost && post.quotedCommunityPost ? post.quotedCommunityPost.preview : post.preview}
           </p>
 
           {post.relatedArticleTitle ? (
@@ -766,6 +806,10 @@ function CommunityPostCard({
             </div>
           ) : null}
 
+          {(isThreadQuote || (!isRepost && post.quotedCommunityPost)) ? (
+            <QuotedPostEmbed language={language} snapshot={post.quotedCommunityPost!} />
+          ) : null}
+
           <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-muted-2">
             <span>{post.likes} {language === "ko" ? "좋아요" : "likes"}</span>
             <span>{post.commentsCount} {copy.community.comments}</span>
@@ -796,10 +840,134 @@ function CommunityPostCard({
               glyph="↗"
               onClick={() => sharePost(post)}
             />
+            {canThread ? (
+              <>
+                <IconButton
+                  active={reposted}
+                  glyph="↺"
+                  label={
+                    reposted
+                      ? (language === "ko" ? "리포스트됨" : "Reposted")
+                      : (language === "ko" ? "리포스트" : "Repost")
+                  }
+                  onClick={handleRepost}
+                />
+                <IconButton
+                  active={quoteOpen}
+                  glyph="❝"
+                  label={language === "ko" ? "인용" : "Quote"}
+                  onClick={() => setQuoteOpen((o) => !o)}
+                />
+              </>
+            ) : null}
           </div>
+
+          {quoteOpen ? (
+            <div className="mt-4 rounded-xl border border-accent/20 bg-accent/[0.06] p-4">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-accent">
+                {language === "ko" ? "인용 의견 작성" : "Add your quote"}
+              </p>
+              <textarea
+                autoFocus
+                className="min-h-24 w-full rounded-md border border-white/10 bg-background px-4 py-3 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
+                onChange={(e) => setQuoteBody(e.target.value)}
+                placeholder={
+                  language === "ko"
+                    ? "이 글에 대한 생각을 적어주세요…"
+                    : "Share your take on this post…"
+                }
+                value={quoteBody}
+              />
+              <div className="mt-3 flex flex-wrap gap-2">
+                {STANCES.map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    aria-pressed={quoteStance === s}
+                    onClick={() => setQuoteStance(s)}
+                    className={cn(
+                      "rounded-full border px-3 py-1.5 text-xs font-bold transition",
+                      quoteStance === s
+                        ? "border-accent/60 bg-accent/20 text-blue-100"
+                        : "border-white/10 bg-white/[0.03] text-muted hover:border-accent/50 hover:text-ink",
+                    )}
+                  >
+                    {language === "ko"
+                      ? s === "Bullish" ? "상승" : s === "Bearish" ? "하락" : s === "Neutral" ? "중립" : "질문"
+                      : s}
+                  </button>
+                ))}
+              </div>
+              <div className="mt-3 flex gap-2">
+                <Button onClick={handleQuoteSubmit} type="button">
+                  {language === "ko" ? "인용 게시" : "Post quote"}
+                </Button>
+                <Button
+                  onClick={() => { setQuoteOpen(false); setQuoteBody(""); }}
+                  type="button"
+                  variant="secondary"
+                >
+                  {language === "ko" ? "취소" : "Cancel"}
+                </Button>
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
     </Card>
+  );
+}
+
+function QuotedPostEmbed({
+  snapshot,
+  language,
+}: {
+  snapshot: QuotedCommunityPostSnapshot;
+  language: "ko" | "en";
+}) {
+  return (
+    <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.03] p-4">
+      <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-[0.6rem] font-bold text-ink">
+          {avatarFromName(snapshot.author)}
+        </div>
+        <p className="text-xs font-semibold text-ink">{snapshot.author}</p>
+        <span className="text-xs text-muted-2">{formatRelativeTime(snapshot.publishedAt, language)}</span>
+        {snapshot.stance ? (
+          <span
+            className={cn(
+              "rounded-full px-2 py-0.5 text-[0.65rem] font-bold",
+              snapshot.stance === "Bullish"
+                ? "bg-accent/15 text-blue-200"
+                : "bg-white/[0.06] text-muted-2",
+            )}
+          >
+            {language === "ko"
+              ? snapshot.stance === "Bullish" ? "상승"
+                : snapshot.stance === "Bearish" ? "하락"
+                : snapshot.stance === "Neutral" ? "중립"
+                : "질문"
+              : snapshot.stance}
+          </span>
+        ) : null}
+      </div>
+      <p className="mt-2 break-words text-sm font-semibold text-ink">{snapshot.title}</p>
+      <p className="mt-1 break-words text-xs leading-5 text-muted">{snapshot.preview}</p>
+      {snapshot.attachments?.length ? (
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          {snapshot.attachments.map((a) => (
+            <div key={a.id} className="overflow-hidden rounded-lg border border-white/10">
+              {a.kind === "image" ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img alt={a.name} className="aspect-video w-full object-cover" src={a.dataUrl} />
+              ) : (
+                <video className="aspect-video w-full bg-black" controls src={a.dataUrl} />
+              )}
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -915,10 +1083,12 @@ function IconButton({
   label,
   glyph,
   onClick,
+  active = false,
 }: {
   label: string;
   glyph: string;
   onClick?: () => void;
+  active?: boolean;
 }) {
   return (
     <button
@@ -926,7 +1096,12 @@ function IconButton({
       onClick={onClick}
       title={label}
       aria-label={label}
-      className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-sm text-muted transition hover:border-accent/50 hover:text-ink"
+      className={cn(
+        "inline-flex h-9 w-9 items-center justify-center rounded-full border text-sm transition",
+        active
+          ? "border-accent/60 bg-accent/15 text-blue-100"
+          : "border-white/10 bg-white/[0.03] text-muted hover:border-accent/50 hover:text-ink",
+      )}
     >
       {glyph}
     </button>

@@ -5,7 +5,18 @@ export const COMMUNITY_POSTS_CHANGED_EVENT = "chain-brief-community-posts-change
 export const COMMUNITY_QUOTE_STORAGE_KEY = "chain-brief-community-quote";
 export const COMMUNITY_QUOTE_CHANGED_EVENT = "chain-brief-community-quote-changed";
 
-export type CommunityPostKind = "opinion" | "repost" | "quote";
+export type CommunityPostKind = "opinion" | "repost" | "quote" | "thread_quote" | "thread_repost";
+
+export type QuotedCommunityPostSnapshot = {
+  id: string;
+  title: string;
+  author: string;
+  preview: string;
+  stance?: CommunityStance;
+  publishedAt: string;
+  category: string;
+  attachments?: CommunityAttachment[];
+};
 export type CommunityStance = "Bullish" | "Bearish" | "Neutral" | "Question";
 export type CommunityAttachmentKind = "image" | "video";
 
@@ -57,6 +68,7 @@ export type CommunityPost = {
   relatedArticleSource?: string;
   relatedArticleUrl?: string;
   attachments?: CommunityAttachment[];
+  quotedCommunityPost?: QuotedCommunityPostSnapshot;
 };
 
 export type CommunityQuoteTarget = {
@@ -73,13 +85,13 @@ export type CommunityQuoteTarget = {
 
 export function readCommunityPosts(): CommunityPost[] {
   if (typeof window === "undefined") {
-    return MOCK_COMMUNITY_POSTS;
+    return [];
   }
 
   const stored = window.localStorage.getItem(COMMUNITY_POSTS_STORAGE_KEY);
 
   if (!stored) {
-    return MOCK_COMMUNITY_POSTS;
+    return [];
   }
 
   try {
@@ -90,9 +102,9 @@ export function readCommunityPosts(): CommunityPost[] {
           .map(normalizeCommunityPost)
           .filter((post): post is CommunityPost => Boolean(post))
           .sort(sortPostsNewestFirst)
-      : MOCK_COMMUNITY_POSTS;
+      : [];
   } catch {
-    return MOCK_COMMUNITY_POSTS;
+    return [];
   }
 }
 
@@ -102,15 +114,31 @@ export function writeCommunityPosts(posts: CommunityPost[]) {
   }
 
   const nextPosts = posts.slice(0, 100).sort(sortPostsNewestFirst);
-  window.localStorage.setItem(
-    COMMUNITY_POSTS_STORAGE_KEY,
-    JSON.stringify(nextPosts),
-  );
-  window.dispatchEvent(
-    new CustomEvent(COMMUNITY_POSTS_CHANGED_EVENT, {
-      detail: nextPosts,
-    }),
-  );
+
+  const trySet = (data: CommunityPost[]) => {
+    window.localStorage.setItem(COMMUNITY_POSTS_STORAGE_KEY, JSON.stringify(data));
+  };
+
+  try {
+    trySet(nextPosts);
+  } catch {
+    // Quota exceeded — keep attachments on the 5 most recent, strip the rest
+    try {
+      const stripped = nextPosts.map((p, i) =>
+        i < 5 ? p : { ...p, attachments: [] as CommunityAttachment[] },
+      );
+      trySet(stripped);
+    } catch {
+      // Still failing — strip all attachment data
+      try {
+        trySet(nextPosts.map((p) => ({ ...p, attachments: [] as CommunityAttachment[] })));
+      } catch {
+        // Nothing we can do; storage is full
+      }
+    }
+  }
+
+  window.dispatchEvent(new CustomEvent(COMMUNITY_POSTS_CHANGED_EVENT, { detail: nextPosts }));
 }
 
 export function addOpinionPost(
@@ -205,6 +233,89 @@ export function addQuotePost(
     relatedArticleTitle: target.title,
     relatedArticleSource: target.sourceName,
     relatedArticleUrl: target.originalUrl,
+  };
+
+  const nextPosts = [nextPost, ...readCommunityPosts()];
+  writeCommunityPosts(nextPosts);
+  return nextPost;
+}
+
+export function addThreadRepost(originalPost: CommunityPost) {
+  const snapshot: QuotedCommunityPostSnapshot = {
+    id: originalPost.id,
+    title: originalPost.title,
+    author: originalPost.author,
+    preview: originalPost.preview,
+    stance: originalPost.stance,
+    publishedAt: originalPost.publishedAt,
+    category: originalPost.category,
+    attachments: originalPost.attachments,
+  };
+
+  const nextPost: CommunityPost = {
+    id: createPostId(),
+    slug: slugify(`repost-${originalPost.slug}`),
+    title: originalPost.title,
+    body: originalPost.body,
+    preview: originalPost.preview,
+    author: "You",
+    avatar: "CB",
+    category: originalPost.category,
+    publishedAt: new Date().toISOString(),
+    likes: 0,
+    commentsCount: 0,
+    views: 0,
+    tags: originalPost.tags,
+    createdAt: new Date().toISOString(),
+    kind: "thread_repost",
+    postType: originalPost.postType,
+    stance: originalPost.stance,
+    topic: originalPost.topic,
+    quotedCommunityPost: snapshot,
+  };
+
+  const nextPosts = [nextPost, ...readCommunityPosts()];
+  writeCommunityPosts(nextPosts);
+  return nextPost;
+}
+
+export function addThreadQuote(
+  body: string,
+  originalPost: CommunityPost,
+  options?: { stance?: CommunityStance; author?: string },
+) {
+  const snapshot: QuotedCommunityPostSnapshot = {
+    id: originalPost.id,
+    title: originalPost.title,
+    author: originalPost.author,
+    preview: originalPost.preview,
+    stance: originalPost.stance,
+    publishedAt: originalPost.publishedAt,
+    category: originalPost.category,
+    attachments: originalPost.attachments,
+  };
+
+  const trimmed = body.trim();
+  const nextPost: CommunityPost = {
+    id: createPostId(),
+    slug: slugify(`quote-${originalPost.slug}-${truncate(trimmed, 40)}`),
+    title: truncate(trimmed, 70) || `Thoughts on "${originalPost.title}"`,
+    body: trimmed,
+    preview: truncate(trimmed, 120),
+    author: options?.author ?? "You",
+    avatar: "CB",
+    category: originalPost.category,
+    publishedAt: new Date().toISOString(),
+    likes: 0,
+    commentsCount: 0,
+    views: 0,
+    tags: originalPost.tags,
+    createdAt: new Date().toISOString(),
+    kind: "thread_quote",
+    postType: "general",
+    stance: options?.stance ?? "Neutral",
+    topic: originalPost.topic,
+    quotedCommunityPost: snapshot,
   };
 
   const nextPosts = [nextPost, ...readCommunityPosts()];
@@ -336,7 +447,7 @@ function isCommunityPost(value: unknown): value is CommunityPost {
     typeof post.commentsCount === "number" &&
     typeof post.views === "number" &&
     Array.isArray(post.tags) &&
-    (post.kind === "opinion" || post.kind === "repost" || post.kind === "quote")
+    (post.kind === "opinion" || post.kind === "repost" || post.kind === "quote" || post.kind === "thread_quote" || post.kind === "thread_repost")
   );
 }
 
@@ -391,7 +502,13 @@ function normalizeCommunityPost(value: unknown): CommunityPost | null {
     views: typeof post.views === "number" ? post.views : 0,
     tags: Array.isArray(post.tags) ? post.tags.filter((tag): tag is string => typeof tag === "string") : [],
     createdAt,
-    kind: post.kind === "repost" || post.kind === "quote" ? post.kind : "opinion",
+    kind:
+      post.kind === "repost" ||
+      post.kind === "quote" ||
+      post.kind === "thread_quote" ||
+      post.kind === "thread_repost"
+        ? post.kind
+        : "opinion",
     postType: post.postType,
     analystTier: post.analystTier,
     topic: post.topic,
@@ -407,6 +524,7 @@ function normalizeCommunityPost(value: unknown): CommunityPost | null {
     relatedArticleSource: post.relatedArticleSource,
     relatedArticleUrl: post.relatedArticleUrl,
     attachments: normalizeAttachments(post.attachments),
+    quotedCommunityPost: normalizeQuotedSnapshot(post.quotedCommunityPost),
   };
 }
 
@@ -448,6 +566,35 @@ function normalizeAttachments(value: unknown): CommunityAttachment[] {
     .filter((item): item is CommunityAttachment => Boolean(item));
 }
 
+function normalizeQuotedSnapshot(value: unknown): QuotedCommunityPostSnapshot | undefined {
+  if (!value || typeof value !== "object") {
+    return undefined;
+  }
+
+  const snap = value as Partial<QuotedCommunityPostSnapshot>;
+  if (
+    typeof snap.id !== "string" ||
+    typeof snap.title !== "string" ||
+    typeof snap.author !== "string" ||
+    typeof snap.preview !== "string" ||
+    typeof snap.publishedAt !== "string" ||
+    typeof snap.category !== "string"
+  ) {
+    return undefined;
+  }
+
+  return {
+    id: snap.id,
+    title: snap.title,
+    author: snap.author,
+    preview: snap.preview,
+    stance: snap.stance,
+    publishedAt: snap.publishedAt,
+    category: snap.category,
+    attachments: normalizeAttachments(snap.attachments),
+  };
+}
+
 function truncate(value: string, maxLength: number) {
   return value.length > maxLength ? `${value.slice(0, maxLength - 1).trim()}…` : value;
 }
@@ -469,120 +616,4 @@ function slugify(value: string) {
     .slice(0, 80) || `discussion-${Date.now()}`;
 }
 
-const MOCK_COMMUNITY_POSTS: CommunityPost[] = [
-  {
-    id: "mock-community-1",
-    slug: "bitcoin-etf-flows-reset-the-weekly-market-narrative",
-    title: "Bitcoin ETF flows reset the weekly market narrative",
-    body: "ETF flows still look like the cleanest short-term signal for BTC momentum.",
-    preview: "ETF flows still look like the cleanest short-term signal for BTC momentum.",
-    author: "Chain Brief",
-    category: "Bitcoin",
-    publishedAt: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
-    likes: 48,
-    commentsCount: 12,
-    views: 240,
-    tags: ["Bitcoin", "News Reactions"],
-    createdAt: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
-    kind: "quote",
-    postType: "news_interpretation",
-    analystTier: "verified_analyst",
-    stance: "Bullish",
-    discussionType: "news_reaction",
-    sourceName: "CoinDesk",
-    articleTitle: "Bitcoin ETF flows reset the weekly market narrative",
-    articleUrl: "#",
-    articleCategory: "Bitcoin",
-    articleSummary: "ETF inflows and market structure are shaping the near-term BTC debate.",
-    relatedArticleSlug: "bitcoin-etf-flows-reset-the-weekly-market-narrative",
-    relatedArticleTitle: "Bitcoin ETF flows reset the weekly market narrative",
-    relatedArticleSource: "CoinDesk",
-    relatedArticleUrl: "#",
-  },
-  {
-    id: "mock-community-2",
-    slug: "ethereum-rollup-economics-and-liquidity-rotation",
-    title: "Ethereum rollup economics and liquidity rotation",
-    body: "I think liquidity is still rotating toward ETH infrastructure plays.",
-    preview: "I think liquidity is still rotating toward ETH infrastructure plays.",
-    author: "Market Watcher",
-    category: "Ethereum",
-    publishedAt: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
-    likes: 31,
-    commentsCount: 8,
-    views: 180,
-    tags: ["Ethereum", "Analysis"],
-    createdAt: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
-    kind: "opinion",
-    postType: "chart_analysis",
-    analystTier: "rising_analyst",
-    stance: "Bullish",
-    discussionType: "analysis",
-    sourceName: "Community",
-  },
-  {
-    id: "mock-community-3",
-    slug: "stablecoin-bill-senate-negotiations",
-    title: "Stablecoin bill moves into final Senate negotiations",
-    body: "Question is whether the final language changes issuer requirements materially.",
-    preview: "Question is whether the final language changes issuer requirements materially.",
-    author: "Policy Lens",
-    category: "Regulation",
-    publishedAt: new Date(Date.now() - 1000 * 60 * 20).toISOString(),
-    likes: 22,
-    commentsCount: 17,
-    views: 144,
-    tags: ["Regulation", "Questions"],
-    createdAt: new Date(Date.now() - 1000 * 60 * 20).toISOString(),
-    kind: "opinion",
-    postType: "risk_analysis",
-    analystTier: "rookie_analyst",
-    stance: "Question",
-    discussionType: "question",
-    sourceName: "Community",
-  },
-  {
-    id: "mock-community-4",
-    slug: "cpi-impact-bitcoin-volatility",
-    title: "이번 CPI가 비트코인에 미칠 영향",
-    body: "매크로 이벤트는 짧게 보면 변동성, 길게 보면 금리 기대를 다시 건드립니다.",
-    preview: "매크로 이벤트는 짧게 보면 변동성, 길게 보면 금리 기대를 다시 건드립니다.",
-    author: "Macro Desk",
-    avatar: "MD",
-    category: "Macro",
-    publishedAt: new Date(Date.now() - 1000 * 60 * 95).toISOString(),
-    likes: 36,
-    commentsCount: 14,
-    views: 211,
-    tags: ["Macro", "Event"],
-    createdAt: new Date(Date.now() - 1000 * 60 * 95).toISOString(),
-    kind: "opinion",
-    postType: "trade_review",
-    analystTier: "rookie_analyst",
-    stance: "Neutral",
-    discussionType: "event",
-    sourceName: "Community",
-  },
-  {
-    id: "mock-community-5",
-    slug: "solana-ecosystem-rotation-possible",
-    title: "Solana 생태계 회전 가능성",
-    body: "SOL이 다시 생태계 자금 순환의 중심으로 돌아올 구간인지 봐야 합니다.",
-    preview: "SOL이 다시 생태계 자금 순환의 중심으로 돌아올 구간인지 봐야 합니다.",
-    author: "On-chain Note",
-    avatar: "ON",
-    category: "Solana",
-    publishedAt: new Date(Date.now() - 1000 * 60 * 165).toISOString(),
-    likes: 29,
-    commentsCount: 9,
-    views: 158,
-    tags: ["Solana", "Analysis"],
-    createdAt: new Date(Date.now() - 1000 * 60 * 165).toISOString(),
-    kind: "opinion",
-    postType: "chart_analysis",
-    analystTier: "rising_analyst",
-    stance: "Bullish",
-    discussionType: "analysis",
-    sourceName: "Community",
-  },
-];
+// Community feed starts empty and fills with real user posts.
