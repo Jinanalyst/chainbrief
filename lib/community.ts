@@ -240,7 +240,7 @@ export function addQuotePost(
   return nextPost;
 }
 
-export function addThreadRepost(originalPost: CommunityPost) {
+export function addThreadRepost(originalPost: CommunityPost, options?: { author?: string }) {
   const snapshot: QuotedCommunityPostSnapshot = {
     id: originalPost.id,
     title: originalPost.title,
@@ -258,7 +258,7 @@ export function addThreadRepost(originalPost: CommunityPost) {
     title: originalPost.title,
     body: originalPost.body,
     preview: originalPost.preview,
-    author: "You",
+    author: options?.author ?? "You",
     avatar: "CB",
     category: originalPost.category,
     publishedAt: new Date().toISOString(),

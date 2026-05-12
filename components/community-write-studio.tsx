@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -13,6 +13,8 @@ import {
   type CommunityStance,
 } from "@/lib/community";
 import { cn } from "@/lib/cn";
+import { createClient } from "@/lib/supabase/client";
+import { hasSupabaseConfig } from "@/lib/supabase/config";
 
 // ─── Block types ──────────────────────────────────────────────────────────────
 
@@ -670,7 +672,25 @@ export function CommunityWriteStudio({
   initialPostType?: CommunityPostType;
 }) {
   const router = useRouter();
+  const supabase = useMemo(() => (hasSupabaseConfig ? createClient() : null), []);
   const dragIndexRef = useRef<number | null>(null);
+  const [authorName, setAuthorName] = useState("You");
+
+  useEffect(() => {
+    if (!supabase) return;
+    supabase.auth.getUser().then(({ data }) => {
+      const user = data.user;
+      if (!user) return;
+      const profile = user.user_metadata?.chainBriefProfile as { displayName?: string } | undefined;
+      const name =
+        profile?.displayName ??
+        (typeof user.user_metadata?.name === "string" ? user.user_metadata.name : null) ??
+        (typeof user.user_metadata?.full_name === "string" ? user.user_metadata.full_name : null) ??
+        user.email ??
+        "You";
+      setAuthorName(name);
+    });
+  }, [supabase]);
 
   const [title, setTitle] = useState("");
   const [topic, setTopic] = useState("Bitcoin");
@@ -754,6 +774,7 @@ export function CommunityWriteStudio({
 
     addOpinionPost(body, topic, {
       title: trimmedTitle,
+      author: authorName,
       stance,
       postType,
       analystTier:

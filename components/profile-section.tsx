@@ -60,7 +60,9 @@ const ZERO_SCORES: AnalystScores = {
 // ─── Live score algorithm ─────────────────────────────────────────────────────
 
 function computeAnalystScores(posts: CommunityPost[], authorName: string): AnalystScores {
-  const mine = posts.filter((p) => p.author === authorName && p.kind === "opinion");
+  const mine = posts.filter((p) =>
+    (p.author === authorName || (!authorName && p.author === "You")) && p.kind === "opinion",
+  );
   if (!mine.length) return ZERO_SCORES;
 
   // 근거 충실도 — analysis post ratio + avg body depth
@@ -216,10 +218,8 @@ export function ProfileSection() {
     // Compute live analyst score from community posts
     const posts = readCommunityPosts();
     setAllPosts(posts);
-    if (name) {
-      setScores(computeAnalystScores(posts, name));
-      setPostCount(posts.filter((p) => p.author === name && p.kind === "opinion").length);
-    }
+    setScores(computeAnalystScores(posts, name));
+    setPostCount(posts.filter((p) => (p.author === name || (!name && p.author === "You")) && p.kind === "opinion").length);
   }, []);
 
   useEffect(() => {
@@ -533,7 +533,7 @@ export function ProfileSection() {
 
 function PostHistorySection({ posts, authorName }: { posts: CommunityPost[]; authorName: string }) {
   const mine = posts
-    .filter((p) => p.author === authorName)
+    .filter((p) => p.author === authorName || (!authorName && p.author === "You"))
     .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
 
   return (

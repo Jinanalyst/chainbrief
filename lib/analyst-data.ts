@@ -88,7 +88,7 @@ export async function ensureProfileRow(
   supabase: Awaited<ReturnType<typeof getSupabase>>,
   userId: string,
   input: { username: string | null },
-) {
+): Promise<ProfileRow | null> {
   const { data: existing } = await supabase.from("profiles").select("id, username, avatar_url, role").eq("id", userId).maybeSingle();
 
   if (existing) {
@@ -106,7 +106,7 @@ export async function ensureProfileRow(
     .single();
 
   if (error) {
-    throw error;
+    return null;
   }
 
   return data as ProfileRow;
@@ -125,7 +125,7 @@ export async function getLatestApplicationForUser(userId: string) {
     .maybeSingle();
 
   if (error) {
-    throw error;
+    return null;
   }
 
   return (data as AnalystApplicationRow | null) ?? null;
@@ -133,46 +133,34 @@ export async function getLatestApplicationForUser(userId: string) {
 
 export async function listAnalystApplicationsForAdmin() {
   const supabase = await getSupabase();
-  const { data, error } = await supabase
+  const { data } = await supabase
     .from("analyst_applications")
     .select(
       "id, user_id, full_name, twitter_handle, expertise_areas, experience_years, bio, sample_link, motivation, status, rejection_reason, applied_at, reviewed_at",
     )
     .order("applied_at", { ascending: false });
 
-  if (error) {
-    throw error;
-  }
-
   return (data ?? []) as AnalystApplicationRow[];
 }
 
 export async function getProfileById(userId: string) {
   const supabase = await getSupabase();
-  const { data, error } = await supabase
+  const { data } = await supabase
     .from("profiles")
     .select("id, username, avatar_url, role")
     .eq("id", userId)
     .maybeSingle();
-
-  if (error) {
-    throw error;
-  }
 
   return (data as ProfileRow | null) ?? null;
 }
 
 export async function getAnalystSettings(userId: string) {
   const supabase = await getSupabase();
-  const { data, error } = await supabase
+  const { data } = await supabase
     .from("analyst_profiles")
     .select("analyst_id, membership_enabled, membership_price_usd, membership_description, updated_at")
     .eq("analyst_id", userId)
     .maybeSingle();
-
-  if (error) {
-    throw error;
-  }
 
   return (data as AnalystProfileRow | null) ?? null;
 }
@@ -186,7 +174,7 @@ export async function upsertAnalystSettings(
   },
 ) {
   const supabase = await getSupabase();
-  const { data, error } = await supabase
+  const { data } = await supabase
     .from("analyst_profiles")
     .upsert({
       analyst_id: userId,
@@ -197,10 +185,6 @@ export async function upsertAnalystSettings(
     })
     .select("analyst_id, membership_enabled, membership_price_usd, membership_description, updated_at")
     .single();
-
-  if (error) {
-    throw error;
-  }
 
   return data as AnalystProfileRow;
 }
@@ -345,14 +329,10 @@ async function listSubscriberProfiles(userIds: string[]) {
   }
 
   const supabase = await getSupabase();
-  const { data, error } = await supabase
+  const { data } = await supabase
     .from("profiles")
     .select("id, username, avatar_url")
     .in("id", userIds);
-
-  if (error) {
-    throw error;
-  }
 
   return (data ?? []).reduce<Record<string, Pick<ProfileRow, "username" | "avatar_url">>>(
     (accumulator, item) => {

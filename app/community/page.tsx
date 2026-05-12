@@ -24,6 +24,8 @@ import {
 import { cn } from "@/lib/cn";
 import { formatLocalDateTime, formatRelativeTime, getCategoryLabel } from "@/lib/i18n";
 import { useI18n, usePreferences } from "@/lib/i18n/use-i18n";
+import { createClient } from "@/lib/supabase/client";
+import { hasSupabaseConfig } from "@/lib/supabase/config";
 
 type CommunityTab =
   | "Latest"
@@ -97,6 +99,24 @@ const EXPLORE_ITEMS: Array<{
 export default function CommunityPage() {
   const [preferences] = usePreferences();
   const { t: copy, language } = useI18n(preferences.language);
+  const supabase = useMemo(() => (hasSupabaseConfig ? createClient() : null), []);
+  const [authorName, setAuthorName] = useState("You");
+
+  useEffect(() => {
+    if (!supabase) return;
+    supabase.auth.getUser().then(({ data }) => {
+      const user = data.user;
+      if (!user) return;
+      const profile = user.user_metadata?.chainBriefProfile as { displayName?: string } | undefined;
+      const name =
+        profile?.displayName ??
+        (typeof user.user_metadata?.name === "string" ? user.user_metadata.name : null) ??
+        (typeof user.user_metadata?.full_name === "string" ? user.user_metadata.full_name : null) ??
+        user.email ??
+        "You";
+      setAuthorName(name);
+    });
+  }, [supabase]);
 
   const [posts, setPosts] = useState<CommunityPost[]>([]);
   const [quoteTarget, setQuoteTarget] = useState<CommunityQuoteTarget | null>(null);
@@ -238,7 +258,7 @@ export default function CommunityPage() {
                   </Card>
                 ) : (
                   visiblePosts.map((post) => (
-                    <CommunityPostCard key={post.id} copy={copy} language={language} post={post} />
+                    <CommunityPostCard key={post.id} authorName={authorName} copy={copy} language={language} post={post} />
                   ))
                 )}
               </div>
@@ -681,10 +701,12 @@ function CommunityPostCard({
   post,
   language,
   copy,
+  authorName,
 }: {
   post: CommunityPost;
   language: "ko" | "en";
   copy: ReturnType<typeof useI18n>["t"];
+  authorName: string;
 }) {
   const [quoteOpen, setQuoteOpen] = useState(false);
   const [quoteBody, setQuoteBody] = useState("");
@@ -697,14 +719,14 @@ function CommunityPostCard({
 
   function handleRepost() {
     if (reposted) return;
-    addThreadRepost(post);
+    addThreadRepost(post, { author: authorName });
     setReposted(true);
   }
 
   function handleQuoteSubmit() {
     const trimmed = quoteBody.trim();
     if (!trimmed) return;
-    addThreadQuote(trimmed, post, { stance: quoteStance });
+    addThreadQuote(trimmed, post, { stance: quoteStance, author: authorName });
     setQuoteOpen(false);
     setQuoteBody("");
     setQuoteStance("Neutral");
