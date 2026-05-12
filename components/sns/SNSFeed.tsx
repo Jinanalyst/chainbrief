@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { BrandLogo } from "@/components/brand-logo";
 import { CategoryTabs } from "@/components/sns/CategoryTabs";
 import { SNSCard } from "@/components/sns/SNSCard";
 import { SourceBadge } from "@/components/sns/SourceBadge";
@@ -100,14 +99,6 @@ export function SNSFeed() {
   return (
     <section className="border-t border-white/10 bg-background/72">
       <Container className="min-w-0 pb-10 pt-4 sm:pb-12 sm:pt-5 lg:pb-16">
-        <div className="mb-5 flex min-w-0 flex-col gap-4 border-b border-white/10 pb-5 sm:mb-6 sm:flex-row sm:items-end sm:justify-between">
-          <BrandLogo full className="max-w-full sm:max-w-[22rem]" />
-          <p className="max-w-xl text-sm leading-6 text-muted">
-            A fast research feed for crypto creator and protocol content,
-            starting with official YouTube RSS feeds.
-          </p>
-        </div>
-
         <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">
