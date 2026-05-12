@@ -1,17 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import type { User } from "@supabase/supabase-js";
 import { BrandLogo } from "@/components/brand-logo";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { cn } from "@/lib/cn";
 import { useI18n, usePreferences } from "@/lib/i18n/use-i18n";
+import { createClient } from "@/lib/supabase/client";
+import { hasSupabaseConfig } from "@/lib/supabase/config";
 
 export function Header() {
   const [preferences, setPreferences] = usePreferences();
   const { t: copy } = useI18n(preferences.language);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const supabase = useMemo(() => (hasSupabaseConfig ? createClient() : null), []);
 
   const navItems = [
     { href: "/", label: copy.nav.home },
@@ -19,10 +24,38 @@ export function Header() {
     { href: "/community", label: copy.nav.community },
     { href: "/sns", label: copy.nav.sns },
     { href: "/settings", label: copy.nav.settings },
+    ...(user ? [{ href: "/profile", label: "Profile" }] : []),
   ];
 
   function setLanguage(language: typeof preferences.language) {
     setPreferences({ ...preferences, language });
+  }
+
+  useEffect(() => {
+    if (!supabase) {
+      return;
+    }
+
+    supabase.auth.getUser().then(({ data }) => {
+      setUser(data.user);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, [supabase]);
+
+  async function signOut() {
+    if (!supabase) {
+      return;
+    }
+
+    await supabase.auth.signOut();
+    closeMenu();
   }
 
   function closeMenu() {
@@ -66,9 +99,20 @@ export function Header() {
               </button>
             ))}
           </div>
-          <Button className="hidden sm:inline-flex" href="/login" variant="secondary">
-            {copy.nav.login}
-          </Button>
+          {user ? (
+            <div className="hidden items-center gap-2 sm:flex">
+              <Button className="max-w-36 truncate px-3" href="/profile" variant="secondary">
+                Profile
+              </Button>
+              <Button className="max-w-32 truncate px-3" onClick={signOut} type="button" variant="secondary">
+                Sign out
+              </Button>
+            </div>
+          ) : (
+            <Button className="hidden sm:inline-flex" href="/login" variant="secondary">
+              {copy.nav.login}
+            </Button>
+          )}
           <button
             aria-expanded={menuOpen}
             aria-label="Toggle navigation menu"
@@ -119,9 +163,20 @@ export function Header() {
                   {item.label}
                 </Link>
               ))}
-              <Button className="mt-1 w-full" href="/login" onClick={closeMenu} variant="secondary">
-                {copy.nav.login}
-              </Button>
+              {user ? (
+                <div className="mt-1 grid gap-2">
+                  <Button className="w-full" href="/profile" onClick={closeMenu} variant="secondary">
+                    Profile
+                  </Button>
+                  <Button className="w-full" onClick={signOut} type="button" variant="secondary">
+                    Sign out
+                  </Button>
+                </div>
+              ) : (
+                <Button className="mt-1 w-full" href="/login" onClick={closeMenu} variant="secondary">
+                  {copy.nav.login}
+                </Button>
+              )}
             </nav>
           </Container>
         </div>

@@ -1,7 +1,7 @@
 import { Header } from "@/components/header";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
+import { LoginForm } from "@/components/login-form";
 
 export default function LoginPage() {
   return (
@@ -13,14 +13,16 @@ export default function LoginPage() {
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">
               Account
             </p>
-            <h1 className="mt-3 text-2xl font-semibold text-ink">Log in</h1>
+            <h1 className="mt-3 text-2xl font-semibold text-ink">
+              Log in with Google
+            </h1>
             <p className="mt-3 text-sm leading-6 text-muted">
-              Supabase authentication will be connected here. For now, Chain Brief
-              keeps preferences in this browser.
+              Chain Brief uses Supabase Auth with Google OAuth. Email login is
+              available as a fallback while account features are being connected.
             </p>
-            <Button className="mt-6 w-full" href="/briefs" variant="secondary">
-              Back to briefs
-            </Button>
+            <div className="mt-6">
+              <LoginForm />
+            </div>
           </Card>
         </Container>
       </section>
