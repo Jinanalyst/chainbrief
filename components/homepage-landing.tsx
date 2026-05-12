@@ -23,26 +23,62 @@ const heroCards = [
 ];
 
 const keyPoints = [
-  "Personalized RSS feeds",
-  "Research-focused discovery",
-  "Fast market context",
+  {
+    title: "Easy to start, no crypto knowledge required",
+    text: "Your first brief takes less than two minutes to read. No jargon, no experience needed — just plain language and today's most important stories.",
+  },
+  {
+    title: "Learn gradually through daily reading habits",
+    text: "Small steps add up. Read one brief today, follow a topic tomorrow, and within weeks you'll have a real understanding of how the market moves.",
+  },
+  {
+    title: "Build your investment perspective over time",
+    text: "Anyone can become a crypto expert through consistent learning. Chain Brief gives you the daily habit that makes it possible.",
+  },
 ];
 
 const steps = [
   {
     label: "01",
-    title: "Choose your sources",
-    text: "Start with trusted crypto news and YouTube research feeds.",
+    title: "Pick what interests you",
+    text: "Choose from beginner-friendly news sources or research feeds. No prior knowledge needed — curiosity is enough to start.",
   },
   {
     label: "02",
-    title: "Follow topics and keywords",
-    text: "Track Bitcoin ETF, Solana, Macro, SEC, AI, and the themes that matter.",
+    title: "Follow topics as you learn",
+    text: "As you grow more comfortable, start following the themes and keywords that match your curiosity — Bitcoin, DeFi, regulation, or anything else.",
   },
   {
     label: "03",
-    title: "Get a personalized crypto briefing",
-    text: "Open one clean feed instead of a dozen tabs, apps, and timelines.",
+    title: "Build your daily reading habit",
+    text: "Come back each day to your personal feed. Your understanding builds brief by brief, until the market starts to feel familiar.",
+  },
+];
+
+const growthSteps = [
+  {
+    level: "Beginner",
+    label: "01",
+    title: "Read today's news",
+    text: "Start with the headlines. No background required — just pick a story that catches your eye and read.",
+  },
+  {
+    level: "Novice",
+    label: "02",
+    title: "Follow keywords and track trends",
+    text: "Once you know a few names — Bitcoin, Ethereum, DeFi — start following them and watch the patterns emerge.",
+  },
+  {
+    level: "Intermediate",
+    label: "03",
+    title: "Dive into research feeds",
+    text: "Go deeper with YouTube research feeds and multi-source discovery. You're no longer just reading the news — you're studying the market.",
+  },
+  {
+    level: "Expert",
+    label: "04",
+    title: "Build your own investment perspective",
+    text: "With consistent reading behind you, you can form your own view on where the market is heading — and act with confidence.",
   },
 ];
 
@@ -92,6 +128,7 @@ export function HomepageLanding() {
       <HeroSection />
       <WhatIsSection />
       <HowItWorksSection />
+      <GrowthJourneySection />
       <FeedPreviewSection />
       <WhySection />
       <PersonalizationSection />
@@ -110,14 +147,15 @@ function HeroSection() {
         <div className="min-w-0 max-w-3xl">
           <Badge tone="accent">Chain Brief</Badge>
           <h1 className="mt-5 max-w-4xl break-words text-4xl font-semibold leading-[1.06] tracking-tight text-ink sm:mt-6 sm:text-6xl lg:text-7xl">
-            Crypto information, filtered into clarity.
+            Your first step into crypto starts here.
           </h1>
           <p className="mt-5 max-w-2xl text-base leading-7 text-muted sm:mt-6 sm:text-lg sm:leading-8">
-            Chain Brief turns crypto news, research, and social signals into a
-            personalized briefing experience.
+            Chain Brief delivers today's most important crypto stories in plain
+            language — no experience needed. Start learning one brief at a time,
+            and grow into your own investment perspective.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Button className="w-full sm:w-auto" href="/briefs">Explore Briefs</Button>
+            <Button className="w-full sm:w-auto" href="/briefs">Read Today&apos;s Brief</Button>
             <Button className="w-full sm:w-auto" href="/settings" variant="secondary">
               Customize Feed
             </Button>
@@ -162,23 +200,28 @@ function WhatIsSection() {
             What is Chain Brief
           </p>
           <h2 className="mt-3 break-words text-2xl font-semibold leading-tight text-ink sm:text-4xl">
-            One place for the crypto information that actually matters.
+            You don&apos;t need to be an expert to understand crypto.
           </h2>
           <p className="mt-5 text-base leading-8 text-muted">
-            Crypto moves fast. News, YouTube research, and social updates are
-            scattered everywhere.
+            Chain Brief breaks down today&apos;s most important crypto stories into
+            short, clear briefs — designed for curious beginners and growing
+            investors alike.
           </p>
           <p className="mt-4 text-base leading-8 text-muted">
-            Chain Brief brings them together into one clean, customizable feed.
+            Read a little every day, and you&apos;ll be surprised how quickly the
+            pieces start to connect.
           </p>
         </div>
 
         <div className="grid min-w-0 gap-3">
           {keyPoints.map((point) => (
-            <Card className="min-w-0 p-4 sm:p-5" key={point}>
-              <div className="flex min-w-0 items-center gap-3">
-                <span className="h-2.5 w-2.5 rounded-full bg-accent shadow-[0_0_18px_rgba(47,123,255,0.75)]" />
-                <p className="min-w-0 break-words text-base font-semibold text-ink sm:text-lg">{point}</p>
+            <Card className="min-w-0 p-4 sm:p-5" key={point.title}>
+              <div className="flex min-w-0 items-start gap-3">
+                <span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-accent shadow-[0_0_18px_rgba(47,123,255,0.75)]" />
+                <div className="min-w-0">
+                  <p className="min-w-0 break-words text-base font-semibold text-ink sm:text-lg">{point.title}</p>
+                  <p className="mt-1.5 break-words text-sm leading-6 text-muted">{point.text}</p>
+                </div>
               </div>
             </Card>
           ))}
@@ -194,8 +237,8 @@ function HowItWorksSection() {
       <Container className="section-space">
         <SectionIntro
           eyebrow="How it works"
-          title="A calmer onboarding path for a noisy market."
-          text="Chain Brief starts simple: choose inputs, define signal, and scan a feed shaped around your interests."
+          title="Three simple steps to start your crypto journey."
+          text="No setup required. Just show up, read, and grow — one brief at a time."
         />
         <div className="mt-6 grid gap-4 sm:mt-8 md:grid-cols-3">
           {steps.map((step) => (
@@ -204,6 +247,36 @@ function HowItWorksSection() {
                 {step.label}
               </span>
               <h3 className="mt-4 break-words text-lg font-semibold text-ink sm:text-xl">{step.title}</h3>
+              <p className="mt-3 text-sm leading-6 text-muted">{step.text}</p>
+            </Card>
+          ))}
+        </div>
+      </Container>
+    </section>
+  );
+}
+
+function GrowthJourneySection() {
+  return (
+    <section className="border-t border-white/10 bg-surface/35">
+      <Container className="section-space">
+        <SectionIntro
+          eyebrow="Your growth journey"
+          title="Everyone starts as a beginner. Here's where you're headed."
+          text="Chain Brief is built around one belief: consistent daily reading turns any newcomer into a confident crypto investor."
+        />
+        <div className="mt-6 grid gap-4 sm:mt-8 md:grid-cols-2 lg:grid-cols-4">
+          {growthSteps.map((step) => (
+            <Card className="relative min-w-0 p-4 sm:p-5" key={step.label}>
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <span className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">
+                  {step.label}
+                </span>
+                <span className="rounded-full bg-accent/15 px-2.5 py-0.5 text-[0.68rem] font-bold uppercase tracking-[0.1em] text-blue-200">
+                  {step.level}
+                </span>
+              </div>
+              <h3 className="break-words text-lg font-semibold text-ink sm:text-xl">{step.title}</h3>
               <p className="mt-3 text-sm leading-6 text-muted">{step.text}</p>
             </Card>
           ))}
@@ -337,11 +410,11 @@ function FinalCtaSection() {
                 Start now
               </p>
               <h2 className="mt-3 break-words text-2xl font-semibold leading-tight text-ink sm:text-4xl">
-                Build your own crypto signal feed.
+                Anyone can become a crypto expert. Start today.
               </h2>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row lg:justify-end">
-              <Button className="w-full sm:w-auto" href="/briefs">Start Exploring</Button>
+              <Button className="w-full sm:w-auto" href="/briefs">Start Your First Briefing</Button>
               <Button className="w-full sm:w-auto" href="/settings" variant="secondary">
                 Customize Your Feed
               </Button>
