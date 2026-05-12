@@ -135,6 +135,15 @@ select {
   }
 }
 
+@keyframes brief-fade-in {
+  from { opacity: 0; transform: translateY(2px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+
+.brief-fade-in {
+  animation: brief-fade-in 0.18s ease-out;
+}
+
 @keyframes landing-float {
   0%,
   100% {

@@ -470,6 +470,22 @@ function CategoryTabs({
   );
 }
 
+type TranslationStatus = "idle" | "loading" | "success" | "error";
+
+type TranslationState = {
+  status: TranslationStatus;
+  translatedHeadline: string | null;
+  translatedBody: string | null;
+  isShowingTranslation: boolean;
+};
+
+const INITIAL_TRANSLATION: TranslationState = {
+  status: "idle",
+  translatedHeadline: null,
+  translatedBody: null,
+  isShowingTranslation: false,
+};
+
 function TimelineItem({
   article,
   expanded,
@@ -484,6 +500,51 @@ function TimelineItem({
   onToggle: () => void;
 }) {
   const { t: copy } = useI18n(language);
+  const [translation, setTranslation] = useState<TranslationState>(INITIAL_TRANSLATION);
+
+  async function handleTranslate() {
+    if (translation.status === "loading") return;
+
+    // Already fetched — just toggle visibility (no new API call)
+    if (translation.status === "success") {
+      setTranslation((prev) => ({
+        ...prev,
+        isShowingTranslation: !prev.isShowingTranslation,
+      }));
+      return;
+    }
+
+    setTranslation({ ...INITIAL_TRANSLATION, status: "loading" });
+
+    try {
+      const bodyText = [formatBriefSummary(article, language), article.excerpt]
+        .filter(Boolean)
+        .join("\n\n");
+
+      const response = await fetch("/api/translate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ headline: article.title, body: bodyText }),
+      });
+
+      if (!response.ok) throw new Error("translate request failed");
+
+      const data = (await response.json()) as { headline: string; body: string };
+      setTranslation({
+        status: "success",
+        translatedHeadline: data.headline || null,
+        translatedBody: data.body || null,
+        isShowingTranslation: true,
+      });
+    } catch {
+      setTranslation({ ...INITIAL_TRANSLATION, status: "error" });
+    }
+  }
+
+  const showKo = translation.status === "success" && translation.isShowingTranslation;
+  const displayTitle = showKo && translation.translatedHeadline
+    ? translation.translatedHeadline
+    : article.title;
 
   return (
     <article className="group grid min-w-0 gap-3 px-3 py-3 transition hover:bg-white/[0.03] sm:grid-cols-[4.5rem_1fr] sm:px-4">
@@ -509,8 +570,11 @@ function TimelineItem({
         </div>
 
         <a href={article.originalUrl} rel="noreferrer" target="_blank">
-          <h2 className="mt-2 break-words text-base font-semibold leading-snug text-ink transition group-hover:text-blue-100 sm:text-lg">
-            {article.title}
+          <h2
+            className="mt-2 break-words text-base font-semibold leading-snug text-ink transition group-hover:text-blue-100 sm:text-lg"
+            key={showKo ? "ko" : "en"}
+          >
+            <span className={showKo ? "brief-fade-in" : undefined}>{displayTitle}</span>
           </h2>
         </a>
 
@@ -539,14 +603,27 @@ function TimelineItem({
           >
             {copy.feed.discuss}
           </button>
+          <TranslateButton language={language} state={translation} onClick={handleTranslate} />
         </div>
+
+        {translation.status === "error" ? (
+          <p className="mt-1.5 text-xs text-rose-300">번역을 불러올 수 없어요</p>
+        ) : null}
 
         {expanded ? (
           <div className="mt-3 rounded-md border border-white/10 bg-background/70 p-3">
-            <p className="break-words text-sm leading-6 text-ink">
-              {formatBriefSummary(article, language)}
-            </p>
-            <p className="mt-2 break-words text-sm leading-6 text-muted">{article.excerpt}</p>
+            {showKo && translation.translatedBody ? (
+              <p key="body-ko" className="brief-fade-in break-words text-sm leading-6 text-ink">
+                {translation.translatedBody}
+              </p>
+            ) : (
+              <>
+                <p className="break-words text-sm leading-6 text-ink">
+                  {formatBriefSummary(article, language)}
+                </p>
+                <p className="mt-2 break-words text-sm leading-6 text-muted">{article.excerpt}</p>
+              </>
+            )}
             {article.tags.length > 0 ? (
               <div className="mt-3 flex flex-wrap gap-2">
                 {article.tags.map((tag) => (
@@ -563,6 +640,62 @@ function TimelineItem({
         ) : null}
       </div>
     </article>
+  );
+}
+
+function TranslateButton({
+  language,
+  state,
+  onClick,
+}: {
+  language: BriefPreferences["language"];
+  state: TranslationState;
+  onClick: () => void;
+}) {
+  const isLoading = state.status === "loading";
+  const showingKo = state.status === "success" && state.isShowingTranslation;
+
+  let label: string;
+  if (isLoading) {
+    label = language === "ko" ? "번역 중..." : "번역 중...";
+  } else if (showingKo) {
+    label = "영어로 보기";
+  } else {
+    label = "한국어로 보기";
+  }
+
+  return (
+    <button
+      className="inline-flex h-7 items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-3 text-xs font-bold text-muted transition hover:border-accent/50 hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
+      disabled={isLoading}
+      onClick={onClick}
+      type="button"
+      aria-label={label}
+    >
+      {isLoading ? (
+        <svg
+          aria-hidden="true"
+          className="h-3 w-3 animate-spin"
+          fill="none"
+          viewBox="0 0 24 24"
+        >
+          <circle
+            className="opacity-25"
+            cx="12"
+            cy="12"
+            r="10"
+            stroke="currentColor"
+            strokeWidth="4"
+          />
+          <path
+            className="opacity-75"
+            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+            fill="currentColor"
+          />
+        </svg>
+      ) : null}
+      <span>{label}</span>
+    </button>
   );
 }
 
