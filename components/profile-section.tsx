@@ -31,6 +31,11 @@ export function ProfileSection() {
   const [role, setRole] = useState(PROFILE_ROLES[0]);
   const [interests, setInterests] = useState("");
   const [bio, setBio] = useState("");
+  const [expertise, setExpertise] = useState("");
+  const [sampleContent, setSampleContent] = useState("");
+  const [markets, setMarkets] = useState("");
+  const [noAdviceAgreed, setNoAdviceAgreed] = useState(false);
+  const [riskAgreed, setRiskAgreed] = useState(false);
   const [isLoading, setIsLoading] = useState(hasSupabaseConfig);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -161,6 +166,7 @@ export function ProfileSection() {
     getStringMetadata(user.user_metadata.avatar_url) ??
     getStringMetadata(user.user_metadata.picture);
   const initials = getInitials(displayName || user.email || "CB");
+  const canApply = expertise.trim() && sampleContent.trim() && markets.trim() && noAdviceAgreed && riskAgreed;
 
   return (
     <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]">
@@ -259,6 +265,19 @@ export function ProfileSection() {
       <aside className="space-y-3">
         <Card className="min-w-0 p-4">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+            Analyst Score
+          </p>
+          <div className="mt-3 grid gap-3">
+            <ScoreRow label="근거 충실도" value={72} />
+            <ScoreRow label="리스크 설명" value={68} />
+            <ScoreRow label="독자 반응" value={81} />
+            <ScoreRow label="꾸준함" value={64} />
+            <ScoreRow label="신뢰도" value={76} />
+          </div>
+        </Card>
+
+        <Card className="min-w-0 p-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
             Community Readiness
           </p>
           <div className="mt-3 grid gap-2 text-sm">
@@ -266,6 +285,67 @@ export function ProfileSection() {
             <ProfileCheck complete={parseInterests(interests).length > 0} label="Topics" />
             <ProfileCheck complete={Boolean(bio.trim())} label="Bio" />
           </div>
+        </Card>
+
+        <Card className="min-w-0 p-4" id="verified-analyst">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">
+            Verified Analyst
+          </p>
+          <h3 className="mt-2 text-lg font-semibold text-ink">
+            콘텐츠 기반 시장 분석가 신청
+          </h3>
+          <p className="mt-2 text-sm leading-6 text-muted">
+            투자 리딩이 아니라 근거, 리스크 설명, 꾸준함으로 신뢰를 쌓는 분석가 신청입니다.
+          </p>
+          <div className="mt-4 grid gap-3">
+            <input
+              className="min-h-10 rounded-md border border-white/10 bg-background px-3 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
+              onChange={(event) => setExpertise(event.target.value)}
+              placeholder="전문 분야"
+              value={expertise}
+            />
+            <input
+              className="min-h-10 rounded-md border border-white/10 bg-background px-3 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
+              onChange={(event) => setMarkets(event.target.value)}
+              placeholder="주로 분석하는 코인/시장"
+              value={markets}
+            />
+            <textarea
+              className="min-h-28 rounded-md border border-white/10 bg-background px-3 py-3 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
+              onChange={(event) => setSampleContent(event.target.value)}
+              placeholder="자기소개 및 샘플 분석글 링크 또는 내용"
+              value={sampleContent}
+            />
+            <label className="flex items-start gap-2 text-xs leading-5 text-muted">
+              <input
+                checked={noAdviceAgreed}
+                className="mt-1"
+                onChange={(event) => setNoAdviceAgreed(event.target.checked)}
+                type="checkbox"
+              />
+              투자 권유, 수익 보장, 1:1 매수/매도 지시를 하지 않는 데 동의합니다.
+            </label>
+            <label className="flex items-start gap-2 text-xs leading-5 text-muted">
+              <input
+                checked={riskAgreed}
+                className="mt-1"
+                onChange={(event) => setRiskAgreed(event.target.checked)}
+                type="checkbox"
+              />
+              리스크 고지와 원금 손실 가능성 안내를 모든 분석 콘텐츠에 포함하는 데 동의합니다.
+            </label>
+            <Button
+              disabled={!canApply}
+              onClick={() => setMessage("Verified Analyst application saved locally. Database submission is ready for Supabase integration.")}
+              type="button"
+              variant="secondary"
+            >
+              Verified Analyst 신청하기
+            </Button>
+          </div>
+          <p className="mt-4 text-xs leading-5 text-amber-100">
+            본 콘텐츠는 투자 권유가 아닌 정보 제공 목적입니다. 가상자산 투자는 원금 손실 위험이 있으며, 최종 판단과 책임은 투자자 본인에게 있습니다.
+          </p>
         </Card>
 
         <Card className="min-w-0 p-4">
@@ -281,6 +361,20 @@ export function ProfileSection() {
           </Button>
         </Card>
       </aside>
+    </div>
+  );
+}
+
+function ScoreRow({ label, value }: { label: string; value: number }) {
+  return (
+    <div>
+      <div className="flex justify-between gap-3 text-xs">
+        <span className="text-muted">{label}</span>
+        <span className="font-semibold text-blue-100">{value}</span>
+      </div>
+      <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/10">
+        <span className="block h-full rounded-full bg-accent" style={{ width: `${value}%` }} />
+      </div>
     </div>
   );
 }

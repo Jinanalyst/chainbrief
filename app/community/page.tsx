@@ -23,16 +23,57 @@ import { cn } from "@/lib/cn";
 import { formatLocalDateTime, formatRelativeTime, getCategoryLabel } from "@/lib/i18n";
 import { useI18n, usePreferences } from "@/lib/i18n/use-i18n";
 
-type CommunityTab = "Latest" | "Hot" | "Event" | "News Reactions" | "Analysis" | "Questions";
+type CommunityTab =
+  | "Latest"
+  | "News Reactions"
+  | "Lounge"
+  | "Chart Analysis"
+  | "Trade Review"
+  | "Loss Review"
+  | "Rookie Analyst"
+  | "Verified Analyst";
 type SidebarAction = "guide" | "btc" | "news" | "analysis" | "macro" | "privacy" | "rules";
 
 const TABS: CommunityTab[] = [
   "Latest",
-  "Hot",
-  "Event",
   "News Reactions",
-  "Analysis",
-  "Questions",
+  "Lounge",
+  "Chart Analysis",
+  "Trade Review",
+  "Loss Review",
+  "Rookie Analyst",
+  "Verified Analyst",
+];
+
+const INVESTMENT_NOTICE =
+  "본 콘텐츠는 투자 권유가 아닌 정보 제공 목적입니다. 가상자산 투자는 원금 손실 위험이 있으며, 최종 판단과 책임은 투자자 본인에게 있습니다.";
+
+const ANALYST_PATH = [
+  {
+    title: "General User",
+    label: "일반 유저",
+    description: "커뮤니티에 참여하고 뉴스에 의견을 남기는 단계",
+  },
+  {
+    title: "Rookie Analyst",
+    label: "Rookie Analyst",
+    description: "분석글과 매매 복기를 작성하기 시작한 단계",
+  },
+  {
+    title: "Rising Analyst",
+    label: "Rising Analyst",
+    description: "좋은 반응과 꾸준한 활동으로 주목받는 분석가 후보",
+  },
+  {
+    title: "Verified Analyst",
+    label: "Verified Analyst",
+    description: "Chain Brief가 인증한 신뢰 기반 분석가",
+  },
+  {
+    title: "Partner Expert",
+    label: "Partner Expert",
+    description: "프리미엄 리서치와 수익화가 가능한 파트너 전문가",
+  },
 ];
 
 const STANCES: CommunityStance[] = ["Bullish", "Bearish", "Neutral", "Question"];
@@ -131,16 +172,28 @@ export default function CommunityPage() {
       addOpinionPost(trimmedBody, activeTab === "Latest" ? undefined : activeTab, {
         title: trimmedTitle,
         stance,
-        discussionType:
-          activeTab === "Analysis"
-            ? "analysis"
-            : activeTab === "Questions"
-              ? "question"
-              : activeTab === "Event"
-                ? "event"
+        postType:
+          activeTab === "Chart Analysis"
+            ? "chart_analysis"
+            : activeTab === "Trade Review"
+              ? "trade_review"
+              : activeTab === "Loss Review"
+                ? "loss_review"
                 : activeTab === "News Reactions"
-                  ? "news_reaction"
-                  : "opinion",
+                  ? "news_interpretation"
+                  : "general",
+        analystTier:
+          activeTab === "Rookie Analyst"
+            ? "rookie_analyst"
+            : activeTab === "Verified Analyst"
+              ? "verified_analyst"
+              : undefined,
+        discussionType:
+          activeTab === "Chart Analysis"
+            ? "analysis"
+            : activeTab === "News Reactions"
+              ? "news_reaction"
+              : "opinion",
       });
     }
 
@@ -154,7 +207,7 @@ export default function CommunityPage() {
         scrollToSection("community-banner");
         break;
       case "btc":
-        setActiveTab("Hot");
+        setActiveTab("Lounge");
         scrollToSection("community-feed");
         break;
       case "news":
@@ -162,11 +215,11 @@ export default function CommunityPage() {
         scrollToSection("community-feed");
         break;
       case "analysis":
-        setActiveTab("Analysis");
+        setActiveTab("Chart Analysis");
         scrollToSection("community-feed");
         break;
       case "macro":
-        setActiveTab("Event");
+        setActiveTab("News Reactions");
         scrollToSection("community-feed");
         break;
       case "privacy":
@@ -193,6 +246,7 @@ export default function CommunityPage() {
                 <div className="mt-4 grid gap-4">
                   <CommunityTabs activeTab={activeTab} language={language} onChange={setActiveTab} />
                   <CommunityBanner language={language} />
+                  <AnalystPathSection />
                   <div className="lg:hidden">
                     <PopularPostsCard language={language} posts={popularPosts} />
                   </div>
@@ -363,21 +417,25 @@ function CommunityTabs({
   onChange: (tab: CommunityTab) => void;
 }) {
   const tabLabels: Record<CommunityTab, string> = {
-    Latest: language === "ko" ? "최신 · 전체" : "Latest · All",
-    Hot: language === "ko" ? "인기" : "Hot",
-    Event: language === "ko" ? "이벤트" : "Event",
-    "News Reactions": language === "ko" ? "뉴스 반응" : "News Reactions",
-    Analysis: language === "ko" ? "분석" : "Analysis",
-    Questions: language === "ko" ? "질문" : "Questions",
+    Latest: language === "ko" ? "전체" : "All",
+    "News Reactions": language === "ko" ? "뉴스토론" : "News",
+    Lounge: language === "ko" ? "라운지" : "Lounge",
+    "Chart Analysis": language === "ko" ? "차트분석" : "Chart",
+    "Trade Review": language === "ko" ? "매매복기" : "Trade Review",
+    "Loss Review": language === "ko" ? "손실복기" : "Loss Review",
+    "Rookie Analyst": "Rookie Analyst",
+    "Verified Analyst": "Verified Analyst",
   };
 
   const tabGlyphs: Record<CommunityTab, string> = {
-    Latest: "◔",
-    Hot: "▲",
-    Event: "◇",
-    "News Reactions": "✦",
-    Analysis: "▣",
-    Questions: "?",
+    Latest: "All",
+    "News Reactions": "N",
+    Lounge: "L",
+    "Chart Analysis": "C",
+    "Trade Review": "T",
+    "Loss Review": "R",
+    "Rookie Analyst": "RA",
+    "Verified Analyst": "VA",
   };
 
   return (
@@ -403,6 +461,77 @@ function CommunityTabs({
           </button>
         ))}
       </div>
+    </div>
+  );
+}
+
+function AnalystPathSection() {
+  return (
+    <section className="grid gap-3">
+      <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">
+            Analyst Path
+          </p>
+          <h2 className="mt-2 text-xl font-semibold text-ink">
+            Build trust through analysis, not calls.
+          </h2>
+        </div>
+        <Button className="w-full sm:w-auto" href="/profile#verified-analyst" variant="secondary">
+          Verified Analyst 신청하기
+        </Button>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        {ANALYST_PATH.map((step, index) => (
+          <Card className="min-w-0 p-4" key={step.title}>
+            <div className="flex items-center justify-between gap-3">
+              <span className="rounded-md border border-accent/30 bg-accent/15 px-2 py-1 text-xs font-bold text-blue-100">
+                {index + 1}
+              </span>
+              <span className="text-[0.65rem] font-bold uppercase tracking-[0.16em] text-muted-2">
+                {step.title}
+              </span>
+            </div>
+            <h3 className="mt-4 text-sm font-semibold text-ink">{step.label}</h3>
+            <p className="mt-2 text-xs leading-5 text-muted">{step.description}</p>
+          </Card>
+        ))}
+      </div>
+      <RiskNotice />
+    </section>
+  );
+}
+
+function AnalystScoreCard({ compact = false }: { compact?: boolean }) {
+  const scores = [
+    ["근거 충실도", 72],
+    ["리스크 설명", 68],
+    ["독자 반응", 81],
+    ["꾸준함", 64],
+    ["신뢰도", 76],
+  ] as const;
+
+  return (
+    <div className={compact ? "grid gap-2" : "grid gap-3"}>
+      {scores.map(([label, value]) => (
+        <div key={label}>
+          <div className="flex justify-between gap-3 text-xs">
+            <span className="text-muted">{label}</span>
+            <span className="font-semibold text-blue-100">{value}</span>
+          </div>
+          <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/10">
+            <span className="block h-full rounded-full bg-accent" style={{ width: `${value}%` }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function RiskNotice() {
+  return (
+    <div className="rounded-md border border-amber-400/20 bg-amber-400/10 px-3 py-2">
+      <p className="text-xs leading-5 text-amber-100">{INVESTMENT_NOTICE}</p>
     </div>
   );
 }
@@ -595,6 +724,10 @@ function CommunityPostCard({
             </span>
             <Badge tone="muted">{getCategoryLabel(post.category, language)}</Badge>
             <Badge tone={getBadgeTone(post.stance)}>{stanceLabel(post.stance, copy, language)}</Badge>
+            {post.analystTier ? (
+              <Badge tone="accent">{formatAnalystTier(post.analystTier)}</Badge>
+            ) : null}
+            {post.postType ? <Badge tone="muted">{formatPostType(post.postType)}</Badge> : null}
           </div>
 
           <h3 className="mt-3 break-words text-lg font-semibold text-ink">{post.title}</h3>
@@ -639,6 +772,22 @@ function CommunityPostCard({
             <span>{post.views} {copy.community.views}</span>
             {post.tags[0] ? <Badge tone="muted">{post.tags[0]}</Badge> : null}
           </div>
+
+          {post.analystTier ? (
+            <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.03] p-3">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
+                  Analyst Score
+                </p>
+                <span className="text-xs font-semibold text-blue-100">
+                  {formatAnalystTier(post.analystTier)}
+                </span>
+              </div>
+              <AnalystScoreCard compact />
+            </div>
+          ) : null}
+
+          {isAnalysisPost(post) ? <div className="mt-4"><RiskNotice /></div> : null}
 
           <div className="mt-4 flex items-center gap-2">
             <IconButton label={language === "ko" ? "북마크" : "Bookmark"} glyph="⌁" />
@@ -785,30 +934,72 @@ function IconButton({
 }
 
 function filterPostsByTab(posts: CommunityPost[], tab: CommunityTab) {
-  if (tab === "Latest" || tab === "Hot") {
+  if (tab === "Latest") {
     return posts;
   }
 
   return posts.filter((post) => {
     switch (tab) {
-      case "Event":
-        return post.discussionType === "event" || hasTag(post, "Event");
       case "News Reactions":
         return Boolean(post.relatedArticleSlug || post.discussionType === "news_reaction" || hasTag(post, "News Reactions"));
-      case "Analysis":
-        return post.discussionType === "analysis" || hasTag(post, "Analysis");
-      case "Questions":
-        return post.discussionType === "question" || post.stance === "Question" || hasTag(post, "Questions");
+      case "Lounge":
+        return post.postType === "general" || post.discussionType === "opinion";
+      case "Chart Analysis":
+        return post.postType === "chart_analysis" || hasTag(post, "Analysis");
+      case "Trade Review":
+        return post.postType === "trade_review";
+      case "Loss Review":
+        return post.postType === "loss_review";
+      case "Rookie Analyst":
+        return post.analystTier === "rookie_analyst" || post.analystTier === "rising_analyst";
+      case "Verified Analyst":
+        return post.analystTier === "verified_analyst" || post.analystTier === "partner_expert";
       default:
         return true;
     }
   });
 }
 
+function isAnalysisPost(post: CommunityPost) {
+  return (
+    post.postType === "news_interpretation" ||
+    post.postType === "chart_analysis" ||
+    post.postType === "trade_review" ||
+    post.postType === "loss_review" ||
+    post.postType === "risk_analysis" ||
+    Boolean(post.analystTier)
+  );
+}
+
+function formatPostType(value: NonNullable<CommunityPost["postType"]>) {
+  const labels: Record<NonNullable<CommunityPost["postType"]>, string> = {
+    general: "General",
+    news_interpretation: "News Analysis",
+    chart_analysis: "Chart Analysis",
+    trade_review: "Trade Review",
+    loss_review: "Loss Review",
+    risk_analysis: "Risk Analysis",
+  };
+
+  return labels[value];
+}
+
+function formatAnalystTier(value: NonNullable<CommunityPost["analystTier"]>) {
+  const labels: Record<NonNullable<CommunityPost["analystTier"]>, string> = {
+    user: "User",
+    rookie_analyst: "Rookie Analyst",
+    rising_analyst: "Rising Analyst",
+    verified_analyst: "Verified Analyst",
+    partner_expert: "Partner Expert",
+  };
+
+  return labels[value];
+}
+
 function sortPostsForTab(posts: CommunityPost[], tab: CommunityTab) {
   const nextPosts = [...posts];
 
-  if (tab === "Hot") {
+  if (tab === "Rookie Analyst" || tab === "Verified Analyst") {
     return nextPosts.sort((a, b) => engagementScore(b) - engagementScore(a));
   }
 

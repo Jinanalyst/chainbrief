@@ -7,6 +7,13 @@ export const COMMUNITY_QUOTE_CHANGED_EVENT = "chain-brief-community-quote-change
 
 export type CommunityPostKind = "opinion" | "repost" | "quote";
 export type CommunityStance = "Bullish" | "Bearish" | "Neutral" | "Question";
+export type CommunityPostType =
+  | "general"
+  | "news_interpretation"
+  | "chart_analysis"
+  | "trade_review"
+  | "loss_review"
+  | "risk_analysis";
 
 export type CommunityPost = {
   id: string;
@@ -24,6 +31,8 @@ export type CommunityPost = {
   tags: string[];
   createdAt: string;
   kind: CommunityPostKind;
+  postType?: CommunityPostType;
+  analystTier?: "user" | "rookie_analyst" | "rising_analyst" | "verified_analyst" | "partner_expert";
   topic?: string;
   stance?: CommunityStance;
   discussionType?: "news_reaction" | "analysis" | "question" | "event" | "opinion";
@@ -101,6 +110,8 @@ export function addOpinionPost(
     stance?: CommunityStance;
     title?: string;
     discussionType?: CommunityPost["discussionType"];
+    postType?: CommunityPostType;
+    analystTier?: CommunityPost["analystTier"];
     relatedArticleSlug?: string;
     relatedArticleTitle?: string;
     relatedArticleSource?: string;
@@ -124,6 +135,8 @@ export function addOpinionPost(
     tags: topic && topic !== "All" ? [topic] : [],
     createdAt: new Date().toISOString(),
     kind: "opinion",
+    postType: options?.postType ?? "general",
+    analystTier: options?.analystTier,
     topic,
     stance: options?.stance ?? "Neutral",
     discussionType: options?.discussionType ?? "opinion",
@@ -164,6 +177,8 @@ export function addQuotePost(
     tags: [target.category, "News Reactions"].filter(Boolean),
     createdAt: new Date().toISOString(),
     kind: "quote",
+    postType: "news_interpretation",
+    analystTier: options?.author ? undefined : "rookie_analyst",
     topic: target.category,
     stance: options?.stance ?? "Neutral",
     discussionType: "news_reaction",
@@ -202,6 +217,7 @@ export function repostArticleToCommunity(
     tags: article.tags.slice(0, 3),
     createdAt: new Date().toISOString(),
     kind: "repost",
+    postType: "news_interpretation",
     topic: article.category,
     stance: "Neutral",
     discussionType: "news_reaction",
@@ -362,6 +378,8 @@ function normalizeCommunityPost(value: unknown): CommunityPost | null {
     tags: Array.isArray(post.tags) ? post.tags.filter((tag): tag is string => typeof tag === "string") : [],
     createdAt,
     kind: post.kind === "repost" || post.kind === "quote" ? post.kind : "opinion",
+    postType: post.postType,
+    analystTier: post.analystTier,
     topic: post.topic,
     stance: post.stance,
     discussionType: post.discussionType,
@@ -414,6 +432,8 @@ const MOCK_COMMUNITY_POSTS: CommunityPost[] = [
     tags: ["Bitcoin", "News Reactions"],
     createdAt: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
     kind: "quote",
+    postType: "news_interpretation",
+    analystTier: "verified_analyst",
     stance: "Bullish",
     discussionType: "news_reaction",
     sourceName: "CoinDesk",
@@ -441,6 +461,8 @@ const MOCK_COMMUNITY_POSTS: CommunityPost[] = [
     tags: ["Ethereum", "Analysis"],
     createdAt: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
     kind: "opinion",
+    postType: "chart_analysis",
+    analystTier: "rising_analyst",
     stance: "Bullish",
     discussionType: "analysis",
     sourceName: "Community",
@@ -460,6 +482,8 @@ const MOCK_COMMUNITY_POSTS: CommunityPost[] = [
     tags: ["Regulation", "Questions"],
     createdAt: new Date(Date.now() - 1000 * 60 * 20).toISOString(),
     kind: "opinion",
+    postType: "risk_analysis",
+    analystTier: "rookie_analyst",
     stance: "Question",
     discussionType: "question",
     sourceName: "Community",
@@ -480,6 +504,8 @@ const MOCK_COMMUNITY_POSTS: CommunityPost[] = [
     tags: ["Macro", "Event"],
     createdAt: new Date(Date.now() - 1000 * 60 * 95).toISOString(),
     kind: "opinion",
+    postType: "trade_review",
+    analystTier: "rookie_analyst",
     stance: "Neutral",
     discussionType: "event",
     sourceName: "Community",
@@ -500,6 +526,8 @@ const MOCK_COMMUNITY_POSTS: CommunityPost[] = [
     tags: ["Solana", "Analysis"],
     createdAt: new Date(Date.now() - 1000 * 60 * 165).toISOString(),
     kind: "opinion",
+    postType: "chart_analysis",
+    analystTier: "rising_analyst",
     stance: "Bullish",
     discussionType: "analysis",
     sourceName: "Community",
