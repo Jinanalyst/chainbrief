@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { BriefPreferenceControls } from "@/components/brief-preference-controls";
+import { CustomRssSources } from "@/components/custom-rss-sources";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { NotificationSettings } from "@/components/notification-settings";
@@ -29,6 +30,7 @@ export function SettingsPanel() {
     <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
       <Card className="min-w-0 p-4 sm:p-6">
         <BriefPreferenceControls preferences={preferences} onChange={setPreferences} />
+        <CustomRssSources language={preferences.language} />
         <NotificationSettings preferences={preferences} onChange={setPreferences} />
         <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
           <Button className="w-full sm:w-auto" onClick={savePreferences} type="button">

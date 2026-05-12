@@ -556,7 +556,7 @@ function PostHistorySection({ posts, authorKeys }: { posts: CommunityPost[]; aut
       {mine.length === 0 ? (
         <Card className="p-6">
           <p className="text-sm leading-6 text-muted">
-            You haven't posted anything yet.{" "}
+            You haven&apos;t posted anything yet.{" "}
             <a href="/community/write" className="text-accent underline-offset-2 hover:underline">
               Write your first post →
             </a>

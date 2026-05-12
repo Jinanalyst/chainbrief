@@ -10,22 +10,60 @@ type SNSCardProps = {
   video: SnsVideo;
 };
 
+const SNS_CATEGORY_LABELS: Record<Language, Record<SnsVideo["category"], string>> = {
+  ko: {
+    Research: "리서치",
+    Macro: "매크로",
+    Bitcoin: "비트코인",
+    Ethereum: "이더리움",
+    Solana: "솔라나",
+    Security: "보안",
+    "AI & Crypto": "AI & 크립토",
+  },
+  en: {
+    Research: "Research",
+    Macro: "Macro",
+    Bitcoin: "Bitcoin",
+    Ethereum: "Ethereum",
+    Solana: "Solana",
+    Security: "Security",
+    "AI & Crypto": "AI & Crypto",
+  },
+};
+
 export function SNSCard({ language, video }: SNSCardProps) {
+  const isYouTube = video.provider === "youtube";
+  const providerLabel = isYouTube ? "YouTube" : "RSS";
+  const openLabel =
+    language === "ko"
+      ? isYouTube
+        ? "YouTube에서 보기"
+        : "원문 열기"
+      : isYouTube
+        ? "Watch on YouTube"
+        : "Open original";
+
   return (
     <article className="group grid min-w-0 gap-3 px-3 py-4 transition hover:bg-white/[0.03] sm:gap-4 sm:px-4 md:grid-cols-[13rem_minmax(0,1fr)] lg:grid-cols-[15rem_minmax(0,1fr)]">
       <a href={video.url} rel="noreferrer" target="_blank">
-        <VideoThumbnail alt={video.title} src={video.thumbnailUrl} />
+        {video.thumbnailUrl ? (
+          <VideoThumbnail alt={video.title} src={video.thumbnailUrl} />
+        ) : (
+          <div className="flex aspect-video items-center justify-center rounded-md border border-white/10 bg-white/[0.04] px-4 text-center text-xs font-semibold uppercase tracking-[0.16em] text-muted">
+            RSS
+          </div>
+        )}
       </a>
 
       <div className="min-w-0">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           <span className="rounded bg-red-500/15 px-2 py-1 text-[0.68rem] font-bold uppercase tracking-[0.12em] text-red-200">
-            YouTube
+            {providerLabel}
           </span>
           <span className="max-w-full truncate text-xs font-semibold uppercase tracking-[0.14em] text-accent">
             {video.sourceName}
           </span>
-          <Badge tone="muted">{video.category}</Badge>
+          <Badge tone="muted">{SNS_CATEGORY_LABELS[language][video.category]}</Badge>
           <span className="text-xs font-medium text-muted-2">
             {formatRelativeTime(video.publishedAt, language)}
           </span>
@@ -62,7 +100,7 @@ export function SNSCard({ language, video }: SNSCardProps) {
             target="_blank"
             variant="secondary"
           >
-            Watch on YouTube
+            {openLabel}
           </Button>
         </div>
       </div>

@@ -600,7 +600,11 @@ function TimelineItem({
         </div>
 
         {translation.status === "error" ? (
-          <p className="mt-1.5 text-xs text-rose-300">번역을 불러올 수 없어요</p>
+          <p className="mt-1.5 text-xs text-rose-300">
+            {language === "ko"
+              ? "번역을 불러오지 못했어요."
+              : "Translation could not be loaded."}
+          </p>
         ) : null}
 
         {expanded ? (
@@ -647,14 +651,17 @@ function TranslateButton({
 }) {
   const isLoading = state.status === "loading";
   const showingKo = state.status === "success" && state.isShowingTranslation;
+  const translateLoadingLabel = language === "ko" ? "번역 중..." : "Translating...";
+  const showEnglishLabel = language === "ko" ? "영어로 보기" : "Show English";
+  const showKoreanLabel = language === "ko" ? "한국어로 보기" : "Show Korean";
 
   let label: string;
   if (isLoading) {
-    label = language === "ko" ? "번역 중..." : "번역 중...";
+    label = translateLoadingLabel;
   } else if (showingKo) {
-    label = "영어로 보기";
+    label = showEnglishLabel;
   } else {
-    label = "한국어로 보기";
+    label = showKoreanLabel;
   }
 
   return (

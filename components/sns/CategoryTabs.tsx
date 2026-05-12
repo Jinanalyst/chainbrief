@@ -1,16 +1,42 @@
 import { cn } from "@/lib/cn";
+import type { Language } from "@/lib/i18n";
 import { SNS_CATEGORIES } from "@/lib/sns/sources";
 import type { SnsCategory } from "@/lib/sns/types";
 
 type CategoryTabsProps = {
   activeCategory: SnsCategory;
   counts: Record<SnsCategory, number>;
+  language: Language;
   onChange: (category: SnsCategory) => void;
+};
+
+const SNS_CATEGORY_LABELS: Record<Language, Record<SnsCategory, string>> = {
+  ko: {
+    All: "전체",
+    Research: "리서치",
+    Macro: "매크로",
+    Bitcoin: "비트코인",
+    Ethereum: "이더리움",
+    Solana: "솔라나",
+    Security: "보안",
+    "AI & Crypto": "AI & 크립토",
+  },
+  en: {
+    All: "All",
+    Research: "Research",
+    Macro: "Macro",
+    Bitcoin: "Bitcoin",
+    Ethereum: "Ethereum",
+    Solana: "Solana",
+    Security: "Security",
+    "AI & Crypto": "AI & Crypto",
+  },
 };
 
 export function CategoryTabs({
   activeCategory,
   counts,
+  language,
   onChange,
 }: CategoryTabsProps) {
   return (
@@ -28,7 +54,7 @@ export function CategoryTabs({
             onClick={() => onChange(category)}
             type="button"
           >
-            {category} ({counts[category] ?? 0})
+            {SNS_CATEGORY_LABELS[language][category]} ({counts[category] ?? 0})
           </button>
         ))}
       </div>

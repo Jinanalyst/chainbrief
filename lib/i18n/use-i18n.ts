@@ -1,14 +1,18 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { SupabaseClient, User } from "@supabase/supabase-js";
 import {
   defaultPreferences,
   PREFERENCES_STORAGE_KEY,
   type BriefPreferences,
 } from "@/lib/preferences";
 import { getDictionary, type Language } from "@/lib/i18n";
+import { createClient } from "@/lib/supabase/client";
+import { hasSupabaseConfig } from "@/lib/supabase/config";
 
 export const PREFERENCES_CHANGED_EVENT = "chain-brief-preferences-changed";
+const USER_METADATA_PREFERENCES_KEY = "brief_preferences";
 
 export function readStoredPreferences(): BriefPreferences {
   if (typeof window === "undefined") {
@@ -39,6 +43,49 @@ export function readStoredPreferences(): BriefPreferences {
   }
 }
 
+export function normalizeStoredPreferences(value: unknown): BriefPreferences {
+  if (!value || typeof value !== "object") {
+    return defaultPreferences;
+  }
+
+  const parsed = value as Partial<BriefPreferences>;
+  const sources = Array.isArray(parsed.sources)
+    ? parsed.sources.filter(
+        (source: unknown): source is string => typeof source === "string",
+      )
+    : defaultPreferences.sources;
+  const notificationKeywords = Array.isArray(parsed.notificationKeywords)
+    ? parsed.notificationKeywords.filter(
+        (keyword: unknown): keyword is string => typeof keyword === "string",
+      )
+    : defaultPreferences.notificationKeywords;
+  const language = parsed.language === "en" ? "en" : "ko";
+  const notificationPermission =
+    parsed.notificationPermission === "granted" ||
+    parsed.notificationPermission === "denied" ||
+    parsed.notificationPermission === "unsupported"
+      ? parsed.notificationPermission
+      : "default";
+
+  return {
+    ...defaultPreferences,
+    ...parsed,
+    sources: sources.length > 0 ? sources : defaultPreferences.sources,
+    category:
+      typeof parsed.category === "string"
+        ? parsed.category
+        : defaultPreferences.category,
+    includeKeywords:
+      typeof parsed.includeKeywords === "string" ? parsed.includeKeywords : "",
+    excludeKeywords:
+      typeof parsed.excludeKeywords === "string" ? parsed.excludeKeywords : "",
+    language,
+    notificationsEnabled: Boolean(parsed.notificationsEnabled),
+    notificationKeywords,
+    notificationPermission,
+  };
+}
+
 export function writeStoredPreferences(preferences: BriefPreferences) {
   window.localStorage.setItem(PREFERENCES_STORAGE_KEY, JSON.stringify(preferences));
   window.dispatchEvent(
@@ -50,14 +97,15 @@ export function writeStoredPreferences(preferences: BriefPreferences) {
 
 export function usePreferences() {
   const [preferences, setPreferencesState] =
-    useState<BriefPreferences>(defaultPreferences);
+    useState<BriefPreferences>(() => readStoredPreferences());
+  const supabase = useMemo(() => (hasSupabaseConfig ? createClient() : null), []);
+  const userRef = useRef<User | null>(null);
 
   useEffect(() => {
     function syncPreferences() {
       setPreferencesState(readStoredPreferences());
     }
 
-    syncPreferences();
     window.addEventListener("storage", syncPreferences);
     window.addEventListener(PREFERENCES_CHANGED_EVENT, syncPreferences);
 
@@ -67,9 +115,44 @@ export function usePreferences() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!supabase) {
+      return;
+    }
+
+    function applyUserPreferences(user: User | null) {
+      userRef.current = user;
+
+      const userPreferences = normalizeStoredPreferences(
+        user?.user_metadata?.[USER_METADATA_PREFERENCES_KEY],
+      );
+      const hasUserPreferences = Boolean(
+        user?.user_metadata?.[USER_METADATA_PREFERENCES_KEY],
+      );
+
+      if (hasUserPreferences) {
+        setPreferencesState(userPreferences);
+        writeStoredPreferences(userPreferences);
+      }
+    }
+
+    supabase.auth.getUser().then(({ data }) => {
+      applyUserPreferences(data.user);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      applyUserPreferences(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, [supabase]);
+
   function setPreferences(preferences: BriefPreferences) {
     setPreferencesState(preferences);
     writeStoredPreferences(preferences);
+    void saveUserPreferences(supabase, userRef.current, preferences);
   }
 
   return [preferences, setPreferences] as const;
@@ -86,4 +169,20 @@ export function useI18n(language?: Language) {
     }),
     [activeLanguage],
   );
+}
+
+async function saveUserPreferences(
+  supabase: SupabaseClient | null,
+  user: User | null,
+  preferences: BriefPreferences,
+) {
+  if (!supabase || !user) {
+    return;
+  }
+
+  await supabase.auth.updateUser({
+    data: {
+      [USER_METADATA_PREFERENCES_KEY]: preferences,
+    },
+  });
 }

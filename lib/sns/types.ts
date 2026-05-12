@@ -1,4 +1,4 @@
-export type SnsProvider = "youtube" | "telegram" | "x" | "mirror" | "substack";
+export type SnsProvider = "youtube" | "rss" | "telegram" | "x" | "mirror" | "substack";
 
 export type SnsCategory =
   | "All"
