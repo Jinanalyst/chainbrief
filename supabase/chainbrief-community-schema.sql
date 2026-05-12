@@ -15,6 +15,7 @@ create type public.chainbrief_application_status as enum ('pending', 'approved',
 create type public.chainbrief_membership_status as enum ('active', 'cancelled');
 create type public.chainbrief_revenue_event_type as enum ('subscription', 'tip');
 create type public.chainbrief_experience_years as enum ('lt_1', '1_3', '3_5', '5_plus');
+create type public.chainbrief_push_permission as enum ('default', 'granted', 'denied', 'unsupported');
 
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
@@ -113,6 +114,30 @@ create table if not exists public.analyst_posts (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.notification_subscriptions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  endpoint text not null unique,
+  p256dh text not null,
+  auth text not null,
+  enabled boolean not null default true,
+  permission public.chainbrief_push_permission not null default 'default',
+  language text not null default 'ko',
+  keywords text[] not null default '{}',
+  user_agent text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.notification_deliveries (
+  id uuid primary key default gen_random_uuid(),
+  subscription_id uuid not null references public.notification_subscriptions(id) on delete cascade,
+  article_id text not null,
+  article_url text not null,
+  created_at timestamptz not null default now(),
+  unique (subscription_id, article_id)
+);
+
 create or replace function public.chainbrief_handle_new_user()
 returns trigger
 language plpgsql
@@ -145,6 +170,8 @@ alter table public.revenue_events enable row level security;
 alter table public.analyst_scores enable row level security;
 alter table public.analyst_profiles enable row level security;
 alter table public.analyst_posts enable row level security;
+alter table public.notification_subscriptions enable row level security;
+alter table public.notification_deliveries enable row level security;
 
 create policy "profiles are readable by everyone"
   on public.profiles for select
@@ -252,6 +279,34 @@ create policy "owners can manage analyst profiles"
   on public.analyst_profiles for all
   using (auth.uid() = analyst_id)
   with check (auth.uid() = analyst_id);
+
+create policy "users can read own notification subscriptions"
+  on public.notification_subscriptions for select
+  using (auth.uid() = user_id);
+
+create policy "users can insert own notification subscriptions"
+  on public.notification_subscriptions for insert
+  with check (auth.uid() = user_id);
+
+create policy "users can update own notification subscriptions"
+  on public.notification_subscriptions for update
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+create policy "users can delete own notification subscriptions"
+  on public.notification_subscriptions for delete
+  using (auth.uid() = user_id);
+
+create policy "users can read own notification deliveries"
+  on public.notification_deliveries for select
+  using (
+    exists (
+      select 1
+      from public.notification_subscriptions subscriptions
+      where subscriptions.id = subscription_id
+        and subscriptions.user_id = auth.uid()
+    )
+  );
 
 -- Admin-only review/status and role changes are handled through server actions
 -- that verify the caller's profile.role = 'admin'.

@@ -22,7 +22,6 @@ import {
   getCategoryLabel,
 } from "@/lib/i18n";
 import { useI18n, usePreferences } from "@/lib/i18n/use-i18n";
-import { notifyMatchingArticles } from "@/lib/notifications";
 
 type BriefsResponse = {
   articles: Article[];
@@ -76,12 +75,7 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
   const [visibleArticleCount, setVisibleArticleCount] = useState(
     INITIAL_VISIBLE_ARTICLES,
   );
-  const preferencesRef = useRef(preferences);
   const articlesRef = useRef<Article[]>([]);
-
-  useEffect(() => {
-    preferencesRef.current = preferences;
-  }, [preferences]);
 
   useEffect(() => {
     articlesRef.current = articles;
@@ -175,7 +169,6 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
             setPendingArticles(null);
           }
           setLastUpdatedAt(data.refreshedAt ?? new Date().toISOString());
-          notifyMatchingArticles(nextArticles, preferencesRef.current);
         }
       } catch {
         if (isMounted) {
