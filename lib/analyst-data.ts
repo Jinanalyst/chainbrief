@@ -195,7 +195,7 @@ export async function approveAnalystApplication(applicationId: string) {
 
   const { data: application, error: fetchError } = await supabase
     .from("analyst_applications")
-    .select("id, user_id")
+    .select("id, user_id, full_name")
     .eq("id", applicationId)
     .maybeSingle();
 

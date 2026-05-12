@@ -11,6 +11,16 @@ import {
   rejectAnalystApplication,
   upsertAnalystSettings,
 } from "@/lib/analyst-data";
+import {
+  sendEmail,
+  buildApprovalEmailHtml,
+  buildRejectionEmailHtml,
+} from "@/lib/email";
+import { hasSupabaseAdminConfig, createAdminClient } from "@/lib/supabase/admin";
+
+const BASE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL ??
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
 
 const ANALYST_ALLOWED_TOPICS = new Set([
   "Bitcoin",
@@ -184,7 +194,27 @@ export async function approveAnalystApplicationAction(formData: FormData) {
     const applicationId = optionalString(formData.get("application_id"));
     if (!applicationId) redirect("/admin/analyst-applications");
 
-    await approveAnalystApplication(applicationId);
+    const result = await approveAnalystApplication(applicationId);
+
+    // Send approval email to the analyst (best-effort, requires service role key)
+    if (result && hasSupabaseAdminConfig()) {
+      const adminClient = createAdminClient();
+      const { data: authUser } = await adminClient.auth.admin
+        .getUserById(result.user_id)
+        .catch(() => ({ data: null }));
+      const email = (authUser as { user?: { email?: string } } | null)?.user?.email;
+      const fullName = (result as { full_name?: string }).full_name ?? "Analyst";
+      if (email) {
+        sendEmail({
+          to: email,
+          subject: "Your Chain Brief analyst application has been approved!",
+          html: buildApprovalEmailHtml({
+            fullName,
+            dashboardUrl: `${BASE_URL}/analyst/dashboard`,
+          }),
+        }).catch(() => {});
+      }
+    }
   } catch (err) {
     if (isRedirectError(err)) throw err;
     console.error("approveAnalystApplicationAction error:", err);
@@ -213,6 +243,33 @@ export async function rejectAnalystApplicationAction(formData: FormData) {
     if (!applicationId || !reason) redirect("/admin/analyst-applications");
 
     await rejectAnalystApplication(applicationId, reason);
+
+    // Send rejection email to the analyst (best-effort, requires service role key)
+    if (hasSupabaseAdminConfig()) {
+      const adminClient = createAdminClient();
+      const { data: rejectedApp } = await adminClient
+        .from("analyst_applications")
+        .select("user_id, full_name")
+        .eq("id", applicationId)
+        .maybeSingle();
+      if (rejectedApp) {
+        const { data: authUser } = await adminClient.auth.admin
+          .getUserById((rejectedApp as { user_id: string }).user_id)
+          .catch(() => ({ data: null }));
+        const email = (authUser as { user?: { email?: string } } | null)?.user?.email;
+        if (email) {
+          sendEmail({
+            to: email,
+            subject: "Your Chain Brief analyst application update",
+            html: buildRejectionEmailHtml({
+              fullName: (rejectedApp as { full_name?: string }).full_name ?? "Analyst",
+              reason,
+              applyUrl: `${BASE_URL}/analyst/status`,
+            }),
+          }).catch(() => {});
+        }
+      }
+    }
   } catch (err) {
     if (isRedirectError(err)) throw err;
     console.error("rejectAnalystApplicationAction error:", err);
