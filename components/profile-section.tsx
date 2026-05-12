@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
 import { hasSupabaseConfig } from "@/lib/supabase/config";
-import { readCommunityPosts, COMMUNITY_POSTS_CHANGED_EVENT, type CommunityPost } from "@/lib/community";
+import { readCommunityPosts, readAuthorName, COMMUNITY_POSTS_CHANGED_EVENT, type CommunityPost } from "@/lib/community";
 import { cn } from "@/lib/cn";
 
 type ChainBriefProfile = {
@@ -215,7 +215,9 @@ export function ProfileSection() {
     setSocialLinks(profile?.socialLinks ?? DEFAULT_SOCIAL_LINKS);
 
     // Build all author identifiers that could belong to this user
-    const authorKeys = [name, nextUser?.email ?? "", "You"].filter(Boolean);
+    // (display name + localStorage saved name + email + legacy "You" default)
+    const savedName = readAuthorName();
+    const authorKeys = [...new Set([name, savedName, nextUser?.email ?? "", "You"].filter(Boolean))];
 
     // Compute live analyst score from community posts
     const posts = readCommunityPosts();
@@ -292,7 +294,8 @@ export function ProfileSection() {
 
     // Recompute scores after save with updated display name
     {
-      const authorKeys = [profile.displayName, data.user?.email ?? "", "You"].filter(Boolean);
+      const savedName = readAuthorName();
+      const authorKeys = [...new Set([profile.displayName, savedName, data.user?.email ?? "", "You"].filter(Boolean))];
       const posts = readCommunityPosts();
       setAllPosts(posts);
       setScores(computeAnalystScores(posts, authorKeys));
@@ -527,7 +530,7 @@ export function ProfileSection() {
     </div>
 
     {/* ── Full-width post history ── */}
-    <PostHistorySection posts={allPosts} authorKeys={[displayName, user.email ?? "", "You"].filter(Boolean)} />
+    <PostHistorySection posts={allPosts} authorKeys={[...new Set([displayName, readAuthorName(), user.email ?? "", "You"].filter(Boolean))]} />
     </>
   );
 }

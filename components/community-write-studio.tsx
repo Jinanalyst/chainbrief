@@ -8,6 +8,8 @@ import { Container } from "@/components/ui/container";
 import { Header } from "@/components/header";
 import {
   addOpinionPost,
+  readAuthorName,
+  writeAuthorName,
   type CommunityAttachment,
   type CommunityPostType,
   type CommunityStance,
@@ -674,9 +676,17 @@ export function CommunityWriteStudio({
   const router = useRouter();
   const supabase = useMemo(() => (hasSupabaseConfig ? createClient() : null), []);
   const dragIndexRef = useRef<number | null>(null);
-  const [authorName, setAuthorName] = useState("You");
+  const [authorName, setAuthorName] = useState(() => readAuthorName());
+  const [editingAuthor, setEditingAuthor] = useState(false);
+  const [authorDraft, setAuthorDraft] = useState("");
 
+  // On mount, resolve the best available author name and save to localStorage
   useEffect(() => {
+    const saved = readAuthorName();
+    if (saved) {
+      setAuthorName(saved);
+      return; // localStorage name takes priority
+    }
     if (!supabase) return;
     supabase.auth.getUser().then(({ data }) => {
       const user = data.user;
@@ -687,10 +697,22 @@ export function CommunityWriteStudio({
         (typeof user.user_metadata?.name === "string" ? user.user_metadata.name : null) ??
         (typeof user.user_metadata?.full_name === "string" ? user.user_metadata.full_name : null) ??
         user.email ??
-        "You";
-      setAuthorName(name);
+        "";
+      if (name) {
+        setAuthorName(name);
+        writeAuthorName(name);
+      }
     });
   }, [supabase]);
+
+  function saveAuthorName() {
+    const trimmed = authorDraft.trim();
+    if (trimmed) {
+      setAuthorName(trimmed);
+      writeAuthorName(trimmed);
+    }
+    setEditingAuthor(false);
+  }
 
   const [title, setTitle] = useState("");
   const [topic, setTopic] = useState("Bitcoin");
@@ -968,7 +990,57 @@ export function CommunityWriteStudio({
             </Card>
 
             {/* Sidebar */}
-            <aside className="space-y-3">
+            <aside className="space-y-3 lg:sticky lg:top-24 lg:self-start">
+
+              {/* ── Posting as ── */}
+              <Card className="min-w-0 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">Posting as</p>
+
+                {editingAuthor ? (
+                  <div className="mt-3 flex gap-2">
+                    <input
+                      autoFocus
+                      className="min-h-9 flex-1 rounded-md border border-accent/50 bg-background px-3 text-sm text-ink outline-none focus:ring-2 focus:ring-accent/30"
+                      onKeyDown={(e) => { if (e.key === "Enter") saveAuthorName(); if (e.key === "Escape") setEditingAuthor(false); }}
+                      onChange={(e) => setAuthorDraft(e.target.value)}
+                      placeholder="Your display name"
+                      value={authorDraft}
+                    />
+                    <button
+                      type="button"
+                      onClick={saveAuthorName}
+                      className="rounded-md border border-accent/50 bg-accent/15 px-3 py-1.5 text-xs font-semibold text-blue-100 transition hover:bg-accent/25"
+                    >
+                      Save
+                    </button>
+                  </div>
+                ) : (
+                  <div className="mt-3 flex items-center justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-2.5">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-accent/30 bg-accent/15 text-xs font-bold text-blue-100">
+                        {authorName ? authorName.slice(0, 2).toUpperCase() : "?"}
+                      </div>
+                      <span className="truncate text-sm font-semibold text-ink">
+                        {authorName || <span className="italic text-muted-2">No name set</span>}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => { setAuthorDraft(authorName); setEditingAuthor(true); }}
+                      className="shrink-0 rounded-md border border-white/10 px-2.5 py-1 text-xs font-semibold text-muted transition hover:border-accent/50 hover:text-accent"
+                    >
+                      Edit
+                    </button>
+                  </div>
+                )}
+
+                {!authorName && !editingAuthor && (
+                  <p className="mt-2 text-xs leading-5 text-amber-200/80">
+                    Set a name so your posts are saved correctly and appear in your profile history.
+                  </p>
+                )}
+              </Card>
+
               <Card className="overflow-hidden p-0">
                 <button
                   type="button"

@@ -4,6 +4,24 @@ export const COMMUNITY_POSTS_STORAGE_KEY = "chain-brief-community-posts";
 export const COMMUNITY_POSTS_CHANGED_EVENT = "chain-brief-community-posts-changed";
 export const COMMUNITY_QUOTE_STORAGE_KEY = "chain-brief-community-quote";
 export const COMMUNITY_QUOTE_CHANGED_EVENT = "chain-brief-community-quote-changed";
+export const COMMUNITY_AUTHOR_NAME_KEY = "chain-brief-author-name";
+
+/** Read the saved community author name from localStorage. */
+export function readAuthorName(): string {
+  if (typeof window === "undefined") return "";
+  return window.localStorage.getItem(COMMUNITY_AUTHOR_NAME_KEY)?.trim() ?? "";
+}
+
+/** Persist the author name to localStorage. */
+export function writeAuthorName(name: string) {
+  if (typeof window === "undefined") return;
+  const trimmed = name.trim();
+  if (trimmed) {
+    window.localStorage.setItem(COMMUNITY_AUTHOR_NAME_KEY, trimmed);
+  } else {
+    window.localStorage.removeItem(COMMUNITY_AUTHOR_NAME_KEY);
+  }
+}
 
 export type CommunityPostKind = "opinion" | "repost" | "quote" | "thread_quote" | "thread_repost";
 
