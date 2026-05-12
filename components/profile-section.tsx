@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
 import { hasSupabaseConfig } from "@/lib/supabase/config";
-import { readCommunityPosts, type CommunityPost } from "@/lib/community";
+import { readCommunityPosts, COMMUNITY_POSTS_CHANGED_EVENT, type CommunityPost } from "@/lib/community";
 import { cn } from "@/lib/cn";
 
 type ChainBriefProfile = {
@@ -195,6 +195,7 @@ export function ProfileSection() {
   const [error, setError] = useState<string | null>(null);
   const [scores, setScores] = useState<AnalystScores>(ZERO_SCORES);
   const [postCount, setPostCount] = useState(0);
+  const [allPosts, setAllPosts] = useState<CommunityPost[]>([]);
 
   const hydrateProfile = useCallback((nextUser: User | null) => {
     const profile = readProfile(nextUser);
@@ -213,8 +214,9 @@ export function ProfileSection() {
     setSocialLinks(profile?.socialLinks ?? DEFAULT_SOCIAL_LINKS);
 
     // Compute live analyst score from community posts
+    const posts = readCommunityPosts();
+    setAllPosts(posts);
     if (name) {
-      const posts = readCommunityPosts();
       setScores(computeAnalystScores(posts, name));
       setPostCount(posts.filter((p) => p.author === name && p.kind === "opinion").length);
     }
@@ -237,9 +239,17 @@ export function ProfileSection() {
       hydrateProfile(session?.user ?? null);
     });
 
+    function syncPosts() {
+      setAllPosts(readCommunityPosts());
+    }
+    window.addEventListener("storage", syncPosts);
+    window.addEventListener(COMMUNITY_POSTS_CHANGED_EVENT, syncPosts);
+
     return () => {
       isMounted = false;
       subscription.unsubscribe();
+      window.removeEventListener("storage", syncPosts);
+      window.removeEventListener(COMMUNITY_POSTS_CHANGED_EVENT, syncPosts);
     };
   }, [hydrateProfile, supabase]);
 
@@ -281,6 +291,7 @@ export function ProfileSection() {
     // Recompute scores after save with new display name
     if (profile.displayName) {
       const posts = readCommunityPosts();
+      setAllPosts(posts);
       setScores(computeAnalystScores(posts, profile.displayName));
       setPostCount(posts.filter((p) => p.author === profile.displayName && p.kind === "opinion").length);
     }
@@ -329,6 +340,7 @@ export function ProfileSection() {
   const canApply = expertise.trim() && sampleContent.trim() && markets.trim() && noAdviceAgreed && riskAgreed;
 
   return (
+    <>
     <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]">
       {/* ── Left: edit form ── */}
       <Card className="min-w-0 p-5 sm:p-6">
@@ -510,6 +522,182 @@ export function ProfileSection() {
         </CollapsibleCard>
       </aside>
     </div>
+
+    {/* ── Full-width post history ── */}
+    <PostHistorySection posts={allPosts} authorName={displayName} />
+    </>
+  );
+}
+
+// ─── Post history ─────────────────────────────────────────────────────────────
+
+function PostHistorySection({ posts, authorName }: { posts: CommunityPost[]; authorName: string }) {
+  const mine = posts
+    .filter((p) => p.author === authorName)
+    .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
+
+  return (
+    <div className="mt-8">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">Post History</p>
+          <h2 className="mt-1 text-xl font-semibold text-ink">Your written posts</h2>
+        </div>
+        <span className="text-xs text-muted-2">{mine.length} post{mine.length !== 1 ? "s" : ""}</span>
+      </div>
+
+      {mine.length === 0 ? (
+        <Card className="p-6">
+          <p className="text-sm leading-6 text-muted">
+            You haven't posted anything yet.{" "}
+            <a href="/community/write" className="text-accent underline-offset-2 hover:underline">
+              Write your first post →
+            </a>
+          </p>
+        </Card>
+      ) : (
+        <div className="grid gap-3">
+          {mine.map((post) => (
+            <PostHistoryCard key={post.id} post={post} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const POST_TYPE_LABELS: Record<string, string> = {
+  general:          "General",
+  news_interpretation: "News Analysis",
+  chart_analysis:   "Chart Analysis",
+  trade_review:     "Trade Review",
+  loss_review:      "Loss Review",
+  risk_analysis:    "Risk Analysis",
+};
+
+const STANCE_COLORS: Record<string, string> = {
+  Bullish:  "bg-accent/15 text-blue-200",
+  Bearish:  "bg-rose-500/15 text-rose-200",
+  Neutral:  "bg-white/[0.06] text-muted",
+  Question: "bg-amber-400/10 text-amber-200",
+};
+
+function PostHistoryCard({ post }: { post: CommunityPost }) {
+  const [expanded, setExpanded] = useState(false);
+
+  const exactTime = new Date(post.publishedAt).toLocaleString(undefined, {
+    year: "numeric", month: "short", day: "numeric",
+    hour: "2-digit", minute: "2-digit", second: "2-digit",
+  });
+
+  const kindLabel =
+    post.kind === "thread_repost" ? "Repost" :
+    post.kind === "thread_quote"  ? "Quote"  :
+    post.kind === "quote"         ? "Quote"  : null;
+
+  return (
+    <Card className="min-w-0 overflow-hidden p-0">
+      {/* Summary row — always visible, click to expand */}
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        className="flex w-full items-start gap-4 px-4 py-4 text-left transition hover:bg-white/[0.03]"
+      >
+        {/* Expand indicator */}
+        <span className={cn("mt-1 shrink-0 text-xs text-muted transition-transform duration-200", expanded ? "rotate-180" : "rotate-0")}>▾</span>
+
+        <div className="min-w-0 flex-1">
+          {/* Badges row */}
+          <div className="flex flex-wrap items-center gap-2">
+            {post.postType && (
+              <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wider text-muted">
+                {POST_TYPE_LABELS[post.postType] ?? post.postType}
+              </span>
+            )}
+            {post.stance && (
+              <span className={cn("rounded-full px-2 py-0.5 text-[0.65rem] font-bold", STANCE_COLORS[post.stance] ?? "bg-white/[0.06] text-muted")}>
+                {post.stance}
+              </span>
+            )}
+            {kindLabel && (
+              <span className="rounded-full border border-accent/20 bg-accent/10 px-2 py-0.5 text-[0.65rem] font-semibold text-blue-200">
+                {kindLabel}
+              </span>
+            )}
+            {post.topic && (
+              <span className="text-[0.65rem] font-semibold uppercase tracking-wider text-muted-2">
+                #{post.topic}
+              </span>
+            )}
+          </div>
+
+          {/* Title */}
+          <p className="mt-2 break-words text-sm font-semibold text-ink leading-snug">
+            {post.title || <span className="italic text-muted-2">(untitled)</span>}
+          </p>
+
+          {/* Preview line */}
+          {!expanded && (
+            <p className="mt-1 line-clamp-1 text-xs leading-5 text-muted">{post.preview}</p>
+          )}
+        </div>
+
+        {/* Timestamp — right side */}
+        <time
+          dateTime={post.publishedAt}
+          className="shrink-0 text-right text-xs text-muted-2"
+          title={exactTime}
+        >
+          <span className="block">{new Date(post.publishedAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</span>
+          <span className="block text-muted-2/70">{new Date(post.publishedAt).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}</span>
+        </time>
+      </button>
+
+      {/* Expanded detail */}
+      {expanded && (
+        <div className="border-t border-white/[0.06] px-4 pb-5 pt-4">
+          {/* Exact timestamp */}
+          <p className="mb-3 text-xs font-semibold text-muted-2">
+            Posted: <span className="text-ink">{exactTime}</span>
+          </p>
+
+          {/* Full body */}
+          <div className="whitespace-pre-wrap break-words text-sm leading-6 text-muted">
+            {post.body || <span className="italic text-muted-2">(no body)</span>}
+          </div>
+
+          {/* Attachments */}
+          {post.attachments?.length ? (
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              {post.attachments.map((a) => (
+                <figure key={a.id} className="overflow-hidden rounded-xl border border-white/10">
+                  {a.kind === "image" ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img alt={a.name} className="aspect-video w-full object-cover" src={a.dataUrl} />
+                  ) : (
+                    <video className="aspect-video w-full bg-black" controls src={a.dataUrl} />
+                  )}
+                  <figcaption className="px-3 py-1.5 text-xs text-muted-2">{a.name}</figcaption>
+                </figure>
+              ))}
+            </div>
+          ) : null}
+
+          {/* Engagement stats */}
+          <div className="mt-4 flex flex-wrap gap-4 text-xs text-muted-2">
+            <span>{post.views} views</span>
+            <span>{post.likes} likes</span>
+            <span>{post.commentsCount} comments</span>
+          </div>
+
+          <div className="mt-4">
+            <a href="/community/write" className="text-xs font-semibold text-accent underline-offset-2 hover:underline">
+              Write another post →
+            </a>
+          </div>
+        </div>
+      )}
+    </Card>
   );
 }
 
