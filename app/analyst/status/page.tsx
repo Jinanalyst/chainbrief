@@ -22,15 +22,18 @@ export default async function AnalystStatusPage() {
     );
   }
 
-  const { user } = await getCurrentUserContext();
-  if (!user) {
-    redirect("/login?next=/analyst/status");
-  }
+  let user = null;
+  try {
+    const ctx = await getCurrentUserContext();
+    user = ctx.user;
+  } catch { /* Supabase unreachable */ }
+  if (!user) redirect("/login?next=/analyst/status");
 
-  const application = await getLatestApplicationForUser(user.id);
-  if (!application) {
-    redirect("/analyst/apply");
-  }
+  let application = null;
+  try {
+    application = await getLatestApplicationForUser(user.id);
+  } catch { /* table may not exist */ }
+  if (!application) redirect("/analyst/apply");
 
   const reapplyAt = new Date(application.applied_at);
   reapplyAt.setDate(reapplyAt.getDate() + 30);

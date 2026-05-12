@@ -27,17 +27,28 @@ export default async function AnalystDashboardPage() {
     );
   }
 
-  const { user } = await getCurrentUserContext();
-  if (!user) {
-    redirect("/login?next=/analyst/dashboard");
-  }
+  let user = null;
+  try {
+    const ctx = await getCurrentUserContext();
+    user = ctx.user;
+  } catch { /* Supabase unreachable */ }
+  if (!user) redirect("/login?next=/analyst/dashboard");
 
-  const approved = await getApprovedAnalystProfile(user.id);
-  if (!approved) {
-    redirect("/analyst/status");
-  }
+  let approved = null;
+  try {
+    approved = await getApprovedAnalystProfile(user.id);
+  } catch { /* table may not exist */ }
+  if (!approved) redirect("/analyst/status");
 
-  const snapshot = await getAnalystDashboardSnapshot(user.id);
+  let snapshot;
+  try {
+    snapshot = await getAnalystDashboardSnapshot(user.id);
+  } catch {
+    snapshot = {
+      thisMonthRevenue: 0, totalSubscribers: 0, postsPublished: 0,
+      revenueBars: [], memberships: [], profile: null,
+    };
+  }
   const maxRevenue = Math.max(...snapshot.revenueBars.map((bar) => bar.amount), 0, 1);
 
   return (
