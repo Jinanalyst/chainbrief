@@ -13,7 +13,15 @@ type ChainBriefProfile = {
   role: string;
   interests: string[];
   bio: string;
+  socialLinks: ChainBriefSocialLinks;
   updatedAt?: string;
+};
+
+type ChainBriefSocialLinks = {
+  x: string;
+  telegram: string;
+  discord: string;
+  website: string;
 };
 
 const PROFILE_ROLES = [
@@ -24,6 +32,13 @@ const PROFILE_ROLES = [
   "Analyst",
 ];
 
+const DEFAULT_SOCIAL_LINKS: ChainBriefSocialLinks = {
+  x: "",
+  telegram: "",
+  discord: "",
+  website: "",
+};
+
 export function ProfileSection() {
   const supabase = useMemo(() => (hasSupabaseConfig ? createClient() : null), []);
   const [user, setUser] = useState<User | null>(null);
@@ -31,6 +46,7 @@ export function ProfileSection() {
   const [role, setRole] = useState(PROFILE_ROLES[0]);
   const [interests, setInterests] = useState("");
   const [bio, setBio] = useState("");
+  const [socialLinks, setSocialLinks] = useState<ChainBriefSocialLinks>(DEFAULT_SOCIAL_LINKS);
   const [expertise, setExpertise] = useState("");
   const [sampleContent, setSampleContent] = useState("");
   const [markets, setMarkets] = useState("");
@@ -54,6 +70,7 @@ export function ProfileSection() {
     setRole(profile?.role ?? PROFILE_ROLES[0]);
     setInterests(profile?.interests?.join(", ") ?? "");
     setBio(profile?.bio ?? "");
+    setSocialLinks(profile?.socialLinks ?? DEFAULT_SOCIAL_LINKS);
   }, []);
 
   useEffect(() => {
@@ -102,6 +119,12 @@ export function ProfileSection() {
       role,
       interests: parseInterests(interests),
       bio: bio.trim(),
+      socialLinks: {
+        x: socialLinks.x.trim(),
+        telegram: socialLinks.telegram.trim(),
+        discord: socialLinks.discord.trim(),
+        website: socialLinks.website.trim(),
+      },
       updatedAt: new Date().toISOString(),
     };
 
@@ -253,6 +276,42 @@ export function ProfileSection() {
             />
           </label>
 
+          <div className="grid gap-3 rounded-md border border-white/10 bg-white/[0.03] p-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
+                Social links
+              </p>
+              <p className="mt-1 text-xs leading-5 text-muted-2">
+                Add the SNS accounts you want to share with the community.
+              </p>
+            </div>
+
+            <SocialLinkField
+              label="X / Twitter"
+              placeholder="https://x.com/your-handle"
+              value={socialLinks.x}
+              onChange={(value) => setSocialLinks((current) => ({ ...current, x: value }))}
+            />
+            <SocialLinkField
+              label="Telegram"
+              placeholder="https://t.me/your-handle"
+              value={socialLinks.telegram}
+              onChange={(value) => setSocialLinks((current) => ({ ...current, telegram: value }))}
+            />
+            <SocialLinkField
+              label="Discord"
+              placeholder="discord.gg/your-server"
+              value={socialLinks.discord}
+              onChange={(value) => setSocialLinks((current) => ({ ...current, discord: value }))}
+            />
+            <SocialLinkField
+              label="Website"
+              placeholder="https://your-site.com"
+              value={socialLinks.website}
+              onChange={(value) => setSocialLinks((current) => ({ ...current, website: value }))}
+            />
+          </div>
+
           <Button disabled={isSaving} type="submit">
             {isSaving ? "Saving..." : profile ? "Update profile" : "Create profile"}
           </Button>
@@ -284,6 +343,19 @@ export function ProfileSection() {
             <ProfileCheck complete={Boolean(displayName.trim())} label="Display name" />
             <ProfileCheck complete={parseInterests(interests).length > 0} label="Topics" />
             <ProfileCheck complete={Boolean(bio.trim())} label="Bio" />
+            <ProfileCheck complete={hasAnySocialLink(socialLinks)} label="Social links" />
+          </div>
+        </Card>
+
+        <Card className="min-w-0 p-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+            Social Preview
+          </p>
+          <div className="mt-3 grid gap-2 text-sm">
+            <SocialPreviewRow label="X" value={socialLinks.x} />
+            <SocialPreviewRow label="Telegram" value={socialLinks.telegram} />
+            <SocialPreviewRow label="Discord" value={socialLinks.discord} />
+            <SocialPreviewRow label="Website" value={socialLinks.website} />
           </div>
         </Card>
 
@@ -406,6 +478,7 @@ function readProfile(user: User | null): ChainBriefProfile | null {
       ? profile.interests.filter((item): item is string => typeof item === "string")
       : [],
     bio: typeof profile.bio === "string" ? profile.bio : "",
+    socialLinks: sanitizeSocialLinks(profile.socialLinks),
     updatedAt: typeof profile.updatedAt === "string" ? profile.updatedAt : undefined,
   };
 }
@@ -430,4 +503,81 @@ function getInitials(value: string) {
     .map((part) => part[0])
     .join("")
     .toUpperCase() || "CB";
+}
+
+function sanitizeSocialLinks(value: unknown): ChainBriefSocialLinks {
+  if (!value || typeof value !== "object") {
+    return DEFAULT_SOCIAL_LINKS;
+  }
+
+  const links = value as Partial<ChainBriefSocialLinks>;
+
+  return {
+    x: typeof links.x === "string" ? links.x : "",
+    telegram: typeof links.telegram === "string" ? links.telegram : "",
+    discord: typeof links.discord === "string" ? links.discord : "",
+    website: typeof links.website === "string" ? links.website : "",
+  };
+}
+
+function hasAnySocialLink(links: ChainBriefSocialLinks) {
+  return Boolean(
+    links.x.trim() || links.telegram.trim() || links.discord.trim() || links.website.trim(),
+  );
+}
+
+function normalizeLink(value: string) {
+  if (/^https?:\/\//i.test(value)) {
+    return value;
+  }
+
+  return `https://${value}`;
+}
+
+function SocialLinkField({
+  label,
+  placeholder,
+  value,
+  onChange,
+}: {
+  label: string;
+  placeholder: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="block">
+      <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
+        {label}
+      </span>
+      <input
+        className="mt-2 min-h-11 w-full rounded-md border border-white/10 bg-background px-4 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+        value={value}
+      />
+    </label>
+  );
+}
+
+function SocialPreviewRow({ label, value }: { label: string; value: string }) {
+  const trimmed = value.trim();
+
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-md border border-white/10 bg-white/[0.03] px-3 py-2">
+      <span className="text-muted">{label}</span>
+      {trimmed ? (
+        <a
+          className="truncate text-sm font-semibold text-blue-100 underline-offset-4 hover:underline"
+          href={normalizeLink(trimmed)}
+          rel="noreferrer"
+          target="_blank"
+        >
+          {trimmed}
+        </a>
+      ) : (
+        <span className="text-muted-2">Not added</span>
+      )}
+    </div>
+  );
 }
