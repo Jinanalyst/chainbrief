@@ -150,7 +150,7 @@ function HeroSection() {
             Your first step into crypto starts here.
           </h1>
           <p className="mt-5 max-w-2xl text-base leading-7 text-muted sm:mt-6 sm:text-lg sm:leading-8">
-            Chain Brief delivers today's most important crypto stories in plain
+            Chain Brief delivers today&apos;s most important crypto stories in plain
             language — no experience needed. Start learning one brief at a time,
             and grow into your own investment perspective.
           </p>
