@@ -193,6 +193,8 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
             }
           }
 
+          if (!isMounted) return;
+
           if (mode === "refresh" && hasNewArticles(articlesRef.current, nextArticles)) {
             setPendingArticles(nextArticles);
             maybeShowInTabNotification(nextArticles, articlesRef.current, preferencesRef.current);

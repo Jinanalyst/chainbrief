@@ -99,6 +99,7 @@ export function NotificationSettings({
   const [isSendingTest, setIsSendingTest] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [statusTone, setStatusTone] = useState<StatusTone>("default");
+  const [keywordInput, setKeywordInput] = useState("");
   const supabase = useMemo(() => (hasSupabaseConfig ? createClient() : null), []);
   const pushSupported = hasPushSupport();
   const hasPushPublicKey = Boolean(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY);
@@ -271,8 +272,6 @@ export function NotificationSettings({
     setStatusTone(sent ? "success" : "warning");
     setStatusMessage(sent ? statusCopy.testSuccess : statusCopy.testFailed);
   }
-
-  const [keywordInput, setKeywordInput] = useState("");
 
   function addKeyword() {
     const trimmed = keywordInput.trim();
