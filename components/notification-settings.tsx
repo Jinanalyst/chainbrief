@@ -5,10 +5,8 @@ import type { User } from "@supabase/supabase-js";
 import { cn } from "@/lib/cn";
 import { useI18n } from "@/lib/i18n/use-i18n";
 import {
-  formatNotificationKeywords,
   getBrowserNotificationPermission,
   hasPushSupport,
-  parseNotificationKeywords,
   removePushSubscription,
   requestBrowserNotificationPermission,
   sendTestPushNotification,
@@ -274,10 +272,25 @@ export function NotificationSettings({
     setStatusMessage(sent ? statusCopy.testSuccess : statusCopy.testFailed);
   }
 
-  function updateKeywords(value: string) {
+  const [keywordInput, setKeywordInput] = useState("");
+
+  function addKeyword() {
+    const trimmed = keywordInput.trim();
+    if (!trimmed || preferences.notificationKeywords.includes(trimmed)) {
+      setKeywordInput("");
+      return;
+    }
     onChange({
       ...preferences,
-      notificationKeywords: parseNotificationKeywords(value),
+      notificationKeywords: [...preferences.notificationKeywords, trimmed].slice(0, 20),
+    });
+    setKeywordInput("");
+  }
+
+  function removeKeyword(keyword: string) {
+    onChange({
+      ...preferences,
+      notificationKeywords: preferences.notificationKeywords.filter((k) => k !== keyword),
     });
   }
 
@@ -338,34 +351,54 @@ export function NotificationSettings({
         </div>
       </div>
 
-      <label className="mt-4 block min-w-0">
-        <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
+      <div className="mt-4 min-w-0">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
           {copy.notifications.keywords}
-        </span>
-        <textarea
-          className="mt-2 min-h-28 w-full rounded-md border border-white/10 bg-background px-4 py-3 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
-          onChange={(event) => updateKeywords(event.target.value)}
-          placeholder={"Bitcoin ETF\nSolana\nSEC\nEthereum\nFed"}
-          value={formatNotificationKeywords(preferences.notificationKeywords)}
-        />
-      </label>
-
-      {preferences.notificationKeywords.length > 0 ? (
-        <div className="mt-3 flex flex-wrap gap-2">
-          {preferences.notificationKeywords.map((keyword) => (
-            <span
-              className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs font-medium text-muted"
-              key={keyword}
-            >
-              {keyword}
-            </span>
-          ))}
-        </div>
-      ) : (
-        <p className="mt-3 break-words text-sm leading-6 text-muted-2">
-          {copy.notifications.emptyKeywords}
         </p>
-      )}
+
+        <div className="mt-2 flex gap-2">
+          <input
+            className="min-h-10 flex-1 rounded-md border border-white/10 bg-background px-3 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
+            onChange={(e) => setKeywordInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && addKeyword()}
+            placeholder={preferences.language === "ko" ? "키워드 입력 후 Enter" : "Type a keyword, press Enter"}
+            value={keywordInput}
+          />
+          <button
+            className="shrink-0 rounded-md border border-accent/40 bg-accent/10 px-4 text-sm font-semibold text-blue-100 transition hover:bg-accent/20 disabled:opacity-40"
+            disabled={!keywordInput.trim()}
+            onClick={addKeyword}
+            type="button"
+          >
+            {preferences.language === "ko" ? "추가" : "Add"}
+          </button>
+        </div>
+
+        {preferences.notificationKeywords.length > 0 ? (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {preferences.notificationKeywords.map((keyword) => (
+              <span
+                className="flex items-center gap-1.5 rounded-full border border-accent/30 bg-accent/10 pl-3 pr-2 py-1 text-xs font-medium text-blue-100"
+                key={keyword}
+              >
+                {keyword}
+                <button
+                  aria-label={`Remove ${keyword}`}
+                  className="flex h-4 w-4 items-center justify-center rounded-full text-blue-200 transition hover:bg-white/10"
+                  onClick={() => removeKeyword(keyword)}
+                  type="button"
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-3 break-words text-sm leading-6 text-muted-2">
+            {copy.notifications.emptyKeywords}
+          </p>
+        )}
+      </div>
 
       <div className="mt-4 grid gap-3 rounded-md border border-white/10 bg-white/[0.03] p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
         <div className="min-w-0">

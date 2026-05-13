@@ -11,6 +11,9 @@ import {
   BRIEF_CATEGORIES,
   type BriefPreferences,
 } from "@/lib/preferences";
+import {
+  readCustomBriefSources,
+} from "@/lib/custom-brief-sources";
 import { cn } from "@/lib/cn";
 import { formatBriefSummary } from "@/lib/summary";
 import type { Article } from "@/lib/rss/types";
@@ -165,7 +168,30 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
         }
 
         if (isMounted) {
-          const nextArticles = data.articles ?? [];
+          let nextArticles = data.articles ?? [];
+
+          const customSources = readCustomBriefSources().filter((s) => s.enabled);
+          if (customSources.length > 0) {
+            try {
+              const customRes = await fetch("/api/brief-sources", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ sources: customSources }),
+                cache: "no-store",
+              });
+              if (customRes.ok) {
+                const customData = (await customRes.json()) as BriefsResponse;
+                const combined = [...nextArticles, ...(customData.articles ?? [])];
+                combined.sort(
+                  (a, b) =>
+                    new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime(),
+                );
+                nextArticles = combined.slice(0, 120);
+              }
+            } catch {
+              // custom sources failing silently — main feed still shows
+            }
+          }
 
           if (mode === "refresh" && hasNewArticles(articlesRef.current, nextArticles)) {
             setPendingArticles(nextArticles);
@@ -1008,7 +1034,9 @@ function filterArticlesWithOptions(
       .join(" ")
       .toLowerCase();
 
-    const sourceMatches = preferences.sources.includes(article.sourceName);
+    const sourceMatches =
+      preferences.sources.includes(article.sourceName) ||
+      article.sourceId.startsWith("custom-brief-");
     const categoryMatches =
       !options.includeCategory ||
       preferences.category === "All" ||
