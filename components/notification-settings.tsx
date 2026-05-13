@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { cn } from "@/lib/cn";
 import { useI18n } from "@/lib/i18n/use-i18n";
@@ -96,6 +96,7 @@ export function NotificationSettings({
   const { t: copy } = useI18n(preferences.language);
   const statusCopy = getNotificationStatusCopy(preferences.language);
   const [user, setUser] = useState<User | null>(null);
+  const preferencesRef = useRef(preferences);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isSendingTest, setIsSendingTest] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
@@ -130,19 +131,30 @@ export function NotificationSettings({
     return () => subscription.unsubscribe();
   }, [supabase]);
 
+  preferencesRef.current = preferences;
+
+  const notifSyncKey = [
+    preferences.notificationsEnabled,
+    preferences.notificationPermission,
+    preferences.notificationKeywords.join("\x00"),
+    preferences.language,
+  ].join("|");
+
   useEffect(() => {
-    if (!pushSupported || !user || !preferences.notificationsEnabled) {
+    const prefs = preferencesRef.current;
+
+    if (!pushSupported || !user || !prefs.notificationsEnabled) {
       return;
     }
 
-    if (preferences.notificationPermission !== "granted" || !hasPushPublicKey) {
+    if (prefs.notificationPermission !== "granted" || !hasPushPublicKey) {
       return;
     }
 
     let ignore = false;
 
     async function syncCurrentPreferences() {
-      const result = await syncPushSubscription(preferences);
+      const result = await syncPushSubscription(preferencesRef.current);
 
       if (ignore) {
         return;
@@ -159,13 +171,7 @@ export function NotificationSettings({
     return () => {
       ignore = true;
     };
-  }, [
-    hasPushPublicKey,
-    preferences,
-    pushSupported,
-    statusCopy.syncFailed,
-    user,
-  ]);
+  }, [hasPushPublicKey, notifSyncKey, pushSupported, statusCopy.syncFailed, user]);
 
   async function toggleNotifications() {
     const nextEnabled = !preferences.notificationsEnabled;
