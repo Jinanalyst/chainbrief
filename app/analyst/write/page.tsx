@@ -62,14 +62,16 @@ export default function AnalystWritePage() {
     // Resolve author name from localStorage > Supabase metadata
     const saved = readAuthorName();
     if (saved) {
-      setAuthorName(saved);
-      const profile = readAnalystProfile(slugifyAnalyst(saved));
-      if (profile) {
-        setAuthorBio(profile.bio);
-        setMembershipPrice(profile.membershipPrice);
-        setMembershipEnabled(profile.membershipEnabled);
-      }
-      return;
+      const timer = window.setTimeout(() => {
+        setAuthorName(saved);
+        const profile = readAnalystProfile(slugifyAnalyst(saved));
+        if (profile) {
+          setAuthorBio(profile.bio);
+          setMembershipPrice(profile.membershipPrice);
+          setMembershipEnabled(profile.membershipEnabled);
+        }
+      }, 0);
+      return () => window.clearTimeout(timer);
     }
     if (!supabase) return;
     supabase.auth.getUser().then(({ data }) => {

@@ -179,7 +179,7 @@ export default async function AnalystApplyPage() {
                     typically within 3–5 business days.
                   </p>
                   <p>
-                    2. You'll be notified via the status page. If approved, your
+                    2. You&apos;ll be notified via the status page. If approved, your
                     analyst dashboard unlocks immediately.
                   </p>
                   <p>

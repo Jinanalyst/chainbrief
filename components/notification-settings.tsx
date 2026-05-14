@@ -130,7 +130,9 @@ export function NotificationSettings({
     return () => subscription.unsubscribe();
   }, [supabase]);
 
-  preferencesRef.current = preferences;
+  useEffect(() => {
+    preferencesRef.current = preferences;
+  }, [preferences]);
 
   const notifSyncKey = [
     preferences.notificationsEnabled,

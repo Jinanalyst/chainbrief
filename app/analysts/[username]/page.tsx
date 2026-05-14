@@ -46,23 +46,37 @@ export default function AnalystNewsletterPage() {
   }, [username]);
 
   useEffect(() => {
-    const analystPosts = readAnalystPostsByAuthor(username);
-    setPosts(analystPosts);
-    setProfile(readAnalystProfile(username));
-    setSubscribed(isSubscribedTo(username));
+    const timer = window.setTimeout(() => {
+      setPosts(readAnalystPostsByAuthor(username));
+      setProfile(readAnalystProfile(username));
+      setSubscribed(isSubscribedTo(username));
+      void fetchSubscriberCount();
+    }, 0);
 
-    fetchSubscriberCount();
+    return () => window.clearTimeout(timer);
   }, [username, fetchSubscriberCount]);
 
   // Show checkout result banner from Stripe redirect
   useEffect(() => {
     const checkout = searchParams.get("checkout");
     if (checkout === "success") {
-      setCheckoutBanner("success");
-      setTimeout(() => setCheckoutBanner(null), 6000);
+      const showTimer = window.setTimeout(() => {
+        setCheckoutBanner("success");
+      }, 0);
+      const hideTimer = window.setTimeout(() => setCheckoutBanner(null), 6000);
+      return () => {
+        window.clearTimeout(showTimer);
+        window.clearTimeout(hideTimer);
+      };
     } else if (checkout === "cancelled") {
-      setCheckoutBanner("cancelled");
-      setTimeout(() => setCheckoutBanner(null), 4000);
+      const showTimer = window.setTimeout(() => {
+        setCheckoutBanner("cancelled");
+      }, 0);
+      const hideTimer = window.setTimeout(() => setCheckoutBanner(null), 4000);
+      return () => {
+        window.clearTimeout(showTimer);
+        window.clearTimeout(hideTimer);
+      };
     }
   }, [searchParams]);
 
@@ -128,7 +142,7 @@ export default function AnalystNewsletterPage() {
           <Container className="section-space">
             <Card className="p-8 text-center">
               <p className="text-lg font-semibold text-ink">Analyst not found</p>
-              <p className="mt-2 text-sm text-muted">This analyst hasn't published anything yet.</p>
+              <p className="mt-2 text-sm text-muted">This analyst hasn&apos;t published anything yet.</p>
               <Button className="mt-5" href="/analysts">Browse analysts</Button>
             </Card>
           </Container>
@@ -506,7 +520,7 @@ function SubscribeModal({
               ✉️
             </div>
             <p className="mt-4 text-sm leading-6 text-muted">
-              You'll receive an email every time{" "}
+              You&apos;ll receive an email every time{" "}
               <span className="font-semibold text-ink">{analystName}</span> publishes new content.
             </p>
             <Button className="mt-5 w-full" onClick={onClose}>Done</Button>
@@ -543,7 +557,7 @@ function SubscribeModal({
                 </div>
                 {plan === "premium" && (
                   <p className="mt-2 text-[0.7rem] leading-5 text-amber-200/70">
-                    You'll be redirected to a secure Stripe payment page to complete checkout.
+                    You&apos;ll be redirected to a secure Stripe payment page to complete checkout.
                   </p>
                 )}
               </div>

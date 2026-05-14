@@ -59,7 +59,11 @@ export default function AnalystsDirectoryPage() {
   const [analysts, setAnalysts] = useState<AnalystSummary[]>([]);
 
   useEffect(() => {
-    setAnalysts(buildSummaries());
+    const timer = window.setTimeout(() => {
+      setAnalysts(buildSummaries());
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, []);
 
   return (
