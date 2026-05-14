@@ -3,8 +3,8 @@ import { dispatchNotificationsForLatestBriefs } from "@/lib/notification-dispatc
 
 export async function GET(request: NextRequest) {
   const cronHeader = request.headers.get("x-vercel-cron");
-  const authHeader = request.headers.get("authorization");
-  const expectedSecret = process.env.CRON_SECRET;
+  const authHeader = request.headers.get("authorization")?.trim();
+  const expectedSecret = process.env.CRON_SECRET?.trim();
 
   const isAuthorized =
     Boolean(cronHeader) ||
