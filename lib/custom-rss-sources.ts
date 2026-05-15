@@ -1,5 +1,14 @@
 export type CustomRssSourceType = "rss" | "youtube";
 export type CustomRssSourceLanguage = "ko" | "en" | "mixed";
+export type CustomRssSourceRegion = "US" | "Korea" | "Global";
+export type CustomRssSourceMarketType =
+  | "Stocks"
+  | "ETFs"
+  | "Earnings"
+  | "Macro"
+  | "Economy"
+  | "Indices";
+export type CustomRssSourceCategory = "Crypto" | "SNS" | "Stock Market" | "Other";
 
 export type CustomRssSource = {
   id: string;
@@ -7,6 +16,10 @@ export type CustomRssSource = {
   url: string;
   type: CustomRssSourceType;
   language: CustomRssSourceLanguage;
+  category: CustomRssSourceCategory;
+  marketType?: CustomRssSourceMarketType;
+  region?: CustomRssSourceRegion;
+  tickerSymbol?: string;
   enabled: boolean;
   createdAt: string;
   updatedAt: string;
@@ -14,7 +27,15 @@ export type CustomRssSource = {
 
 export type CustomRssSourceInput = Pick<
   CustomRssSource,
-  "name" | "url" | "type" | "language" | "enabled"
+  | "name"
+  | "url"
+  | "type"
+  | "language"
+  | "category"
+  | "marketType"
+  | "region"
+  | "tickerSymbol"
+  | "enabled"
 >;
 
 export const CUSTOM_RSS_SOURCES_STORAGE_KEY = "chain-brief-custom-rss-sources";
@@ -100,6 +121,10 @@ export function sanitizeCustomRssSourceInput(
     type: input.type === "youtube" ? "youtube" : "rss",
     language:
       input.language === "ko" || input.language === "en" ? input.language : "mixed",
+    category: normalizeCategory(input.category),
+    marketType: normalizeMarketType(input.marketType),
+    region: normalizeRegion(input.region),
+    tickerSymbol: input.tickerSymbol?.trim().toUpperCase().slice(0, 16) || undefined,
     enabled: Boolean(input.enabled),
   };
 }
@@ -210,6 +235,11 @@ function normalizeStoredSource(value: unknown): CustomRssSource | null {
       source.language === "ko" || source.language === "en"
         ? source.language
         : "mixed",
+    category: normalizeCategory(source.category),
+    marketType: normalizeMarketType(source.marketType),
+    region: normalizeRegion(source.region),
+    tickerSymbol:
+      typeof source.tickerSymbol === "string" ? source.tickerSymbol : undefined,
     enabled: source.enabled !== false,
   });
 
@@ -225,4 +255,27 @@ function normalizeStoredSource(value: unknown): CustomRssSource | null {
     createdAt: typeof source.createdAt === "string" ? source.createdAt : now,
     updatedAt: typeof source.updatedAt === "string" ? source.updatedAt : now,
   };
+}
+
+function normalizeCategory(value: unknown): CustomRssSourceCategory {
+  return value === "Stock Market" || value === "SNS" || value === "Other"
+    ? value
+    : "Crypto";
+}
+
+function normalizeMarketType(value: unknown): CustomRssSourceMarketType | undefined {
+  return value === "Stocks" ||
+    value === "ETFs" ||
+    value === "Earnings" ||
+    value === "Macro" ||
+    value === "Economy" ||
+    value === "Indices"
+    ? value
+    : undefined;
+}
+
+function normalizeRegion(value: unknown): CustomRssSourceRegion | undefined {
+  return value === "US" || value === "Korea" || value === "Global"
+    ? value
+    : undefined;
 }

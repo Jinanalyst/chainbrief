@@ -9,8 +9,14 @@ import { storeCommunityQuoteTarget } from "@/lib/community";
 import {
   ACTIVE_SOURCES,
   BRIEF_CATEGORIES,
+  STOCK_REGIONS,
+  STOCK_TYPES,
   type BriefPreferences,
 } from "@/lib/preferences";
+import {
+  readCustomRssSources,
+  type CustomRssSource,
+} from "@/lib/custom-rss-sources";
 import { cn } from "@/lib/cn";
 import { formatBriefSummary } from "@/lib/summary";
 import type { Article } from "@/lib/rss/types";
@@ -57,6 +63,7 @@ type MarketAsset = {
 
 export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
   const [articles, setArticles] = useState<Article[]>([]);
+  const [customSources, setCustomSources] = useState<CustomRssSource[]>([]);
   const [preferences, setPreferences] = usePreferences();
   const { t: copy, language } = useI18n(preferences.language);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
@@ -80,6 +87,25 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
   useEffect(() => {
     articlesRef.current = articles;
   }, [articles]);
+
+  useEffect(() => {
+    function syncCustomSources() {
+      setCustomSources(readCustomRssSources());
+    }
+
+    const timer = window.setTimeout(syncCustomSources, 0);
+    window.addEventListener("storage", syncCustomSources);
+    window.addEventListener("chain-brief-custom-rss-sources-changed", syncCustomSources);
+
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("storage", syncCustomSources);
+      window.removeEventListener(
+        "chain-brief-custom-rss-sources-changed",
+        syncCustomSources,
+      );
+    };
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -150,9 +176,25 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
         }
         setError(null);
 
-        const response = await fetch(`/api/briefs?ts=${Date.now()}`, {
-          cache: "no-store",
-        });
+        const enabledCustomSources = customSources.filter(
+          (source) =>
+            source.enabled &&
+            source.type === "rss" &&
+            (source.category === "Stock Market" ||
+              source.category === "Crypto" ||
+              source.category === "Other"),
+        );
+        const response =
+          enabledCustomSources.length > 0
+            ? await fetch(`/api/briefs?ts=${Date.now()}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                cache: "no-store",
+                body: JSON.stringify({ sources: enabledCustomSources }),
+              })
+            : await fetch(`/api/briefs?ts=${Date.now()}`, {
+                cache: "no-store",
+              });
         const data = (await response.json()) as BriefsResponse;
 
         if (!response.ok || data.error) {
@@ -191,17 +233,21 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
       isMounted = false;
       window.clearInterval(refreshTimer);
     };
-  }, [copy.feed.loadErrorMessage]);
+  }, [copy.feed.loadErrorMessage, customSources]);
 
+  const availableSources = useMemo(() => {
+    const sourceNames = articles.map((article) => article.sourceName);
+    return Array.from(new Set([...ACTIVE_SOURCES, ...sourceNames]));
+  }, [articles]);
   const filteredArticles = useMemo(
-    () => filterArticles(articles, preferences),
-    [articles, preferences],
+    () => filterArticles(articles, preferences, availableSources),
+    [articles, preferences, availableSources],
   );
   const visibleArticles = filteredArticles.slice(0, visibleArticleCount);
   const hasMoreArticles = visibleArticles.length < filteredArticles.length;
   const categoryCounts = useMemo(
-    () => getCategoryCounts(articles, preferences),
-    [articles, preferences],
+    () => getCategoryCounts(articles, preferences, availableSources),
+    [articles, preferences, availableSources],
   );
   const liveIssues = articles.slice(0, 5);
 
@@ -213,7 +259,7 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
   function setSource(source: string) {
     setPreferences({
       ...preferences,
-      sources: source === "All" ? ACTIVE_SOURCES : [source],
+      sources: source === "All" ? availableSources : [source],
     });
     setVisibleArticleCount(INITIAL_VISIBLE_ARTICLES);
   }
@@ -308,6 +354,8 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
           onChange={setCategory}
         />
 
+        <StockMarketFilters preferences={preferences} onChange={setPreferences} />
+
         <div className="mt-5 grid min-w-0 gap-5 lg:grid-cols-[minmax(0,1fr)_18rem]">
           <div className="min-w-0">
             {isLoading ? <LoadingState /> : null}
@@ -365,6 +413,7 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
           <FeedSidebar
             articleCount={filteredArticles.length}
             preferences={preferences}
+            sources={availableSources}
             lastUpdatedAt={lastUpdatedAt}
             onSourceChange={setSource}
           />
@@ -458,6 +507,95 @@ function CategoryTabs({
             {getCategoryLabel(category, language)} ({counts[category] ?? 0})
           </button>
         ))}
+      </div>
+    </div>
+  );
+}
+
+function StockMarketFilters({
+  preferences,
+  onChange,
+}: {
+  preferences: BriefPreferences;
+  onChange: (preferences: BriefPreferences) => void;
+}) {
+  function toggleRegion(region: string) {
+    const nextRegions = preferences.stockRegions.includes(region)
+      ? preferences.stockRegions.filter((item) => item !== region)
+      : [...preferences.stockRegions, region];
+
+    onChange({
+      ...preferences,
+      stockRegions: nextRegions.length > 0 ? nextRegions : [region],
+    });
+  }
+
+  function toggleType(type: string) {
+    const nextTypes = preferences.stockTypes.includes(type)
+      ? preferences.stockTypes.filter((item) => item !== type)
+      : [...preferences.stockTypes, type];
+
+    onChange({
+      ...preferences,
+      stockTypes: nextTypes.length > 0 ? nextTypes : [type],
+    });
+  }
+
+  return (
+    <div className="mt-3 grid gap-3 rounded-lg border border-white/10 bg-surface/60 p-3 lg:grid-cols-2">
+      <FilterButtonGroup
+        activeItems={preferences.stockRegions}
+        allItems={STOCK_REGIONS}
+        label="Region"
+        onToggle={toggleRegion}
+      />
+      <FilterButtonGroup
+        activeItems={preferences.stockTypes}
+        allItems={STOCK_TYPES}
+        label="Type"
+        onToggle={toggleType}
+      />
+    </div>
+  );
+}
+
+function FilterButtonGroup({
+  activeItems,
+  allItems,
+  label,
+  onToggle,
+}: {
+  activeItems: string[];
+  allItems: readonly string[];
+  label: string;
+  onToggle: (item: string) => void;
+}) {
+  return (
+    <div className="min-w-0">
+      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
+        {label}
+      </p>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {allItems.map((item) => {
+          const isActive = activeItems.includes(item);
+
+          return (
+            <button
+              aria-pressed={isActive}
+              className={cn(
+                "rounded-full border px-3 py-1.5 text-xs font-bold transition",
+                isActive
+                  ? "border-accent/60 bg-accent/20 text-blue-100"
+                  : "border-white/10 bg-white/[0.03] text-muted hover:border-accent/50 hover:text-ink",
+              )}
+              key={item}
+              onClick={() => onToggle(item)}
+              type="button"
+            >
+              {item}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
@@ -772,16 +910,20 @@ function FeedSidebar({
   lastUpdatedAt,
   onSourceChange,
   preferences,
+  sources,
 }: {
   articleCount: number;
   lastUpdatedAt: string | null;
   onSourceChange: (source: string) => void;
   preferences: BriefPreferences;
+  sources: string[];
 }) {
   const hasIncludeKeywords = preferences.includeKeywords.trim().length > 0;
   const hasExcludeKeywords = preferences.excludeKeywords.trim().length > 0;
   const { t: copy } = useI18n(preferences.language);
-  const allSourcesSelected = preferences.sources.length === ACTIVE_SOURCES.length;
+  const allSourcesSelected = sources.every((source) =>
+    preferences.sources.includes(source),
+  ) || ACTIVE_SOURCES.every((source) => preferences.sources.includes(source));
 
   return (
     <aside className="space-y-3 lg:sticky lg:top-24 lg:self-start">
@@ -803,7 +945,7 @@ function FeedSidebar({
           >
             {getCategoryLabel("All", preferences.language)}
           </button>
-          {ACTIVE_SOURCES.map((source) => (
+          {sources.map((source) => (
             <button
               aria-pressed={!allSourcesSelected && preferences.sources.includes(source)}
               className={cn(
@@ -947,8 +1089,14 @@ function NoMatchesState({ language }: { language: BriefPreferences["language"] }
   );
 }
 
-function filterArticles(articles: Article[], preferences: BriefPreferences) {
-  return filterArticlesWithOptions(articles, preferences, { includeCategory: true });
+function filterArticles(
+  articles: Article[],
+  preferences: BriefPreferences,
+  availableSources: string[],
+) {
+  return filterArticlesWithOptions(articles, preferences, availableSources, {
+    includeCategory: true,
+  });
 }
 
 function hasNewArticles(currentArticles: Article[], nextArticles: Article[]) {
@@ -957,10 +1105,19 @@ function hasNewArticles(currentArticles: Article[], nextArticles: Article[]) {
   return nextArticles.some((article) => !currentIds.has(article.id));
 }
 
-function getCategoryCounts(articles: Article[], preferences: BriefPreferences) {
-  const baseMatches = filterArticlesWithOptions(articles, preferences, {
-    includeCategory: false,
-  });
+function getCategoryCounts(
+  articles: Article[],
+  preferences: BriefPreferences,
+  availableSources: string[],
+) {
+  const baseMatches = filterArticlesWithOptions(
+    articles,
+    preferences,
+    availableSources,
+    {
+      includeCategory: false,
+    },
+  );
   const counts = Object.fromEntries(
     BRIEF_CATEGORIES.map((category) => [category, 0]),
   ) as Record<string, number>;
@@ -984,6 +1141,7 @@ function getCategoryCounts(articles: Article[], preferences: BriefPreferences) {
 function filterArticlesWithOptions(
   articles: Article[],
   preferences: BriefPreferences,
+  availableSources: string[],
   options: { includeCategory: boolean },
 ) {
   const includeKeywords = parseKeywords(preferences.includeKeywords);
@@ -1002,12 +1160,29 @@ function filterArticlesWithOptions(
       .join(" ")
       .toLowerCase();
 
-    const sourceMatches = preferences.sources.includes(article.sourceName);
+    const allSourcesSelected = availableSources.every((source) =>
+      preferences.sources.includes(source),
+    );
+    const baseSourcesSelected = ACTIVE_SOURCES.every((source) =>
+      preferences.sources.includes(source),
+    );
+    const sourceMatches =
+      allSourcesSelected ||
+      baseSourcesSelected ||
+      preferences.sources.includes(article.sourceName);
     const categoryMatches =
       !options.includeCategory ||
       preferences.category === "All" ||
       article.category === preferences.category ||
       article.tags.includes(preferences.category);
+    const stockRegionMatches =
+      article.feedCategory !== "Stock Market" ||
+      !article.region ||
+      preferences.stockRegions.includes(article.region);
+    const stockTypeMatches =
+      article.feedCategory !== "Stock Market" ||
+      !article.marketType ||
+      preferences.stockTypes.includes(article.marketType);
     const includesRequired =
       includeKeywords.length === 0 ||
       includeKeywords.some((keyword) => searchableText.includes(keyword));
@@ -1015,7 +1190,14 @@ function filterArticlesWithOptions(
       searchableText.includes(keyword),
     );
 
-    return sourceMatches && categoryMatches && includesRequired && !excludesBlocked;
+    return (
+      sourceMatches &&
+      categoryMatches &&
+      stockRegionMatches &&
+      stockTypeMatches &&
+      includesRequired &&
+      !excludesBlocked
+    );
   });
 }
 

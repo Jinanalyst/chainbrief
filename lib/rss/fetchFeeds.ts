@@ -1,4 +1,5 @@
 import Parser from "rss-parser";
+import type { CustomRssSource } from "@/lib/custom-rss-sources";
 import { RSS_REFRESH_SECONDS, rssSources, type RssSource } from "@/lib/rss/sources";
 import type { Article } from "@/lib/rss/types";
 
@@ -58,6 +59,36 @@ export async function fetchFeeds(): Promise<Article[]> {
     .slice(0, MAX_ARTICLES);
 }
 
+export async function fetchPersonalizedFeeds(
+  customSources: CustomRssSource[] = [],
+): Promise<Article[]> {
+  const enabledCustomSources = customSources
+    .filter((source) => source.enabled && source.type === "rss")
+    .slice(0, 20);
+  const [baseResult, customResults] = await Promise.all([
+    fetchFeeds().then(
+      (articles) => ({ ok: true, articles }),
+      () => ({ ok: false, articles: [] as Article[] }),
+    ),
+    Promise.allSettled(enabledCustomSources.map(fetchCustomSourceFeed)),
+  ]);
+  const customArticles = customResults.flatMap((result) =>
+    result.status === "fulfilled" ? result.value.articles : [],
+  );
+  const articles = [...customArticles, ...baseResult.articles];
+
+  if (articles.length === 0) {
+    throw new AllRssSourcesFailedError();
+  }
+
+  return removeDuplicateArticles(articles)
+    .sort(
+      (a, b) =>
+        new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime(),
+    )
+    .slice(0, MAX_ARTICLES);
+}
+
 async function fetchSourceFeed(
   source: RssSource,
 ): Promise<{ ok: boolean; articles: Article[] }> {
@@ -91,6 +122,39 @@ async function fetchSourceFeed(
   }
 }
 
+async function fetchCustomSourceFeed(
+  source: CustomRssSource,
+): Promise<{ ok: boolean; articles: Article[] }> {
+  try {
+    if (!isValidHttpUrl(source.url)) {
+      return { ok: false, articles: [] };
+    }
+
+    const response = await fetch(source.url, {
+      headers: {
+        "User-Agent": "ChainBrief/0.1 Personalized RSS Reader",
+        Accept: "application/rss+xml, application/atom+xml, application/xml, text/xml",
+      },
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    });
+
+    if (!response.ok) {
+      throw new Error(`${source.name} custom RSS returned ${response.status}`);
+    }
+
+    const xml = await response.text();
+    const feed = await parser.parseString(xml);
+    const articles = feed.items
+      .map((item) => normalizeCustomItem(item, source))
+      .filter((article): article is Article => Boolean(article));
+
+    return { ok: true, articles };
+  } catch (error) {
+    console.error(`Failed to fetch custom brief RSS source: ${source.name}`, error);
+    return { ok: false, articles: [] };
+  }
+}
+
 function normalizeItem(item: FeedItem, source: RssSource): Article | null {
   const title = cleanText(item.title);
   const originalUrl = item.link ?? item.guid;
@@ -119,6 +183,63 @@ function normalizeItem(item: FeedItem, source: RssSource): Article | null {
     briefSummary: createBriefSummary(title, rawContentSnippet),
     rawContentSnippet,
   };
+}
+
+function normalizeCustomItem(
+  item: FeedItem,
+  source: CustomRssSource,
+): Article | null {
+  const title = cleanText(item.title);
+  const originalUrl = item.link ?? item.guid;
+
+  if (!title || !originalUrl) {
+    return null;
+  }
+
+  const publishedAt = parsePublishedAt(item.isoDate ?? item.pubDate);
+  const rawContentSnippet = cleanText(stripHtml(item.contentSnippet ?? item.summary));
+  const excerpt = createExcerpt(rawContentSnippet);
+  const defaultCategory =
+    source.category === "Stock Market" ? "Stock Market" : source.category;
+  const tags = createTags(item.categories, title, defaultCategory);
+  const stockTags = [
+    source.region,
+    source.marketType,
+    source.tickerSymbol,
+    source.category === "Stock Market" ? "Stock Market" : undefined,
+  ].filter((tag): tag is string => Boolean(tag));
+
+  return {
+    id: createArticleId(`${source.id}-${originalUrl}-${title}`),
+    title,
+    slug: slugify(title),
+    sourceId: source.id,
+    sourceName: source.name,
+    originalUrl,
+    publishedAt,
+    excerpt,
+    category:
+      source.category === "Stock Market"
+        ? "Stock Market"
+        : inferCategory(defaultCategory, title, tags),
+    tags: Array.from(new Set([...stockTags, ...tags])).slice(0, 6),
+    readingTime: estimateReadingTime(excerpt || title),
+    briefSummary: createBriefSummary(title, rawContentSnippet),
+    rawContentSnippet,
+    feedCategory: source.category,
+    marketType: source.marketType,
+    region: source.region,
+    tickerSymbol: source.tickerSymbol,
+  };
+}
+
+function isValidHttpUrl(value: string) {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:";
+  } catch {
+    return false;
+  }
 }
 
 function removeDuplicateArticles(articles: Article[]) {

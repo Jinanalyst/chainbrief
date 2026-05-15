@@ -59,6 +59,16 @@ export function normalizeStoredPreferences(value: unknown): BriefPreferences {
         (keyword: unknown): keyword is string => typeof keyword === "string",
       )
     : defaultPreferences.notificationKeywords;
+  const stockRegions = Array.isArray(parsed.stockRegions)
+    ? parsed.stockRegions.filter(
+        (region: unknown): region is string => typeof region === "string",
+      )
+    : defaultPreferences.stockRegions;
+  const stockTypes = Array.isArray(parsed.stockTypes)
+    ? parsed.stockTypes.filter(
+        (type: unknown): type is string => typeof type === "string",
+      )
+    : defaultPreferences.stockTypes;
   const language = parsed.language === "en" ? "en" : "ko";
   const notificationPermission =
     parsed.notificationPermission === "granted" ||
@@ -79,6 +89,8 @@ export function normalizeStoredPreferences(value: unknown): BriefPreferences {
       typeof parsed.includeKeywords === "string" ? parsed.includeKeywords : "",
     excludeKeywords:
       typeof parsed.excludeKeywords === "string" ? parsed.excludeKeywords : "",
+    stockRegions: stockRegions.length > 0 ? stockRegions : defaultPreferences.stockRegions,
+    stockTypes: stockTypes.length > 0 ? stockTypes : defaultPreferences.stockTypes,
     language,
     notificationsEnabled: Boolean(parsed.notificationsEnabled),
     notificationKeywords,
@@ -97,7 +109,7 @@ export function writeStoredPreferences(preferences: BriefPreferences) {
 
 export function usePreferences() {
   const [preferences, setPreferencesState] =
-    useState<BriefPreferences>(() => readStoredPreferences());
+    useState<BriefPreferences>(defaultPreferences);
   const supabase = useMemo(() => (hasSupabaseConfig ? createClient() : null), []);
   const userRef = useRef<User | null>(null);
 
@@ -106,10 +118,12 @@ export function usePreferences() {
       setPreferencesState(readStoredPreferences());
     }
 
+    const timer = window.setTimeout(syncPreferences, 0);
     window.addEventListener("storage", syncPreferences);
     window.addEventListener(PREFERENCES_CHANGED_EVENT, syncPreferences);
 
     return () => {
+      window.clearTimeout(timer);
       window.removeEventListener("storage", syncPreferences);
       window.removeEventListener(PREFERENCES_CHANGED_EVENT, syncPreferences);
     };

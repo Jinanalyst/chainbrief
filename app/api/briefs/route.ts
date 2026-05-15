@@ -1,7 +1,16 @@
 import { NextResponse } from "next/server";
 import { unstable_cache } from "next/cache";
-import { AllRssSourcesFailedError, fetchFeeds } from "@/lib/rss/fetchFeeds";
+import type { NextRequest } from "next/server";
+import {
+  AllRssSourcesFailedError,
+  fetchFeeds,
+  fetchPersonalizedFeeds,
+} from "@/lib/rss/fetchFeeds";
 import { RSS_REFRESH_SECONDS } from "@/lib/rss/sources";
+import {
+  normalizeCustomRssSources,
+  type CustomRssSource,
+} from "@/lib/custom-rss-sources";
 
 export const revalidate = 1200;
 
@@ -25,6 +34,37 @@ export async function GET() {
         },
       },
     );
+  } catch (error) {
+    const message =
+      error instanceof AllRssSourcesFailedError
+        ? "All RSS sources failed. Try again after the next refresh interval."
+        : "RSS feeds could not be loaded right now.";
+
+    return NextResponse.json(
+      {
+        articles: [],
+        count: 0,
+        error: message,
+        refreshedAt: new Date().toISOString(),
+      },
+      { status: 503 },
+    );
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = (await request.json().catch(() => ({}))) as {
+      sources?: CustomRssSource[];
+    };
+    const sources = normalizeCustomRssSources(body.sources);
+    const articles = await fetchPersonalizedFeeds(sources);
+
+    return NextResponse.json({
+      articles,
+      count: articles.length,
+      refreshedAt: new Date().toISOString(),
+    });
   } catch (error) {
     const message =
       error instanceof AllRssSourcesFailedError
