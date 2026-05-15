@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useEffect, useRef } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { Container } from "@/components/ui/container";
 
 export type TradingViewHeatmapVariant = "stock" | "crypto";
@@ -13,7 +13,7 @@ type TradingViewHeatmapProps = {
 const HEATMAP_CONFIG = {
   stock: {
     copyrightHref: "https://www.tradingview.com/heatmap/stock/",
-    copyrightLabel: "Stock Heatmap",
+    copyrightLabel: { en: "Stock Heatmap", ko: "\uC8FC\uC2DD \uD788\uD2B8\uB9F5" },
     eyebrow: { en: "Equities", ko: "\uC8FC\uC2DD" },
     scriptSrc:
       "https://s3.tradingview.com/external-embedding/embed-widget-stock-heatmap.js",
@@ -22,7 +22,7 @@ const HEATMAP_CONFIG = {
       ko: "S&P 500 \uC885\uBAA9\uC744 \uC139\uD130\uBCC4\uB85C \uBB36\uACE0, \uC2DC\uAC00\uCD1D\uC561 \uD06C\uAE30\uC640 \uAC00\uACA9 \uBCC0\uB3D9 \uC0C9\uC0C1\uC73C\uB85C \uBCF4\uC5EC\uC90D\uB2C8\uB2E4.",
     },
     title: { en: "Stock Market Heatmap", ko: "\uC8FC\uC2DD \uD788\uD2B8\uB9F5" },
-    settings: `
+    settings: (height: number) => `
       {
         "dataSource": "SPX500",
         "blockSize": "market_cap_basic",
@@ -38,12 +38,12 @@ const HEATMAP_CONFIG = {
         "hasSymbolTooltip": true,
         "isMonoSize": false,
         "width": "100%",
-        "height": "100%"
+        "height": ${height}
       }`,
   },
   crypto: {
     copyrightHref: "https://www.tradingview.com/heatmap/crypto/",
-    copyrightLabel: "Crypto Heatmap",
+    copyrightLabel: { en: "Crypto Heatmap", ko: "\uD06C\uB9BD\uD1A0 \uD788\uD2B8\uB9F5" },
     eyebrow: { en: "Crypto", ko: "\uD06C\uB9BD\uD1A0" },
     scriptSrc:
       "https://s3.tradingview.com/external-embedding/embed-widget-crypto-coins-heatmap.js",
@@ -52,7 +52,7 @@ const HEATMAP_CONFIG = {
       ko: "\uD06C\uB9BD\uD1A0 \uC790\uC0B0\uC744 \uC2DC\uAC00\uCD1D\uC561 \uD06C\uAE30\uC640 24\uC2DC\uAC04 \uAC00\uACA9 \uBCC0\uB3D9 \uC0C9\uC0C1\uC73C\uB85C \uBCF4\uC5EC\uC90D\uB2C8\uB2E4.",
     },
     title: { en: "Crypto Market Heatmap", ko: "\uD06C\uB9BD\uD1A0 \uD788\uD2B8\uB9F5" },
-    settings: `
+    settings: (height: number) => `
       {
         "dataSource": "Crypto",
         "blockSize": "market_cap_calc",
@@ -66,21 +66,37 @@ const HEATMAP_CONFIG = {
         "hasSymbolTooltip": true,
         "isMonoSize": false,
         "width": "100%",
-        "height": "100%"
+        "height": ${height}
       }`,
   },
 } satisfies Record<
   TradingViewHeatmapVariant,
   {
     copyrightHref: string;
-    copyrightLabel: string;
+    copyrightLabel: Record<"en" | "ko", string>;
     eyebrow: Record<"en" | "ko", string>;
     scriptSrc: string;
-    settings: string;
+    settings: (height: number) => string;
     summary: Record<"en" | "ko", string>;
     title: Record<"en" | "ko", string>;
   }
 >;
+
+function getWidgetHeight() {
+  if (typeof window === "undefined") {
+    return 640;
+  }
+
+  if (window.innerWidth < 640) {
+    return 460;
+  }
+
+  if (window.innerWidth < 1024) {
+    return 560;
+  }
+
+  return 680;
+}
 
 function TradingViewHeatmapComponent({
   language = "en",
@@ -89,6 +105,22 @@ function TradingViewHeatmapComponent({
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetRef = useRef<HTMLDivElement>(null);
   const config = HEATMAP_CONFIG[variant];
+  const [widgetHeight, setWidgetHeight] = useState(getWidgetHeight);
+  const settings = useMemo(
+    () => config.settings(widgetHeight),
+    [config, widgetHeight],
+  );
+
+  useEffect(() => {
+    function syncHeight() {
+      setWidgetHeight(getWidgetHeight());
+    }
+
+    syncHeight();
+    window.addEventListener("resize", syncHeight);
+
+    return () => window.removeEventListener("resize", syncHeight);
+  }, []);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -105,14 +137,14 @@ function TradingViewHeatmapComponent({
     script.src = config.scriptSrc;
     script.type = "text/javascript";
     script.async = true;
-    script.innerHTML = config.settings;
+    script.innerHTML = settings;
     container.appendChild(script);
 
     return () => {
       container.querySelectorAll("iframe, script").forEach((node) => node.remove());
       widget.replaceChildren();
     };
-  }, [config.scriptSrc, config.settings]);
+  }, [config.scriptSrc, settings]);
 
   return (
     <section className="bg-background/72 py-6 sm:py-8 lg:py-10">
@@ -134,23 +166,25 @@ function TradingViewHeatmapComponent({
           </span>
         </div>
 
-        <div className="min-h-[660px] overflow-hidden rounded-lg border border-white/10 bg-white shadow-soft">
+        <div className="overflow-hidden rounded-lg border border-white/10 bg-white shadow-soft">
           <div
-            className="tradingview-widget-container flex h-[72vh] min-h-[660px] w-full flex-col"
+            className="tradingview-widget-container w-full"
             ref={containerRef}
+            style={{ minHeight: widgetHeight + 28 }}
           >
             <div
-              className="tradingview-widget-container__widget min-h-[620px] flex-1"
+              className="tradingview-widget-container__widget w-full"
               ref={widgetRef}
+              style={{ height: widgetHeight }}
             />
-            <div className="tradingview-widget-copyright px-3 pb-2 text-[0.68rem] text-slate-500">
+            <div className="tradingview-widget-copyright px-3 pb-2 text-center text-[0.68rem] text-slate-500">
               <a
                 className="text-blue-600 transition hover:text-blue-700"
                 href={config.copyrightHref}
                 rel="noopener nofollow"
                 target="_blank"
               >
-                <span className="blue-text">{config.copyrightLabel}</span>
+                <span className="blue-text">{config.copyrightLabel[language]}</span>
               </a>
               <span className="trademark"> by TradingView</span>
             </div>
