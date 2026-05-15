@@ -44,23 +44,6 @@ type HomepageFeedProps = {
 const FEED_REFRESH_MS = 5 * 60 * 1000;
 const INITIAL_VISIBLE_ARTICLES = 12;
 const VISIBLE_ARTICLE_STEP = 12;
-const MARKET_REFRESH_MS = 60 * 1000;
-
-const MARKET_ASSETS = [
-  { id: "bitcoin", name: "BTC" },
-  { id: "ethereum", name: "ETH" },
-  { id: "solana", name: "SOL" },
-  { id: "binancecoin", name: "BNB" },
-  { id: "ripple", name: "XRP" },
-  { id: "cardano", name: "ADA" },
-] as const;
-
-type MarketAsset = {
-  id: string;
-  name: string;
-  price: number | null;
-  change24h: number | null;
-};
 
 export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
   const [articles, setArticles] = useState<Article[]>([]);
@@ -73,13 +56,6 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
   const [lastUpdatedAt, setLastUpdatedAt] = useState<string | null>(null);
   const [pendingArticles, setPendingArticles] = useState<Article[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [marketAssets, setMarketAssets] = useState<MarketAsset[]>(
-    MARKET_ASSETS.map((asset) => ({
-      ...asset,
-      price: null,
-      change24h: null,
-    })),
-  );
   const [visibleArticleCount, setVisibleArticleCount] = useState(
     INITIAL_VISIBLE_ARTICLES,
   );
@@ -110,63 +86,6 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
         "chain-brief-custom-rss-sources-changed",
         syncCustomSources,
       );
-    };
-  }, []);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    async function loadMarketData() {
-      try {
-        const response = await fetch(
-          "/api/market",
-          { cache: "no-store" },
-        );
-
-        if (!response.ok) {
-          throw new Error("Market request failed");
-        }
-
-        const data = (await response.json()) as {
-          assets?: Array<{
-            id: string;
-            currentPrice?: number;
-            change24h?: number;
-          }>;
-        };
-
-        if (isMounted) {
-          setMarketAssets(
-            MARKET_ASSETS.map((asset) => {
-              const entry = data.assets?.find((item) => item.id === asset.id);
-
-              return {
-                ...asset,
-                price: entry?.currentPrice ?? null,
-                change24h: entry?.change24h ?? null,
-              };
-            }),
-          );
-        }
-      } catch {
-        if (isMounted) {
-          setMarketAssets(
-            MARKET_ASSETS.map((asset) => ({
-              ...asset,
-              price: null,
-              change24h: null,
-            })),
-          );
-        }
-      }
-    }
-
-    loadMarketData();
-    const refreshTimer = window.setInterval(loadMarketData, MARKET_REFRESH_MS);
-
-    return () => {
-      isMounted = false;
-      window.clearInterval(refreshTimer);
     };
   }, []);
 
@@ -349,11 +268,7 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
                 : copy.feed.lastUpdated(formatLastUpdated(lastUpdatedAt, language))}
             </p>
           </div>
-          <MarketPulsePanel
-            assets={marketAssets}
-            label={copy.feed.marketPulse}
-            language={preferences.language}
-          />
+          <MarketLinkCard language={preferences.language} />
         </div>
 
         <LiveIssueBar
@@ -386,7 +301,9 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
           onChange={setCategory}
         />
 
-        <StockMarketFilters preferences={preferences} onChange={setPreferences} />
+        {preferences.category === "Stock Market" && (
+          <StockMarketFilters preferences={preferences} onChange={setPreferences} />
+        )}
 
         <div className="mt-5 grid min-w-0 gap-5 lg:grid-cols-[minmax(0,1fr)_18rem]">
           <div className="min-w-0">
@@ -869,70 +786,20 @@ function TranslateButton({
   );
 }
 
-function MarketPulsePanel({
-  assets,
-  label,
-  language,
-}: {
-  assets: MarketAsset[];
-  label: string;
-  language: BriefPreferences["language"];
-}) {
-  const { t: copy } = useI18n(language);
-  const hasData = assets.some((asset) => asset.price !== null);
-
+function MarketLinkCard({ language }: { language: BriefPreferences["language"] }) {
   return (
-    <Card className="min-w-0 p-3 sm:p-4">
-      <div className="flex min-w-0 items-center justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
-            {label}
-          </p>
-          <p className="mt-1 text-xs text-muted-2">{copy.feed.marketWatch}</p>
-        </div>
-        <span className="rounded-full border border-white/10 bg-white/[0.03] px-2 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-muted-2">
-          Coingecko
-        </span>
-      </div>
-      <div className="mt-3 grid grid-cols-2 gap-2">
-        {assets.map((asset) => (
-          <div
-            className={cn(
-              "min-w-0 rounded-md border px-3 py-2",
-              asset.change24h === null
-                ? "border-white/10 bg-white/[0.03]"
-                : asset.change24h >= 0
-                  ? "border-emerald-500/30 bg-emerald-500/10"
-                  : "border-rose-500/30 bg-rose-500/10",
-            )}
-            key={asset.id}
-          >
-            <div className="flex min-w-0 items-center justify-between gap-2">
-              <span className="text-[0.68rem] font-bold uppercase tracking-[0.12em] text-muted-2">
-                {asset.name}
-              </span>
-              <span
-                className={cn(
-                  "text-[0.68rem] font-semibold",
-                  asset.change24h === null
-                    ? "text-muted-2"
-                    : asset.change24h >= 0
-                      ? "text-emerald-300"
-                      : "text-rose-300",
-                )}
-              >
-                {asset.change24h === null ? "--" : formatChange(asset.change24h)}
-              </span>
-            </div>
-            <p className="mt-2 truncate text-sm font-semibold text-ink">
-              {asset.price === null ? copy.feed.marketUnavailable : formatPrice(asset.price)}
-            </p>
-          </div>
-        ))}
-      </div>
-      {!hasData ? (
-        <p className="mt-3 text-xs text-muted-2">{copy.feed.marketUnavailable}</p>
-      ) : null}
+    <Card className="min-w-0 p-4">
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+        {language === "ko" ? "시장 데이터" : "Market Data"}
+      </p>
+      <p className="mt-1 text-xs text-muted-2">
+        {language === "ko"
+          ? "Binance 실시간 크립토 히트맵"
+          : "Binance-powered live crypto heatmap"}
+      </p>
+      <Button className="mt-4 w-full" href="/market" variant="secondary">
+        {language === "ko" ? "히트맵 보기 →" : "View Heatmap →"}
+      </Button>
     </Card>
   );
 }
@@ -1250,19 +1117,6 @@ function formatLastUpdated(
   }
 
   return formatShortTime(value, language);
-}
-
-function formatPrice(value: number) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: value >= 1 ? 2 : 4,
-  }).format(value);
-}
-
-function formatChange(value: number) {
-  const prefix = value > 0 ? "+" : "";
-  return `${prefix}${value.toFixed(2)}%`;
 }
 
 function getWaitingLabel(language: BriefPreferences["language"]) {
