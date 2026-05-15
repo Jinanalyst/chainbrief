@@ -13,7 +13,7 @@ const landingCopy = {
     heroBadge: "금융 인텔리전스 네트워크",
     heroTitle: "Chain Brief는 시장 뉴스, 분석, 그리고 사람을 하나의 금융 정보 네트워크로 연결합니다.",
     heroText:
-      "실시간 크립토 브리프, 애널리스트 리서치, 커뮤니티 시그널, 시장 히트맵 — 분산된 정보를 하나의 인텔리전스 플랫폼으로 통합합니다.",
+      "실시간 마켓 브리프, 애널리스트 리서치, 커뮤니티 시그널, 시장 히트맵 — 분산된 정보를 하나의 인텔리전스 플랫폼으로 통합합니다.",
     primaryCta: "네트워크 탐색",
     secondaryCta: "애널리스트 신청",
     stats: [
@@ -153,7 +153,7 @@ const landingCopy = {
     heroTitle:
       "Chain Brief connects market news, analysis, and people into one financial information network.",
     heroText:
-      "Live crypto briefs, analyst research, community signals, and market heatmaps — fragmented information unified into a single intelligence platform.",
+      "Live market briefs, analyst research, community signals, and market heatmaps — fragmented information unified into a single intelligence platform.",
     primaryCta: "Explore the Network",
     secondaryCta: "Apply as Analyst",
     stats: [
