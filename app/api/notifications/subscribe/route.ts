@@ -29,18 +29,23 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid subscription" }, { status: 400 });
   }
 
-  const { error } = await supabase.from("notification_subscriptions").upsert({
-    user_id: user.id,
-    endpoint,
-    p256dh: keys.p256dh,
-    auth: keys.auth,
-    enabled: body.enabled ?? true,
-    permission: body.permission ?? "granted",
-    language: body.language ?? "ko",
-    keywords: Array.isArray(body.keywords) ? body.keywords.slice(0, 20) : [],
-    user_agent: request.headers.get("user-agent"),
-    updated_at: new Date().toISOString(),
-  });
+  const { error } = await supabase
+    .from("notification_subscriptions")
+    .upsert(
+      {
+        user_id: user.id,
+        endpoint,
+        p256dh: keys.p256dh,
+        auth: keys.auth,
+        enabled: body.enabled ?? true,
+        permission: body.permission ?? "granted",
+        language: body.language ?? "ko",
+        keywords: Array.isArray(body.keywords) ? body.keywords.slice(0, 20) : [],
+        user_agent: request.headers.get("user-agent"),
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "endpoint" },
+    );
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

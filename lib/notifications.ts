@@ -80,7 +80,11 @@ export async function syncPushSubscription(preferences: BriefPreferences) {
   });
 
   if (!response.ok) {
-    return { ok: false, reason: "server_error" } as const;
+    const detail = await readErrorDetail(response);
+    if (detail) {
+      console.error("Failed to sync push subscription:", detail);
+    }
+    return { ok: false, reason: "server_error", detail } as const;
   }
 
   return { ok: true } as const;
@@ -122,6 +126,15 @@ export async function sendTestPushNotification(keyword?: string) {
   });
 
   return response.ok;
+}
+
+async function readErrorDetail(response: Response) {
+  try {
+    const body = (await response.json()) as { error?: unknown };
+    return typeof body.error === "string" ? body.error : response.statusText;
+  } catch {
+    return response.statusText;
+  }
 }
 
 function base64UrlToUint8Array(value: string) {
