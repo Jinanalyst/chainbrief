@@ -12,4 +12,8 @@ export type Article = {
   readingTime: string;
   briefSummary: string;
   rawContentSnippet: string;
+  feedCategory?: string;
+  marketType?: string;
+  region?: string;
+  tickerSymbol?: string;
 };

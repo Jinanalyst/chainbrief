@@ -5,10 +5,10 @@ import type { User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import {
-  createYouTubeChannelFeedUrl,
   createCustomRssSource,
-  getYouTubeFeedUrlFromUrl,
+  createYouTubeChannelFeedUrl,
   getYouTubeChannelIdFromUrl,
+  getYouTubeFeedUrlFromUrl,
   isLikelyYouTubeChannelInput,
   isValidRssUrl,
   normalizeCustomRssSources,
@@ -29,27 +29,36 @@ type CustomRssSourcesProps = {
 type CustomRssCopy = {
   add: string;
   cancel: string;
+  category: string;
   delete: string;
   description: string;
   disabled: string;
   edit: string;
   enabled: string;
   empty: string;
+  feedCategoryCrypto: string;
+  feedCategoryOther: string;
+  feedCategorySns: string;
+  feedCategoryStock: string;
   language: string;
+  marketType: string;
   mixed: string;
   name: string;
   namePlaceholder: string;
   normalRss: string;
+  region: string;
   rssUrl: string;
   resolving: string;
   save: string;
   sourceType: string;
+  tickerPlaceholder: string;
+  tickerSymbol: string;
   title: string;
   urlInvalid: string;
   urlPlaceholder: string;
+  youtube: string;
   youtubeHelp: string;
   youtubeInvalid: string;
-  youtube: string;
 };
 
 const EMPTY_FORM: CustomRssSourceInput = {
@@ -57,60 +66,86 @@ const EMPTY_FORM: CustomRssSourceInput = {
   url: "",
   type: "rss",
   language: "mixed",
+  category: "Crypto",
+  marketType: undefined,
+  region: undefined,
+  tickerSymbol: "",
   enabled: true,
 };
+
+const FEED_CATEGORIES = ["Crypto", "Stock Market", "SNS", "Other"] as const;
+const MARKET_TYPES = ["Stocks", "ETFs", "Earnings", "Macro", "Economy", "Indices"] as const;
+const REGIONS = ["US", "Korea", "Global"] as const;
 
 function getCopy(language: BriefPreferences["language"]): CustomRssCopy {
   if (language === "ko") {
     return {
       add: "소스 추가",
       cancel: "취소",
+      category: "카테고리",
       delete: "삭제",
       description:
-        "YouTube RSS나 일반 RSS 피드를 추가하면 활성화된 소스가 SNS 피드에 함께 표시됩니다.",
+        "크립토, SNS, 주식 시장 RSS 피드를 추가하세요. 주식 소스에는 지역, 유형, 티커 메타데이터를 붙여 개인 브리프에 표시할 수 있습니다.",
       disabled: "꺼짐",
       edit: "수정",
       enabled: "켜짐",
       empty: "아직 추가한 커스텀 RSS 소스가 없습니다.",
+      feedCategoryCrypto: "Crypto",
+      feedCategoryOther: "Other",
+      feedCategorySns: "SNS",
+      feedCategoryStock: "Stock Market",
       language: "언어",
+      marketType: "시장 유형",
       mixed: "혼합",
       name: "소스 이름",
-      namePlaceholder: "예: ChainCatcher, Bankless Clips",
+      namePlaceholder: "예: CNBC Markets, Naver Finance, ETF.com",
       normalRss: "일반 RSS",
+      region: "지역",
       rssUrl: "RSS or channel URL",
-      resolving: "Resolving YouTube channel...",
+      resolving: "YouTube 채널 확인 중...",
       save: "저장",
       sourceType: "소스 타입",
+      tickerPlaceholder: "AAPL, 005930, SPY",
+      tickerSymbol: "티커 심볼",
       title: "Custom RSS Sources",
       urlInvalid: "올바른 http 또는 https RSS URL을 입력해 주세요.",
       urlPlaceholder: "https://example.com/feed.xml",
       youtube: "YouTube RSS",
       youtubeHelp:
-        "Paste a YouTube channel URL, @handle URL, channel ID, or YouTube RSS feed URL.",
+        "YouTube 채널 URL, @handle URL, 채널 ID 또는 YouTube RSS 피드 URL을 붙여넣으세요.",
       youtubeInvalid:
-        "Enter a valid YouTube channel URL, @handle URL, channel ID, or RSS feed URL.",
+        "올바른 YouTube 채널 URL, @handle URL, 채널 ID 또는 RSS 피드 URL을 입력해 주세요.",
     };
   }
 
   return {
     add: "Add Source",
     cancel: "Cancel",
+    category: "Category",
     delete: "Delete",
     description:
-      "Add YouTube RSS or normal RSS feeds. Enabled sources appear in the SNS feed.",
+      "Add crypto, SNS, or stock market RSS feeds. Stock sources can include region, type, and ticker metadata for your personalized brief.",
     disabled: "Off",
     edit: "Edit",
     enabled: "On",
     empty: "No custom RSS sources yet.",
+    feedCategoryCrypto: "Crypto",
+    feedCategoryOther: "Other",
+    feedCategorySns: "SNS",
+    feedCategoryStock: "Stock Market",
     language: "Language",
+    marketType: "Market type",
     mixed: "Mixed",
     name: "Source name",
-    namePlaceholder: "Ex: ChainCatcher, Bankless Clips",
+    namePlaceholder: "Ex: CNBC Markets, Naver Finance, ETF.com",
     normalRss: "Normal RSS",
+    region: "Region",
     rssUrl: "RSS or channel URL",
     resolving: "Resolving YouTube channel...",
     save: "Save",
     sourceType: "Source type",
+    tickerPlaceholder: "AAPL, 005930, SPY",
+    tickerSymbol: "Ticker symbol",
     title: "Custom RSS Sources",
     urlInvalid: "Enter a valid http or https RSS URL.",
     urlPlaceholder: "https://example.com/feed.xml",
@@ -126,27 +161,19 @@ async function resolveYouTubeSource(value: string) {
   const feedUrl = getYouTubeFeedUrlFromUrl(value);
 
   if (feedUrl) {
-    return {
-      feedUrl,
-      title: null as string | null,
-    };
+    return { feedUrl, title: null as string | null };
   }
 
   const channelId = getYouTubeChannelIdFromUrl(value);
 
   if (channelId) {
-    return {
-      feedUrl: createYouTubeChannelFeedUrl(channelId),
-      title: null as string | null,
-    };
+    return { feedUrl: createYouTubeChannelFeedUrl(channelId), title: null as string | null };
   }
 
   try {
     const response = await fetch("/api/custom-rss/resolve-youtube", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ url: value }),
     });
 
@@ -160,10 +187,7 @@ async function resolveYouTubeSource(value: string) {
     };
 
     return data.feedUrl
-      ? {
-          feedUrl: data.feedUrl,
-          title: data.title ?? null,
-        }
+      ? { feedUrl: data.feedUrl, title: data.title ?? null }
       : null;
   } catch {
     return null;
@@ -179,6 +203,11 @@ export function CustomRssSources({ language }: CustomRssSourcesProps) {
   const [resolving, setResolving] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const supabase = useMemo(() => (hasSupabaseConfig ? createClient() : null), []);
+  const enabledCount = useMemo(
+    () => sources.filter((source) => source.enabled).length,
+    [sources],
+  );
+  const isStockSource = form.category === "Stock Market";
 
   useEffect(() => {
     if (!supabase) {
@@ -214,20 +243,13 @@ export function CustomRssSources({ language }: CustomRssSourcesProps) {
     return () => subscription.unsubscribe();
   }, [supabase]);
 
-  const enabledCount = useMemo(
-    () => sources.filter((source) => source.enabled).length,
-    [sources],
-  );
-
   function persist(nextSources: CustomRssSource[]) {
     setSources(nextSources);
     writeCustomRssSources(nextSources);
 
     if (supabase && user) {
       void supabase.auth.updateUser({
-        data: {
-          custom_rss_sources: nextSources,
-        },
+        data: { custom_rss_sources: nextSources },
       });
     }
   }
@@ -241,7 +263,12 @@ export function CustomRssSources({ language }: CustomRssSourcesProps) {
   async function submitSource() {
     const trimmedName = form.name.trim();
     const trimmedUrl = form.url.trim();
-    let nextForm = form;
+    let nextForm = {
+      ...form,
+      marketType: form.category === "Stock Market" ? form.marketType : undefined,
+      region: form.category === "Stock Market" ? form.region : undefined,
+      tickerSymbol: form.category === "Stock Market" ? form.tickerSymbol : "",
+    };
 
     if (form.type === "youtube") {
       if (!isLikelyYouTubeChannelInput(trimmedUrl)) {
@@ -261,7 +288,7 @@ export function CustomRssSources({ language }: CustomRssSourcesProps) {
       }
 
       nextForm = {
-        ...form,
+        ...nextForm,
         name: trimmedName || resolved.title || "YouTube Channel",
         url: resolved.feedUrl,
         type: "youtube",
@@ -291,6 +318,10 @@ export function CustomRssSources({ language }: CustomRssSourcesProps) {
       url: source.url,
       type: source.type,
       language: source.language,
+      category: source.category,
+      marketType: source.marketType,
+      region: source.region,
+      tickerSymbol: source.tickerSymbol ?? "",
       enabled: source.enabled,
     });
     setError(null);
@@ -300,11 +331,7 @@ export function CustomRssSources({ language }: CustomRssSourcesProps) {
     persist(
       sources.map((source) =>
         source.id === sourceId
-          ? {
-              ...source,
-              enabled: !source.enabled,
-              updatedAt: new Date().toISOString(),
-            }
+          ? { ...source, enabled: !source.enabled, updatedAt: new Date().toISOString() }
           : source,
       ),
     );
@@ -399,6 +426,98 @@ export function CustomRssSources({ language }: CustomRssSourcesProps) {
 
           <label className="block min-w-0">
             <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+              {copy.category}
+            </span>
+            <select
+              className="mt-2 min-h-10 w-full rounded-md border border-white/10 bg-background px-3 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
+              onChange={(event) =>
+                setForm({
+                  ...form,
+                  category: event.target.value as CustomRssSourceInput["category"],
+                })
+              }
+              value={form.category}
+            >
+              {FEED_CATEGORIES.map((category) => (
+                <option key={category} value={category}>
+                  {getFeedCategoryLabel(category, copy)}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          {isStockSource ? (
+            <>
+              <label className="block min-w-0">
+                <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                  {copy.marketType}
+                </span>
+                <select
+                  className="mt-2 min-h-10 w-full rounded-md border border-white/10 bg-background px-3 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
+                  onChange={(event) =>
+                    setForm({
+                      ...form,
+                      marketType:
+                        event.target.value === ""
+                          ? undefined
+                          : (event.target.value as CustomRssSourceInput["marketType"]),
+                    })
+                  }
+                  value={form.marketType ?? ""}
+                >
+                  <option value="">Any</option>
+                  {MARKET_TYPES.map((type) => (
+                    <option key={type} value={type}>
+                      {type}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="block min-w-0">
+                <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                  {copy.region}
+                </span>
+                <select
+                  className="mt-2 min-h-10 w-full rounded-md border border-white/10 bg-background px-3 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
+                  onChange={(event) =>
+                    setForm({
+                      ...form,
+                      region:
+                        event.target.value === ""
+                          ? undefined
+                          : (event.target.value as CustomRssSourceInput["region"]),
+                    })
+                  }
+                  value={form.region ?? ""}
+                >
+                  <option value="">Any</option>
+                  {REGIONS.map((region) => (
+                    <option key={region} value={region}>
+                      {region}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="block min-w-0">
+                <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                  {copy.tickerSymbol}
+                </span>
+                <input
+                  className="mt-2 min-h-10 w-full rounded-md border border-white/10 bg-background px-3 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
+                  onChange={(event) =>
+                    setForm({ ...form, tickerSymbol: event.target.value })
+                  }
+                  placeholder={copy.tickerPlaceholder}
+                  value={form.tickerSymbol ?? ""}
+                />
+              </label>
+            </>
+          ) : null}
+
+          <label className="block min-w-0">
+            <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
               {copy.language}
             </span>
             <select
@@ -472,9 +591,13 @@ export function CustomRssSources({ language }: CustomRssSourcesProps) {
                     <p className="truncate text-sm font-semibold text-ink">
                       {source.name}
                     </p>
-                    <span className="rounded-full border border-white/10 px-2 py-0.5 text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-muted">
+                    <SourcePill>
                       {source.type === "youtube" ? copy.youtube : copy.normalRss}
-                    </span>
+                    </SourcePill>
+                    <SourcePill>{getFeedCategoryLabel(source.category, copy)}</SourcePill>
+                    {source.region ? <SourcePill>{source.region}</SourcePill> : null}
+                    {source.marketType ? <SourcePill>{source.marketType}</SourcePill> : null}
+                    {source.tickerSymbol ? <SourcePill>{source.tickerSymbol}</SourcePill> : null}
                     <span
                       className={cn(
                         "rounded-full border px-2 py-0.5 text-[0.68rem] font-semibold uppercase tracking-[0.12em]",
@@ -518,4 +641,22 @@ export function CustomRssSources({ language }: CustomRssSourcesProps) {
       </div>
     </section>
   );
+}
+
+function SourcePill({ children }: { children: string }) {
+  return (
+    <span className="rounded-full border border-white/10 px-2 py-0.5 text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-muted">
+      {children}
+    </span>
+  );
+}
+
+function getFeedCategoryLabel(
+  category: CustomRssSourceInput["category"],
+  copy: CustomRssCopy,
+) {
+  if (category === "Stock Market") return copy.feedCategoryStock;
+  if (category === "SNS") return copy.feedCategorySns;
+  if (category === "Other") return copy.feedCategoryOther;
+  return copy.feedCategoryCrypto;
 }
