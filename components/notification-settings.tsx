@@ -100,6 +100,9 @@ export function NotificationSettings({
   const [isSendingTest, setIsSendingTest] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [statusTone, setStatusTone] = useState<StatusTone>("default");
+  const [focusedKeyword, setFocusedKeyword] = useState(
+    preferences.notificationKeywords[0] ?? "",
+  );
   const supabase = useMemo(() => (hasSupabaseConfig ? createClient() : null), []);
   const pushSupported = hasPushSupport();
   const hasPushPublicKey = Boolean(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY);
@@ -257,26 +260,48 @@ export function NotificationSettings({
   }
 
   async function handleSendTest() {
+    const keywordForTest = activeKeyword;
+
     setIsSendingTest(true);
     setStatusTone("default");
     setStatusMessage(statusCopy.testSending);
 
-    const sent = await sendTestPushNotification();
+    const sent = await sendTestPushNotification(keywordForTest);
 
     setIsSendingTest(false);
     setStatusTone(sent ? "success" : "warning");
-    setStatusMessage(sent ? statusCopy.testSuccess : statusCopy.testFailed);
+    setStatusMessage(
+      sent
+        ? keywordForTest
+          ? preferences.language === "ko"
+            ? `"${keywordForTest}" 키워드를 강조한 테스트 알림을 보냈습니다.`
+            : `Test notification sent with "${keywordForTest}" highlighted.`
+          : statusCopy.testSuccess
+        : statusCopy.testFailed,
+    );
   }
 
   function updateKeywords(value: string) {
+    const nextKeywords = parseNotificationKeywords(value);
+    const changedKeyword =
+      nextKeywords.find((keyword) => !preferences.notificationKeywords.includes(keyword)) ??
+      nextKeywords.find((keyword, index) => keyword !== preferences.notificationKeywords[index]) ??
+      nextKeywords[0] ??
+      "";
+
+    setFocusedKeyword(changedKeyword);
     onChange({
       ...preferences,
-      notificationKeywords: parseNotificationKeywords(value),
+      notificationKeywords: nextKeywords,
     });
   }
 
   const permissionStatus =
     copy.notifications.permissionLabels[preferences.notificationPermission];
+  const activeKeyword =
+    focusedKeyword && preferences.notificationKeywords.includes(focusedKeyword)
+      ? focusedKeyword
+      : preferences.notificationKeywords[0] ?? "";
   const isBlocked =
     preferences.notificationPermission === "denied" ||
     preferences.notificationPermission === "unsupported";
@@ -348,7 +373,12 @@ export function NotificationSettings({
         <div className="mt-3 flex flex-wrap gap-2">
           {preferences.notificationKeywords.map((keyword) => (
             <span
-              className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs font-medium text-muted"
+              className={cn(
+                "rounded-full border px-3 py-1 text-xs font-medium transition",
+                keyword === activeKeyword
+                  ? "border-accent/50 bg-accent/15 text-blue-100"
+                  : "border-white/10 bg-white/[0.03] text-muted",
+              )}
               key={keyword}
             >
               {keyword}
@@ -369,6 +399,13 @@ export function NotificationSettings({
           <p className="mt-1 break-words text-xs leading-5 text-muted-2">
             {statusCopy.saveHint}
           </p>
+          {activeKeyword ? (
+            <p className="mt-1 break-words text-xs leading-5 text-blue-100">
+              {preferences.language === "ko"
+                ? `테스트 팝업은 "${activeKeyword}" 키워드를 강조합니다.`
+                : `The test popup will highlight "${activeKeyword}".`}
+            </p>
+          ) : null}
         </div>
         <button
           className="inline-flex min-h-9 items-center justify-center rounded-md border border-accent/30 bg-accent/10 px-3 text-xs font-semibold text-blue-100 transition hover:border-accent/50 hover:bg-accent/15 disabled:cursor-not-allowed disabled:opacity-50"
@@ -382,7 +419,13 @@ export function NotificationSettings({
           onClick={handleSendTest}
           type="button"
         >
-          {isSendingTest ? statusCopy.testSending : statusCopy.testButton}
+          {isSendingTest
+            ? statusCopy.testSending
+            : activeKeyword
+              ? preferences.language === "ko"
+                ? `"${activeKeyword}" 테스트`
+                : `Test "${activeKeyword}"`
+              : statusCopy.testButton}
         </button>
       </div>
 

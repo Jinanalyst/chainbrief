@@ -1,7 +1,7 @@
 import { fetchFeeds } from "@/lib/rss/fetchFeeds";
 import { createAdminClient, hasSupabaseAdminConfig } from "@/lib/supabase/admin";
 import {
-  articleMatchesNotificationKeywords,
+  findArticleNotificationKeyword,
   hasPushConfig,
   sendArticlePushNotification,
   type PushSubscriptionRecord,
@@ -32,7 +32,7 @@ export async function dispatchNotificationsForLatestBriefs() {
 
   for (const subscription of (subscriptions ?? []) as PushSubscriptionRecord[]) {
     const article = latestArticles.find((item) =>
-      articleMatchesNotificationKeywords(item, subscription.keywords),
+      findArticleNotificationKeyword(item, subscription.keywords),
     );
 
     if (!article) {
@@ -47,7 +47,8 @@ export async function dispatchNotificationsForLatestBriefs() {
     }
 
     try {
-      await sendArticlePushNotification(subscription, article, subscription.language);
+      const matchedKeyword = findArticleNotificationKeyword(article, subscription.keywords);
+      await sendArticlePushNotification(subscription, article, subscription.language, matchedKeyword);
       await recordDelivery(supabase, subscription.id, article);
       sent += 1;
     } catch (error) {
