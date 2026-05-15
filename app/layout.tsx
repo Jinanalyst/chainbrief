@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Chain Brief | Crypto News Briefing",
+  title: "Chain Brief | Market Intelligence, Connected.",
   description:
-    "Simple, easy-to-read crypto briefings across Bitcoin, Ethereum, Solana, DeFi, blockchain, and macro markets.",
+    "Market intelligence network connecting crypto, stocks, and macro news into one connected financial information feed.",
   icons: {
     icon: "/icon.svg",
     apple: "/apple-icon.svg",
