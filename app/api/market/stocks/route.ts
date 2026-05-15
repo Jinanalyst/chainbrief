@@ -37,14 +37,18 @@ const VALID_FILTERS: StockFilter[] = [
 const CACHE_SECONDS = 300; // 5 minutes
 const REQUEST_TIMEOUT_MS = 12_000;
 
+function keyError(msg: string) {
+  return NextResponse.json(
+    { error: msg, stocks: [], refreshedAt: new Date().toISOString(), needsApiKey: true },
+    { status: 503 },
+  );
+}
+
 export async function GET(request: NextRequest) {
-  const apiKey = process.env.FMP_API_KEY;
+  const apiKey = process.env.FMP_API_KEY?.trim();
 
   if (!apiKey) {
-    return NextResponse.json(
-      { error: "FMP_API_KEY is not configured. Add it to your environment variables.", stocks: [] },
-      { status: 503 },
-    );
+    return keyError("FMP_API_KEY is not configured. Add it to your Vercel environment variables.");
   }
 
   const { searchParams } = new URL(request.url);
@@ -63,13 +67,27 @@ export async function GET(request: NextRequest) {
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
 
+    // FMP returns 401/403 for invalid or missing keys
+    if (response.status === 401 || response.status === 403) {
+      return keyError("FMP_API_KEY is invalid. Please check your key at financialmodelingprep.com.");
+    }
+
+    if (response.status === 429) {
+      return keyError("FMP API rate limit reached. Upgrade your plan or wait before retrying.");
+    }
+
     if (!response.ok) {
       throw new Error(`FMP responded ${response.status}`);
     }
 
-    const raw: FmpQuote[] = await response.json();
+    const raw = (await response.json()) as FmpQuote[] | Record<string, string>;
 
+    // FMP sometimes returns {"Error Message": "..."} for bad keys on HTTP 200
     if (!Array.isArray(raw)) {
+      const fmpMsg = raw["Error Message"] ?? raw["message"] ?? "";
+      if (fmpMsg) {
+        return keyError(`FMP API error: ${fmpMsg}`);
+      }
       throw new Error("Unexpected FMP response format");
     }
 
@@ -103,7 +121,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("[stocks route] FMP fetch failed:", error);
     return NextResponse.json(
-      { error: "Failed to fetch stock data. Please try again.", stocks: [] },
+      { error: "Failed to fetch stock data. Please try again.", stocks: [], refreshedAt: new Date().toISOString() },
       { status: 502 },
     );
   }

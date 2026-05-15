@@ -18,6 +18,7 @@ type StockData = {
   stocks: StockQuote[];
   refreshedAt: string;
   error?: string;
+  needsApiKey?: boolean;
 };
 
 type BullBearVotes = Record<string, "bull" | "bear" | null>;
@@ -609,7 +610,7 @@ export function StockHeatmap() {
         )}
 
         {/* No API key message */}
-        {!loading && data?.error?.includes("FMP_API_KEY") && (
+        {!loading && (data?.needsApiKey || data?.error?.includes("FMP_API_KEY")) && (
           <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 p-6 text-center">
             <p className="text-base font-semibold text-amber-200">
               {language === "ko" ? "API 키가 필요합니다" : "API Key Required"}
@@ -631,7 +632,7 @@ export function StockHeatmap() {
         )}
 
         {/* Heatmap container */}
-        {!data?.error?.includes("FMP_API_KEY") && (
+        {!(data?.needsApiKey || data?.error?.includes("FMP_API_KEY")) && (
           <div className="overflow-hidden rounded-xl border border-white/[0.07] bg-surface">
             {loading && (
               <div className="flex h-72 items-center justify-center">
@@ -644,7 +645,7 @@ export function StockHeatmap() {
               </div>
             )}
 
-            {!loading && data?.error && !data.error.includes("FMP_API_KEY") && (
+            {!loading && data?.error && !(data.needsApiKey || data.error.includes("FMP_API_KEY")) && (
               <div className="flex h-72 flex-col items-center justify-center gap-3 text-sm text-muted">
                 <p>{data.error}</p>
                 <button
