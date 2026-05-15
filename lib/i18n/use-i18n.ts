@@ -13,6 +13,7 @@ import { hasSupabaseConfig } from "@/lib/supabase/config";
 
 export const PREFERENCES_CHANGED_EVENT = "chain-brief-preferences-changed";
 const USER_METADATA_PREFERENCES_KEY = "brief_preferences";
+let localPreferencesVersion = 0;
 
 export function readStoredPreferences(): BriefPreferences {
   if (typeof window === "undefined") {
@@ -86,7 +87,14 @@ export function normalizeStoredPreferences(value: unknown): BriefPreferences {
   };
 }
 
-export function writeStoredPreferences(preferences: BriefPreferences) {
+export function writeStoredPreferences(
+  preferences: BriefPreferences,
+  source: "local" | "remote" = "local",
+) {
+  if (source === "local") {
+    localPreferencesVersion += 1;
+  }
+
   window.localStorage.setItem(PREFERENCES_STORAGE_KEY, JSON.stringify(preferences));
   window.dispatchEvent(
     new CustomEvent(PREFERENCES_CHANGED_EVENT, {
@@ -100,6 +108,7 @@ export function usePreferences() {
     useState<BriefPreferences>(() => readStoredPreferences());
   const supabase = useMemo(() => (hasSupabaseConfig ? createClient() : null), []);
   const userRef = useRef<User | null>(null);
+  const initialLocalPreferencesVersion = useRef(localPreferencesVersion);
 
   useEffect(() => {
     function syncPreferences() {
@@ -131,8 +140,13 @@ export function usePreferences() {
       );
 
       if (hasUserPreferences) {
+        if (localPreferencesVersion !== initialLocalPreferencesVersion.current) {
+          void saveUserPreferences(supabase, user, readStoredPreferences());
+          return;
+        }
+
         setPreferencesState(userPreferences);
-        writeStoredPreferences(userPreferences);
+        writeStoredPreferences(userPreferences, "remote");
       }
     }
 
