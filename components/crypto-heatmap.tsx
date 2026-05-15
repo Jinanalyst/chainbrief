@@ -17,6 +17,33 @@ type HeatmapData = {
   error?: string;
 };
 
+type BinanceTicker = {
+  symbol: string;
+  lastPrice: string;
+  priceChangePercent: string;
+  quoteVolume: string;
+};
+
+const STABLE_PREFIXES = ["USDC", "BUSD", "DAI", "TUSD", "FDUSD", "USDP", "FRAX"];
+
+function processTickers(tickers: BinanceTicker[]): Coin[] {
+  return tickers
+    .filter((t) => {
+      if (!t.symbol.endsWith("USDT")) return false;
+      const base = t.symbol.slice(0, -4);
+      if (STABLE_PREFIXES.some((p) => base.startsWith(p))) return false;
+      return true;
+    })
+    .map((t) => ({
+      symbol: t.symbol.slice(0, -4),
+      lastPrice: parseFloat(t.lastPrice),
+      priceChangePercent: parseFloat(t.priceChangePercent),
+      quoteVolume: parseFloat(t.quoteVolume),
+    }))
+    .filter((t) => t.quoteVolume > 50_000 && t.lastPrice > 0)
+    .sort((a, b) => b.quoteVolume - a.quoteVolume);
+}
+
 type FilterType = "usdt" | "top-volume" | "gainers" | "losers" | "major";
 
 const MAJOR_COINS = [
@@ -126,9 +153,25 @@ export function CryptoHeatmap() {
   }, []);
 
   async function fetchData() {
+    // Try Binance directly from the browser first — avoids Vercel server IP blocks.
+    // Binance public ticker API supports CORS.
+    try {
+      const res = await fetch("https://api.binance.com/api/v3/ticker/24hr", {
+        signal: AbortSignal.timeout(12_000),
+      });
+      if (!res.ok) throw new Error(`Binance ${res.status}`);
+      const tickers: BinanceTicker[] = await res.json();
+      setData({ coins: processTickers(tickers), refreshedAt: new Date().toISOString() });
+      setLoading(false);
+      return;
+    } catch {
+      // fall through to server-side proxy
+    }
+
+    // Fallback: server route (caches on Vercel edge, works if server IPs aren't blocked)
     try {
       const res = await fetch("/api/market/heatmap");
-      if (!res.ok) throw new Error("fetch failed");
+      if (!res.ok) throw new Error("proxy failed");
       const json: HeatmapData = await res.json();
       setData(json);
     } catch {
