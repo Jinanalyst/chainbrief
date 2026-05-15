@@ -2,7 +2,11 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { hasPushConfig, sendArticlePushNotification, type PushSubscriptionRecord } from "@/lib/push";
 
-export async function POST() {
+type TestNotificationBody = {
+  keyword?: string;
+};
+
+export async function POST(request: Request) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -33,25 +37,45 @@ export async function POST() {
     return NextResponse.json({ error: "No active push subscription found." }, { status: 404 });
   }
 
+  let body: TestNotificationBody = {};
+  try {
+    body = (await request.json()) as TestNotificationBody;
+  } catch {
+    body = {};
+  }
+
+  const subscription = data as PushSubscriptionRecord;
+  const testKeyword =
+    typeof body.keyword === "string" && body.keyword.trim()
+      ? body.keyword.trim()
+      : subscription.keywords[0]?.trim() || null;
+
   try {
     await sendArticlePushNotification(
-      data as PushSubscriptionRecord,
+      subscription,
       {
         id: `test-${Date.now()}`,
-        title: "Browser notification test",
+        title: testKeyword
+          ? `Browser notification test for ${testKeyword}`
+          : "Browser notification test",
         slug: "browser-notification-test",
         sourceId: "chain-brief",
         sourceName: "Chain Brief",
         originalUrl: `${process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"}/settings`,
         publishedAt: new Date().toISOString(),
-        excerpt: "This is a test push sent from your browser settings.",
+        excerpt: testKeyword
+          ? `This is a test push for your ${testKeyword} keyword.`
+          : "This is a test push sent from your browser settings.",
         category: "All",
-        tags: ["Test"],
+        tags: ["Test", ...(testKeyword ? [testKeyword] : [])],
         readingTime: "1 min",
-        briefSummary: "This is a background browser notification test.",
-        rawContentSnippet: "Test push",
+        briefSummary: testKeyword
+          ? `Chain Brief will highlight ${testKeyword} when matching RSS briefs are found.`
+          : "This is a background browser notification test.",
+        rawContentSnippet: testKeyword ? `Test push ${testKeyword}` : "Test push",
       },
       data.language,
+      testKeyword,
     );
   } catch (sendError) {
     return NextResponse.json(

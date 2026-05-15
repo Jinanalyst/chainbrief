@@ -5,14 +5,17 @@ self.addEventListener("push", (event) => {
 
   const payload = event.data.json();
   const title = payload.title || "Chain Brief";
+  const keyword = typeof payload.keyword === "string" ? payload.keyword.trim() : "";
   const options = {
     body: payload.body,
     tag: payload.tag,
     data: {
       url: payload.url || "/briefs",
+      keyword,
     },
     badge: "/icon.svg",
     icon: "/icon.svg",
+    renotify: Boolean(keyword),
   };
 
   event.waitUntil(self.registration.showNotification(title, options));

@@ -112,9 +112,13 @@ export async function removePushSubscription() {
   return { ok: true } as const;
 }
 
-export async function sendTestPushNotification() {
+export async function sendTestPushNotification(keyword?: string) {
   const response = await fetch("/api/notifications/test", {
     method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ keyword }),
   });
 
   return response.ok;

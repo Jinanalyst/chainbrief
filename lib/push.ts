@@ -49,30 +49,39 @@ export function extractPushKeys(subscription: PushSubscriptionJSON) {
 }
 
 export function articleMatchesNotificationKeywords(article: Article, keywords: string[]) {
+  return Boolean(findArticleNotificationKeyword(article, keywords));
+}
+
+export function findArticleNotificationKeyword(article: Article, keywords: string[]) {
   const normalizedKeywords = keywords.map((keyword) => keyword.trim().toLowerCase()).filter(Boolean);
   if (!normalizedKeywords.length) {
-    return false;
+    return null;
   }
 
   const searchableText = [article.title, article.briefSummary, article.excerpt, ...article.tags]
     .join(" ")
     .toLowerCase();
 
-  return normalizedKeywords.some((keyword) => searchableText.includes(keyword));
+  const matchedIndex = normalizedKeywords.findIndex((keyword) => searchableText.includes(keyword));
+
+  return matchedIndex >= 0 ? keywords[matchedIndex].trim() : null;
 }
 
 export async function sendArticlePushNotification(
   subscription: PushSubscriptionRecord,
   article: Article,
   language: BriefPreferences["language"] = "ko",
+  matchedKeyword?: string | null,
 ) {
   configureWebPush();
 
+  const keyword = matchedKeyword?.trim() || null;
   const payload = JSON.stringify({
-    title: "Chain Brief",
-    body: createNotificationBody(article, language),
+    title: keyword ? `Chain Brief: ${keyword}` : "Chain Brief",
+    body: createNotificationBody(article, language, keyword),
     url: article.originalUrl,
     tag: `chain-brief-${article.id}`,
+    keyword,
   });
 
   return webpush.sendNotification(
@@ -87,9 +96,18 @@ export async function sendArticlePushNotification(
   );
 }
 
-function createNotificationBody(article: Article, language: BriefPreferences["language"]) {
+function createNotificationBody(
+  article: Article,
+  language: BriefPreferences["language"],
+  matchedKeyword?: string | null,
+) {
   const brief = formatBriefSummary(article, language);
   const shortBrief = brief.length > 140 ? `${brief.slice(0, 137).trim()}...` : brief;
+  const keywordLine = matchedKeyword
+    ? language === "ko"
+      ? `키워드: ${matchedKeyword}`
+      : `Keyword match: ${matchedKeyword}`
+    : null;
 
-  return `${article.title}\n${article.sourceName}\n${shortBrief}`;
+  return [keywordLine, article.title, article.sourceName, shortBrief].filter(Boolean).join("\n");
 }
