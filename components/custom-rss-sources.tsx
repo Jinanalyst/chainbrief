@@ -30,6 +30,8 @@ type CustomRssCopy = {
   add: string;
   cancel: string;
   category: string;
+  customCategory: string;
+  customCategoryPlaceholder: string;
   delete: string;
   description: string;
   disabled: string;
@@ -67,6 +69,7 @@ const EMPTY_FORM: CustomRssSourceInput = {
   type: "rss",
   language: "mixed",
   category: "Crypto",
+  customCategory: "",
   marketType: undefined,
   region: undefined,
   tickerSymbol: "",
@@ -83,6 +86,8 @@ function getCopy(language: BriefPreferences["language"]): CustomRssCopy {
       add: "소스 추가",
       cancel: "취소",
       category: "카테고리",
+      customCategory: "커스텀 탭 라벨",
+      customCategoryPlaceholder: "예: 한국주식, 매크로뉴스",
       delete: "삭제",
       description:
         "크립토, SNS, 주식 시장 RSS 피드를 추가하세요. 주식 소스에는 지역, 유형, 티커 메타데이터를 붙여 개인 브리프에 표시할 수 있습니다.",
@@ -122,6 +127,8 @@ function getCopy(language: BriefPreferences["language"]): CustomRssCopy {
     add: "Add Source",
     cancel: "Cancel",
     category: "Category",
+    customCategory: "Custom tab label",
+    customCategoryPlaceholder: "e.g. Korean Stocks, Macro News",
     delete: "Delete",
     description:
       "Add crypto, SNS, or stock market RSS feeds. Stock sources can include region, type, and ticker metadata for your personalized brief.",
@@ -319,6 +326,7 @@ export function CustomRssSources({ language }: CustomRssSourcesProps) {
       type: source.type,
       language: source.language,
       category: source.category,
+      customCategory: source.customCategory ?? "",
       marketType: source.marketType,
       region: source.region,
       tickerSymbol: source.tickerSymbol ?? "",
@@ -444,6 +452,21 @@ export function CustomRssSources({ language }: CustomRssSourcesProps) {
                 </option>
               ))}
             </select>
+          </label>
+
+          <label className="block min-w-0">
+            <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+              {copy.customCategory}
+            </span>
+            <input
+              className="mt-2 min-h-10 w-full rounded-md border border-white/10 bg-background px-3 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
+              maxLength={40}
+              onChange={(event) =>
+                setForm({ ...form, customCategory: event.target.value })
+              }
+              placeholder={copy.customCategoryPlaceholder}
+              value={form.customCategory ?? ""}
+            />
           </label>
 
           {isStockSource ? (
@@ -595,6 +618,9 @@ export function CustomRssSources({ language }: CustomRssSourcesProps) {
                       {source.type === "youtube" ? copy.youtube : copy.normalRss}
                     </SourcePill>
                     <SourcePill>{getFeedCategoryLabel(source.category, copy)}</SourcePill>
+                    {source.customCategory ? (
+                      <SourcePill>{source.customCategory}</SourcePill>
+                    ) : null}
                     {source.region ? <SourcePill>{source.region}</SourcePill> : null}
                     {source.marketType ? <SourcePill>{source.marketType}</SourcePill> : null}
                     {source.tickerSymbol ? <SourcePill>{source.tickerSymbol}</SourcePill> : null}

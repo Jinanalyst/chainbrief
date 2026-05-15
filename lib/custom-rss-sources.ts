@@ -17,6 +17,7 @@ export type CustomRssSource = {
   type: CustomRssSourceType;
   language: CustomRssSourceLanguage;
   category: CustomRssSourceCategory;
+  customCategory?: string;
   marketType?: CustomRssSourceMarketType;
   region?: CustomRssSourceRegion;
   tickerSymbol?: string;
@@ -32,6 +33,7 @@ export type CustomRssSourceInput = Pick<
   | "type"
   | "language"
   | "category"
+  | "customCategory"
   | "marketType"
   | "region"
   | "tickerSymbol"
@@ -115,6 +117,7 @@ export function updateCustomRssSource(
 export function sanitizeCustomRssSourceInput(
   input: CustomRssSourceInput,
 ): CustomRssSourceInput {
+  const customCategory = input.customCategory?.trim().slice(0, 40) || undefined;
   return {
     name: input.name.trim().slice(0, 80),
     url: input.url.trim(),
@@ -122,6 +125,7 @@ export function sanitizeCustomRssSourceInput(
     language:
       input.language === "ko" || input.language === "en" ? input.language : "mixed",
     category: normalizeCategory(input.category),
+    customCategory,
     marketType: normalizeMarketType(input.marketType),
     region: normalizeRegion(input.region),
     tickerSymbol: input.tickerSymbol?.trim().toUpperCase().slice(0, 16) || undefined,
@@ -236,6 +240,8 @@ function normalizeStoredSource(value: unknown): CustomRssSource | null {
         ? source.language
         : "mixed",
     category: normalizeCategory(source.category),
+    customCategory:
+      typeof source.customCategory === "string" ? source.customCategory : undefined,
     marketType: normalizeMarketType(source.marketType),
     region: normalizeRegion(source.region),
     tickerSymbol:

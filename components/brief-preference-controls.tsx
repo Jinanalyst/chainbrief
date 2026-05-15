@@ -1,6 +1,8 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import { ACTIVE_SOURCES, BRIEF_CATEGORIES, type BriefPreferences } from "@/lib/preferences";
+import { readCustomRssSources } from "@/lib/custom-rss-sources";
 import { cn } from "@/lib/cn";
 import { getCategoryLabel } from "@/lib/i18n";
 import { useI18n } from "@/lib/i18n/use-i18n";
@@ -15,6 +17,29 @@ export function BriefPreferenceControls({
   onChange,
 }: BriefPreferenceControlsProps) {
   const { t: copy } = useI18n(preferences.language);
+  const [customSources, setCustomSources] = useState(() => readCustomRssSources());
+
+  useEffect(() => {
+    function sync() {
+      setCustomSources(readCustomRssSources());
+    }
+    window.addEventListener("chain-brief-custom-rss-sources-changed", sync);
+    window.addEventListener("storage", sync);
+    return () => {
+      window.removeEventListener("chain-brief-custom-rss-sources-changed", sync);
+      window.removeEventListener("storage", sync);
+    };
+  }, []);
+
+  const dynamicCategories = useMemo(() => {
+    const custom = customSources
+      .filter((s) => s.enabled)
+      .map((s) => s.customCategory?.trim())
+      .filter((c): c is string => Boolean(c));
+    const unique = Array.from(new Set(custom));
+    const base = BRIEF_CATEGORIES.filter((c) => c !== "Web3");
+    return [...base, ...unique.filter((c) => !base.includes(c))];
+  }, [customSources]);
 
   function toggleSource(source: string) {
     const nextSources = preferences.sources.includes(source)
@@ -62,7 +87,7 @@ export function BriefPreferenceControls({
             {copy.preferences.category}
           </p>
           <div className="mt-3 flex max-w-full gap-2 overflow-x-auto overscroll-x-contain pb-1 [-webkit-overflow-scrolling:touch]">
-            {BRIEF_CATEGORIES.map((category) => (
+            {dynamicCategories.map((category) => (
               <button
                 className={cn(
                   "whitespace-nowrap rounded-md border px-3 py-2 text-sm font-semibold transition",

@@ -1,16 +1,18 @@
+"use client";
+
 import { cn } from "@/lib/cn";
 import type { Language } from "@/lib/i18n";
-import { SNS_CATEGORIES } from "@/lib/sns/sources";
 import type { SnsCategory } from "@/lib/sns/types";
 
 type CategoryTabsProps = {
-  activeCategory: SnsCategory;
-  counts: Record<SnsCategory, number>;
+  activeCategory: string;
+  categories: string[];
+  counts: Record<string, number>;
   language: Language;
-  onChange: (category: SnsCategory) => void;
+  onChange: (category: string) => void;
 };
 
-const SNS_CATEGORY_LABELS: Record<Language, Record<SnsCategory, string>> = {
+const SNS_CATEGORY_LABELS: Record<Language, Partial<Record<SnsCategory, string>>> = {
   ko: {
     All: "전체",
     Research: "리서치",
@@ -33,8 +35,13 @@ const SNS_CATEGORY_LABELS: Record<Language, Record<SnsCategory, string>> = {
   },
 };
 
+function getCategoryLabel(category: string, language: Language) {
+  return SNS_CATEGORY_LABELS[language][category as SnsCategory] ?? category;
+}
+
 export function CategoryTabs({
   activeCategory,
+  categories,
   counts,
   language,
   onChange,
@@ -42,7 +49,7 @@ export function CategoryTabs({
   return (
     <div className="mt-5 max-w-full overflow-x-auto overscroll-x-contain border-b border-white/10 [-webkit-overflow-scrolling:touch]">
       <div className="flex w-max min-w-full gap-1">
-        {SNS_CATEGORIES.map((category) => (
+        {categories.map((category) => (
           <button
             className={cn(
               "shrink-0 border-b-2 px-3 py-3 text-sm font-semibold transition",
@@ -54,7 +61,7 @@ export function CategoryTabs({
             onClick={() => onChange(category)}
             type="button"
           >
-            {SNS_CATEGORY_LABELS[language][category]} ({counts[category] ?? 0})
+            {getCategoryLabel(category, language)} ({counts[category] ?? 0})
           </button>
         ))}
       </div>

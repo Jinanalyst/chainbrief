@@ -190,6 +190,17 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
     const sourceNames = articles.map((article) => article.sourceName);
     return Array.from(new Set([...ACTIVE_SOURCES, ...sourceNames]));
   }, [articles]);
+
+  const dynamicBriefCategories = useMemo(() => {
+    const custom = customSources
+      .filter((s) => s.enabled)
+      .map((s) => s.customCategory?.trim())
+      .filter((c): c is string => Boolean(c));
+    const unique = Array.from(new Set(custom));
+    const base = BRIEF_CATEGORIES.filter((c) => c !== "Web3");
+    return [...base, ...unique.filter((c) => !base.includes(c))];
+  }, [customSources]);
+
   const filteredArticles = useMemo(
     () => filterArticles(articles, preferences, availableSources),
     [articles, preferences, availableSources],
@@ -197,8 +208,8 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
   const visibleArticles = filteredArticles.slice(0, visibleArticleCount);
   const hasMoreArticles = visibleArticles.length < filteredArticles.length;
   const categoryCounts = useMemo(
-    () => getCategoryCounts(articles, preferences, availableSources),
-    [articles, preferences, availableSources],
+    () => getCategoryCounts(articles, preferences, availableSources, dynamicBriefCategories),
+    [articles, preferences, availableSources, dynamicBriefCategories],
   );
   const liveIssues = articles.slice(0, 5);
 
@@ -296,6 +307,7 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
 
         <CategoryTabs
           activeCategory={preferences.category}
+          categories={dynamicBriefCategories}
           counts={categoryCounts}
           language={preferences.language}
           onChange={setCategory}
@@ -429,11 +441,13 @@ function LiveIssueBar({
 
 function CategoryTabs({
   activeCategory,
+  categories,
   counts,
   language,
   onChange,
 }: {
   activeCategory: string;
+  categories: string[];
   counts: Record<string, number>;
   language: BriefPreferences["language"];
   onChange: (category: string) => void;
@@ -441,7 +455,7 @@ function CategoryTabs({
   return (
     <div className="mt-5 max-w-full overflow-x-auto overscroll-x-contain border-b border-white/10 [-webkit-overflow-scrolling:touch]">
       <div className="flex w-max min-w-full gap-1">
-        {BRIEF_CATEGORIES.filter((category) => category !== "Web3").map((category) => (
+        {categories.map((category) => (
           <button
             className={cn(
               "shrink-0 border-b-2 px-3 py-3 text-sm font-semibold transition",
@@ -1008,6 +1022,7 @@ function getCategoryCounts(
   articles: Article[],
   preferences: BriefPreferences,
   availableSources: string[],
+  categories: string[],
 ) {
   const baseMatches = filterArticlesWithOptions(
     articles,
@@ -1017,17 +1032,17 @@ function getCategoryCounts(
       includeCategory: false,
     },
   );
-  const counts = Object.fromEntries(
-    BRIEF_CATEGORIES.map((category) => [category, 0]),
-  ) as Record<string, number>;
+  const counts = Object.fromEntries(categories.map((c) => [c, 0])) as Record<string, number>;
 
   counts.All = baseMatches.length;
 
   for (const article of baseMatches) {
-    for (const category of BRIEF_CATEGORIES) {
+    for (const category of categories) {
       if (
         category !== "All" &&
-        (article.category === category || article.tags.includes(category))
+        (article.category === category ||
+          article.tags.includes(category) ||
+          article.customCategory === category)
       ) {
         counts[category] += 1;
       }
@@ -1074,7 +1089,8 @@ function filterArticlesWithOptions(
       !options.includeCategory ||
       preferences.category === "All" ||
       article.category === preferences.category ||
-      article.tags.includes(preferences.category);
+      article.tags.includes(preferences.category) ||
+      article.customCategory === preferences.category;
     const stockRegionMatches =
       article.feedCategory !== "Stock Market" ||
       !article.region ||

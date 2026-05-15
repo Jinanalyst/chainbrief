@@ -13,7 +13,7 @@ import {
 } from "@/lib/custom-rss-sources";
 import { formatShortTime } from "@/lib/i18n";
 import { snsSources, SNS_CATEGORIES } from "@/lib/sns/sources";
-import type { SnsCategory, SnsVideo } from "@/lib/sns/types";
+import type { SnsVideo } from "@/lib/sns/types";
 import { useI18n } from "@/lib/i18n/use-i18n";
 
 type SnsResponse = {
@@ -107,7 +107,7 @@ export function SNSFeed() {
   const copy = getSnsCopy(language);
   const [videos, setVideos] = useState<SnsVideo[]>([]);
   const [customSources, setCustomSources] = useState<CustomRssSource[]>([]);
-  const [activeCategory, setActiveCategory] = useState<SnsCategory>("All");
+  const [activeCategory, setActiveCategory] = useState("All");
   const [activeSources, setActiveSources] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -196,6 +196,16 @@ export function SNSFeed() {
   }, [copy.errorMessage, enabledCustomSources]);
 
   const effectiveActiveSources = activeSources.length > 0 ? activeSources : sourceNames;
+
+  const dynamicCategories = useMemo(() => {
+    const custom = enabledCustomSources
+      .map((s) => s.customCategory?.trim())
+      .filter((c): c is string => Boolean(c));
+    const unique = Array.from(new Set(custom));
+    const base = SNS_CATEGORIES as string[];
+    return [...base, ...unique.filter((c) => !base.includes(c))];
+  }, [enabledCustomSources]);
+
   const filteredVideos = useMemo(
     () => filterVideos(videos, activeCategory, effectiveActiveSources, searchQuery),
     [activeCategory, effectiveActiveSources, searchQuery, videos],
@@ -203,8 +213,8 @@ export function SNSFeed() {
   const visibleVideos = filteredVideos.slice(0, visibleVideoCount);
   const hasMoreVideos = visibleVideos.length < filteredVideos.length;
   const categoryCounts = useMemo(
-    () => getCategoryCounts(videos, effectiveActiveSources, searchQuery),
-    [effectiveActiveSources, searchQuery, videos],
+    () => getCategoryCounts(videos, dynamicCategories, effectiveActiveSources, searchQuery),
+    [dynamicCategories, effectiveActiveSources, searchQuery, videos],
   );
 
   function toggleSource(sourceName: string) {
@@ -225,7 +235,7 @@ export function SNSFeed() {
     setVisibleVideoCount(INITIAL_VISIBLE_VIDEOS);
   }
 
-  function handleCategoryChange(category: SnsCategory) {
+  function handleCategoryChange(category: string) {
     setActiveCategory(category);
     setVisibleVideoCount(INITIAL_VISIBLE_VIDEOS);
   }
@@ -265,6 +275,7 @@ export function SNSFeed() {
 
         <CategoryTabs
           activeCategory={activeCategory}
+          categories={dynamicCategories}
           counts={categoryCounts}
           language={language}
           onChange={handleCategoryChange}
@@ -503,7 +514,7 @@ function NoMatchesState({
 
 function filterVideos(
   videos: SnsVideo[],
-  activeCategory: SnsCategory,
+  activeCategory: string,
   activeSources: string[],
   searchQuery: string,
 ) {
@@ -528,18 +539,17 @@ function filterVideos(
 
 function getCategoryCounts(
   videos: SnsVideo[],
+  categories: string[],
   activeSources: string[],
   searchQuery: string,
 ) {
   const baseMatches = filterVideos(videos, "All", activeSources, searchQuery);
-  const counts = Object.fromEntries(
-    SNS_CATEGORIES.map((category) => [category, 0]),
-  ) as Record<SnsCategory, number>;
+  const counts = Object.fromEntries(categories.map((c) => [c, 0])) as Record<string, number>;
 
   counts.All = baseMatches.length;
 
   for (const video of baseMatches) {
-    for (const category of SNS_CATEGORIES) {
+    for (const category of categories) {
       if (
         category !== "All" &&
         (video.category === category || video.tags.includes(category))

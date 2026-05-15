@@ -230,6 +230,7 @@ function normalizeCustomItem(
     briefSummary: createBriefSummary(title, rawContentSnippet),
     rawContentSnippet,
     feedCategory: source.category,
+    customCategory: source.customCategory || undefined,
     marketType: source.marketType,
     region: source.region,
     tickerSymbol: source.tickerSymbol,
