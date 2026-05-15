@@ -280,7 +280,7 @@ function TextEditor({ block, onChange }: { block: TextBlock; onChange: (b: TextB
   const rows = Math.max(2, block.content.split("\n").length);
   return (
     <textarea
-      className="w-full resize-none rounded-md border border-white/10 bg-background px-3 py-2 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-1 focus:ring-accent/30"
+      className="w-full resize-none rounded-md border border-transparent bg-transparent px-1 py-2 text-base leading-7 text-ink outline-none transition placeholder:text-muted-2 focus:bg-white/[0.025]"
       rows={rows}
       value={block.content}
       onChange={(e) => onChange({ ...block, content: e.target.value })}
@@ -302,8 +302,8 @@ function HeadingEditor({ block, onChange }: { block: HeadingBlock; onChange: (b:
       </button>
       <input
         className={cn(
-          "w-full rounded-md border border-white/10 bg-background px-3 py-2 font-bold text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-1 focus:ring-accent/30",
-          block.level === 2 ? "text-xl" : "text-base",
+          "w-full rounded-md border border-transparent bg-transparent px-1 py-2 font-bold text-ink outline-none transition placeholder:text-muted-2 focus:bg-white/[0.025]",
+          block.level === 2 ? "text-2xl" : "text-lg",
         )}
         value={block.content}
         onChange={(e) => onChange({ ...block, content: e.target.value })}
@@ -317,14 +317,14 @@ function QuoteEditor({ block, onChange }: { block: QuoteBlock; onChange: (b: Quo
   return (
     <div className="space-y-2 border-l-2 border-accent/60 pl-3">
       <textarea
-        className="w-full resize-none rounded-md border border-white/10 bg-background px-3 py-2 text-sm italic text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-1 focus:ring-accent/30"
+        className="w-full resize-none rounded-md border border-transparent bg-transparent px-1 py-2 text-base italic leading-7 text-ink outline-none transition placeholder:text-muted-2 focus:bg-white/[0.025]"
         rows={2}
         value={block.content}
         onChange={(e) => onChange({ ...block, content: e.target.value })}
         placeholder="Quote text…"
       />
       <input
-        className="w-full rounded-md border border-white/10 bg-background px-3 py-1.5 text-xs text-muted outline-none transition placeholder:text-muted-2 focus:border-accent"
+        className="w-full rounded-md border border-transparent bg-transparent px-1 py-1.5 text-xs text-muted outline-none transition placeholder:text-muted-2 focus:bg-white/[0.025]"
         value={block.attribution}
         onChange={(e) => onChange({ ...block, attribution: e.target.value })}
         placeholder="— Attribution (optional)"
@@ -547,12 +547,7 @@ interface BlockRowProps {
 }
 
 function BlockRow({ block, index, total, onChange, onDelete, onMoveUp, onMoveDown, onInsertAfter, dragHandlers }: BlockRowProps) {
-  const [menuOpen, setMenuOpen] = useState(false);
-
-  const blockLabel =
-    block.type === "heading" ? `Heading H${block.level}` :
-    block.type === "checklist" ? "Checklist" :
-    block.type;
+  void onInsertAfter;
 
   return (
     <div
@@ -561,10 +556,10 @@ function BlockRow({ block, index, total, onChange, onDelete, onMoveUp, onMoveDow
       onDragOver={dragHandlers.onDragOver}
       onDrop={dragHandlers.onDrop}
       className={cn(
-        "group relative rounded-xl border transition",
+        "group relative rounded-md transition",
         dragHandlers.isDragOver
-          ? "border-accent/60 bg-accent/5 ring-1 ring-accent/30"
-          : "border-white/[0.06] bg-white/[0.02] hover:border-white/10",
+          ? "bg-accent/5 ring-1 ring-accent/30"
+          : "hover:bg-white/[0.025]",
       )}
     >
       {/* Toolbar — shown on hover */}
@@ -575,9 +570,7 @@ function BlockRow({ block, index, total, onChange, onDelete, onMoveUp, onMoveDow
         <span className="cursor-grab rounded p-1.5 text-xs text-muted select-none" title="Drag to reorder">⠿</span>
       </div>
 
-      <div className="px-3 pb-3 pr-24 pt-3">
-        <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-2 capitalize">{blockLabel}</p>
-
+      <div className="px-1 py-1 pr-20">
         {block.type === "text"      && <TextEditor      block={block} onChange={(b) => onChange(b)} />}
         {block.type === "heading"   && <HeadingEditor   block={block} onChange={(b) => onChange(b)} />}
         {block.type === "quote"     && <QuoteEditor     block={block} onChange={(b) => onChange(b)} />}
@@ -586,37 +579,6 @@ function BlockRow({ block, index, total, onChange, onDelete, onMoveUp, onMoveDow
         {block.type === "link"      && <LinkEditor      block={block} onChange={(b) => onChange(b)} />}
         {block.type === "divider"   && <hr className="border-white/10" />}
         {block.type === "checklist" && <ChecklistEditor block={block} onChange={(b) => onChange(b)} />}
-      </div>
-
-      {/* Insert block after — shown on hover */}
-      <div className="flex justify-center border-t border-white/[0.04] py-1 opacity-0 transition-opacity group-hover:opacity-100">
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => setMenuOpen((v) => !v)}
-            className="rounded-full border border-dashed border-white/10 px-2.5 py-0.5 text-xs text-muted transition hover:border-accent/50 hover:text-accent"
-          >
-            + Insert block
-          </button>
-          {menuOpen && (
-            <>
-              <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
-              <div className="absolute bottom-8 left-1/2 z-20 w-44 -translate-x-1/2 overflow-hidden rounded-xl border border-white/10 bg-[#0f1420] shadow-2xl">
-                {BLOCK_MENU_ITEMS.map((item) => (
-                  <button
-                    key={item.type}
-                    type="button"
-                    onClick={() => { onInsertAfter(item.type); setMenuOpen(false); }}
-                    className="flex w-full items-center gap-2 px-3 py-2 text-sm text-ink transition hover:bg-white/[0.06]"
-                  >
-                    <span className="w-5 text-center text-xs text-muted">{item.icon}</span>
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
       </div>
     </div>
   );
@@ -899,7 +861,7 @@ export function CommunityWriteStudio({
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">Writing Studio</p>
                   <h1 className="mt-3 text-3xl font-semibold tracking-tight text-ink">Write with a clear direction.</h1>
                   <p className="mt-3 text-sm leading-6 text-muted">
-                    Pick a template, build your post with blocks, and publish.
+                    Pick a template, write in one clean canvas, and publish.
                   </p>
                 </div>
                 <button
@@ -978,11 +940,37 @@ export function CommunityWriteStudio({
                   </div>
                 </div>
 
-                {/* Block content */}
+                {/* Writing canvas */}
                 <div>
                   <div className="mb-3 flex items-center justify-between">
                     <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Content</span>
-                    <span className="text-xs text-muted-2">{blocks.length} block{blocks.length !== 1 ? "s" : ""}</span>
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setAddMenuOpen((v) => !v)}
+                        className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs font-semibold text-muted transition hover:border-accent/50 hover:text-accent"
+                      >
+                        + Add content
+                      </button>
+                      {addMenuOpen && (
+                        <>
+                          <div className="fixed inset-0 z-10" onClick={() => setAddMenuOpen(false)} />
+                          <div className="absolute right-0 top-9 z-20 w-44 overflow-hidden rounded-xl border border-white/10 bg-[#0f1420] shadow-2xl">
+                            {BLOCK_MENU_ITEMS.map((item) => (
+                              <button
+                                key={item.type}
+                                type="button"
+                                onClick={() => { addBlockAtEnd(item.type); setAddMenuOpen(false); }}
+                                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-ink transition hover:bg-white/[0.06]"
+                              >
+                                <span className="w-5 text-center text-xs text-muted">{item.icon}</span>
+                                {item.label}
+                              </button>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </div>
 
                   {previewMode ? (
@@ -990,7 +978,7 @@ export function CommunityWriteStudio({
                       <BlockPreview blocks={blocks} />
                     </div>
                   ) : (
-                    <div className="space-y-2">
+                    <div className="min-h-[28rem] rounded-xl border border-white/10 bg-background px-4 py-4 shadow-inner sm:px-5">
                       {blocks.map((block, index) => (
                         <BlockRow
                           key={block.id}
@@ -1010,35 +998,6 @@ export function CommunityWriteStudio({
                           }}
                         />
                       ))}
-
-                      {/* Add block at end */}
-                      <div className="relative flex justify-center pt-1">
-                        <button
-                          type="button"
-                          onClick={() => setAddMenuOpen((v) => !v)}
-                          className="flex items-center gap-1.5 rounded-full border border-dashed border-white/10 px-4 py-1.5 text-xs font-semibold text-muted transition hover:border-accent/50 hover:text-accent"
-                        >
-                          <span className="text-base leading-none">+</span> Add block
-                        </button>
-                        {addMenuOpen && (
-                          <>
-                            <div className="fixed inset-0 z-10" onClick={() => setAddMenuOpen(false)} />
-                            <div className="absolute bottom-10 left-1/2 z-20 w-44 -translate-x-1/2 overflow-hidden rounded-xl border border-white/10 bg-[#0f1420] shadow-2xl">
-                              {BLOCK_MENU_ITEMS.map((item) => (
-                                <button
-                                  key={item.type}
-                                  type="button"
-                                  onClick={() => { addBlockAtEnd(item.type); setAddMenuOpen(false); }}
-                                  className="flex w-full items-center gap-2 px-3 py-2 text-sm text-ink transition hover:bg-white/[0.06]"
-                                >
-                                  <span className="w-5 text-center text-xs text-muted">{item.icon}</span>
-                                  {item.label}
-                                </button>
-                              ))}
-                            </div>
-                          </>
-                        )}
-                      </div>
                     </div>
                   )}
                 </div>
@@ -1150,24 +1109,6 @@ export function CommunityWriteStudio({
                     ))}
                   </div>
                 )}
-              </Card>
-
-              <Card className="p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">Block types</p>
-                <div className="mt-3 grid grid-cols-4 gap-1.5">
-                  {BLOCK_MENU_ITEMS.map((item) => (
-                    <button
-                      key={item.type}
-                      type="button"
-                      onClick={() => addBlockAtEnd(item.type)}
-                      title={item.label}
-                      className="flex flex-col items-center gap-1 rounded-lg border border-white/[0.06] bg-white/[0.02] py-2 text-muted transition hover:border-accent/40 hover:text-accent"
-                    >
-                      <span className="text-sm">{item.icon}</span>
-                      <span className="text-[9px] font-semibold uppercase tracking-wider">{item.label}</span>
-                    </button>
-                  ))}
-                </div>
               </Card>
 
               <Card className="p-4">
