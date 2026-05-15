@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import type { User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
@@ -192,8 +192,11 @@ export function ProfileSection() {
   const [riskAgreed, setRiskAgreed] = useState(false);
   const [isLoading, setIsLoading] = useState(hasSupabaseConfig);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [scores, setScores] = useState<AnalystScores>(ZERO_SCORES);
   const [postCount, setPostCount] = useState(0);
   const [allPosts, setAllPosts] = useState<CommunityPost[]>([]);
@@ -305,6 +308,42 @@ export function ProfileSection() {
     setMessage("Profile saved. Your Chain Brief identity is ready.");
   }
 
+  async function uploadAvatar(file: File) {
+    if (!supabase || !user) return;
+
+    setIsUploadingAvatar(true);
+    setAvatarError(null);
+
+    const ext = file.name.split(".").pop() ?? "jpg";
+    const path = `${user.id}.${ext}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("avatars")
+      .upload(path, file, { upsert: true });
+
+    if (uploadError) {
+      setIsUploadingAvatar(false);
+      setAvatarError(uploadError.message);
+      return;
+    }
+
+    const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
+    const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+
+    const { data, error: updateError } = await supabase.auth.updateUser({
+      data: { ...user.user_metadata, avatar_url: publicUrl },
+    });
+
+    setIsUploadingAvatar(false);
+
+    if (updateError) {
+      setAvatarError(updateError.message);
+      return;
+    }
+
+    setUser(data.user);
+  }
+
   if (!hasSupabaseConfig) {
     return (
       <Card className="p-6">
@@ -351,14 +390,41 @@ export function ProfileSection() {
       {/* ── Left: edit form ── */}
       <Card className="min-w-0 p-5 sm:p-6">
         <div className="flex min-w-0 items-start gap-4">
-          {avatarUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img alt="" className="h-14 w-14 shrink-0 rounded-full border border-white/10 object-cover" src={avatarUrl} />
-          ) : (
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-accent/30 bg-accent/15 text-sm font-bold text-blue-100">
-              {initials}
-            </div>
-          )}
+          <div className="shrink-0">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) uploadAvatar(file);
+                e.target.value = "";
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="group relative h-14 w-14 overflow-hidden rounded-full"
+              title="Upload profile picture"
+              disabled={isUploadingAvatar}
+            >
+              {avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img alt="" className="h-14 w-14 rounded-full border border-white/10 object-cover" src={avatarUrl} />
+              ) : (
+                <div className="flex h-14 w-14 items-center justify-center rounded-full border border-accent/30 bg-accent/15 text-sm font-bold text-blue-100">
+                  {initials}
+                </div>
+              )}
+              <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/60 opacity-0 transition group-hover:opacity-100 group-disabled:opacity-100">
+                <span className="text-[10px] font-semibold text-white">
+                  {isUploadingAvatar ? "..." : "Upload"}
+                </span>
+              </div>
+            </button>
+            {avatarError && <p className="mt-1 w-14 text-center text-[10px] text-rose-300">{avatarError}</p>}
+          </div>
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">Chain Brief Profile</p>
             <h2 className="mt-2 break-words text-2xl font-semibold text-ink">
