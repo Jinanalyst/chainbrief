@@ -268,7 +268,7 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
 
   function quoteArticle(article: Article) {
     storeCommunityQuoteTarget(article);
-    window.location.assign("/community");
+    window.location.assign(`/community/write?articleSlug=${encodeURIComponent(article.slug)}`);
   }
 
   function toggleExpanded(articleId: string) {

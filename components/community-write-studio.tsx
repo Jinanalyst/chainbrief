@@ -8,9 +8,12 @@ import { Container } from "@/components/ui/container";
 import { Header } from "@/components/header";
 import {
   addOpinionPost,
+  clearCommunityQuoteTarget,
   readAuthorName,
+  readCommunityQuoteTarget,
   writeAuthorName,
   type CommunityAttachment,
+  type CommunityQuoteTarget,
   type CommunityPostType,
   type CommunityStance,
 } from "@/lib/community";
@@ -232,6 +235,46 @@ const BLOCK_MENU_ITEMS: Array<{ type: Block["type"]; label: string; icon: string
 ];
 
 // ─── Block editors ────────────────────────────────────────────────────────────
+
+function getSelectedArticleSlug() {
+  if (typeof window === "undefined") {
+    return "";
+  }
+
+  return new URLSearchParams(window.location.search).get("articleSlug")?.trim() ?? "";
+}
+
+function getInitialQuoteTarget(selectedArticleSlug: string) {
+  if (!selectedArticleSlug) {
+    return null;
+  }
+
+  const target = readCommunityQuoteTarget();
+  return target?.slug === selectedArticleSlug ? target : null;
+}
+
+function buildNewsReactionBlocks(target: CommunityQuoteTarget): Block[] {
+  return [
+    mkHeading("Headline"),
+    mkQuote(target.title, target.sourceName),
+    mkHeading("My Take", 3),
+    mkText(""),
+    mkHeading("Why It Matters", 3),
+    mkText(target.briefSummary || target.excerpt),
+    mkHeading("Source", 3),
+    mkLink(target.originalUrl, target.sourceName),
+  ];
+}
+
+function getInitialTopic(target: CommunityQuoteTarget | null) {
+  if (!target) {
+    return "Bitcoin";
+  }
+
+  return (TOPICS as readonly string[]).includes(target.category)
+    ? target.category
+    : "News Reactions";
+}
 
 function TextEditor({ block, onChange }: { block: TextBlock; onChange: (b: TextBlock) => void }) {
   const rows = Math.max(2, block.content.split("\n").length);
@@ -676,6 +719,10 @@ export function CommunityWriteStudio({
   const router = useRouter();
   const supabase = useMemo(() => (hasSupabaseConfig ? createClient() : null), []);
   const dragIndexRef = useRef<number | null>(null);
+  const [selectedArticleSlug] = useState(() => getSelectedArticleSlug());
+  const [quoteTarget] = useState<CommunityQuoteTarget | null>(() =>
+    getInitialQuoteTarget(selectedArticleSlug),
+  );
   const [authorName, setAuthorName] = useState(() => readAuthorName());
   const [editingAuthor, setEditingAuthor] = useState(false);
   const [authorDraft, setAuthorDraft] = useState("");
@@ -712,12 +759,20 @@ export function CommunityWriteStudio({
     setEditingAuthor(false);
   }
 
-  const [title, setTitle] = useState("");
-  const [topic, setTopic] = useState("Bitcoin");
+  const [title, setTitle] = useState(() =>
+    quoteTarget ? `Thoughts on ${quoteTarget.title}` : "",
+  );
+  const [topic, setTopic] = useState(() => getInitialTopic(quoteTarget));
   const [stance, setStance] = useState<CommunityStance>("Neutral");
-  const [postType, setPostType] = useState<CommunityPostType>(initialPostType);
-  const [blocks, setBlocks] = useState<Block[]>([mkText()]);
-  const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
+  const [postType, setPostType] = useState<CommunityPostType>(
+    quoteTarget ? "news_interpretation" : initialPostType,
+  );
+  const [blocks, setBlocks] = useState<Block[]>(() =>
+    quoteTarget ? buildNewsReactionBlocks(quoteTarget) : [mkText()],
+  );
+  const [activeTemplateId, setActiveTemplateId] = useState<string | null>(
+    quoteTarget ? "news_reaction" : null,
+  );
   const [dragOver, setDragOver] = useState<number | null>(null);
   const [previewMode, setPreviewMode] = useState(false);
   const [templateOpen, setTemplateOpen] = useState(true);
@@ -804,17 +859,30 @@ export function CommunityWriteStudio({
             ? "rising_analyst"
             : "rookie_analyst",
       discussionType:
+        quoteTarget ? "news_reaction" :
         topic === "Analysis" ? "analysis" :
         topic === "Questions" ? "question" :
         topic === "Event" ? "event" :
         topic === "News Reactions" ? "news_reaction" :
         "opinion",
+      relatedArticleSlug: quoteTarget?.slug,
+      relatedArticleTitle: quoteTarget?.title,
+      relatedArticleSource: quoteTarget?.sourceName,
+      relatedArticleUrl: quoteTarget?.originalUrl,
       attachments: blocksToAttachments(blocks),
     });
 
+    if (quoteTarget) {
+      clearCommunityQuoteTarget();
+    }
+
     setIsPublishing(false);
     setMessage("Post published to Community.");
-    router.push("/community");
+    router.push(
+      quoteTarget
+        ? `/community?articleSlug=${encodeURIComponent(quoteTarget.slug)}`
+        : "/community",
+    );
   }
 
   return (
@@ -849,6 +917,20 @@ export function CommunityWriteStudio({
               </div>
 
               <div className="mt-6 grid gap-5">
+                {quoteTarget ? (
+                  <div className="rounded-md border border-accent/25 bg-accent-soft/25 p-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-100">
+                      Writing about this news
+                    </p>
+                    <p className="mt-2 break-words text-sm font-semibold text-ink">
+                      {quoteTarget.title}
+                    </p>
+                    <p className="mt-1 text-xs text-muted">
+                      {quoteTarget.sourceName} · {quoteTarget.category}
+                    </p>
+                  </div>
+                ) : null}
+
                 {/* Title */}
                 <label className="block">
                   <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Title</span>
