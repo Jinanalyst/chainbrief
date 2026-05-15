@@ -21,7 +21,6 @@ export function Header() {
   const navItems = [
     { href: "/", label: copy.nav.home },
     { href: "/briefs", label: copy.nav.briefs },
-    { href: "/markets", label: "Markets" },
     { href: "/community", label: copy.nav.community },
     { href: "/market", label: copy.nav.market },
     { href: "/analyst", label: "Analyst" },
