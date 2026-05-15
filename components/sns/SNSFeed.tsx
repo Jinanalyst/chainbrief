@@ -85,7 +85,7 @@ function getSnsCopy(language: "ko" | "en"): SnsCopy {
     errorMessage: "SNS/RSS feeds could not be loaded right now.",
     errorTitle: "SNS/RSS fetching failed.",
     futureIntegrations: "Future Integrations",
-    headline: "Crypto research from creator feeds.",
+    headline: "Market research from creator feeds.",
     lastUpdated: (value: string) => `Last updated ${value}`,
     noMatchesDescription: "Try a broader category, source selection, or search query.",
     noMatchesTitle: "No content matches the current filters.",
