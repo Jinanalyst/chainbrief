@@ -319,7 +319,7 @@ function HeroSection({ copy }: { copy: LandingCopy }) {
           {/* Left: copy */}
           <div className="min-w-0 max-w-4xl">
             <Badge tone="accent">{copy.heroBadge}</Badge>
-            <h1 className="mt-5 max-w-5xl break-words text-4xl font-semibold leading-[1.06] tracking-tight text-ink sm:text-6xl lg:text-7xl">
+            <h1 className="mt-5 max-w-4xl text-balance break-words text-4xl font-semibold leading-[1.16] tracking-tight text-ink [word-break:keep-all] sm:text-5xl sm:leading-[1.14] lg:text-6xl lg:leading-[1.1]">
               {copy.heroTitle}
             </h1>
             <p className="mt-5 max-w-2xl text-base leading-7 text-muted sm:text-lg sm:leading-8">
