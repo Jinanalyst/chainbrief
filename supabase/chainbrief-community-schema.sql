@@ -1,21 +1,61 @@
 -- Chain Brief community and analyst-growth schema proposal.
 -- Apply in Supabase SQL editor after reviewing project naming conventions.
 
-create type public.chainbrief_role as enum (
-  'user',
-  'rookie_analyst',
-  'rising_analyst',
-  'verified_analyst',
-  'partner_expert',
-  'admin'
-);
+do $$
+begin
+  create type public.chainbrief_role as enum (
+    'user',
+    'rookie_analyst',
+    'rising_analyst',
+    'verified_analyst',
+    'partner_expert',
+    'admin'
+  );
+exception
+  when duplicate_object then null;
+end $$;
 
-create type public.chainbrief_post_status as enum ('draft', 'published', 'archived');
-create type public.chainbrief_application_status as enum ('pending', 'approved', 'rejected');
-create type public.chainbrief_membership_status as enum ('active', 'cancelled');
-create type public.chainbrief_revenue_event_type as enum ('subscription', 'tip');
-create type public.chainbrief_experience_years as enum ('lt_1', '1_3', '3_5', '5_plus');
-create type public.chainbrief_push_permission as enum ('default', 'granted', 'denied', 'unsupported');
+do $$
+begin
+  create type public.chainbrief_post_status as enum ('draft', 'published', 'archived');
+exception
+  when duplicate_object then null;
+end $$;
+
+do $$
+begin
+  create type public.chainbrief_application_status as enum ('pending', 'approved', 'rejected');
+exception
+  when duplicate_object then null;
+end $$;
+
+do $$
+begin
+  create type public.chainbrief_membership_status as enum ('active', 'cancelled');
+exception
+  when duplicate_object then null;
+end $$;
+
+do $$
+begin
+  create type public.chainbrief_revenue_event_type as enum ('subscription', 'tip');
+exception
+  when duplicate_object then null;
+end $$;
+
+do $$
+begin
+  create type public.chainbrief_experience_years as enum ('lt_1', '1_3', '3_5', '5_plus');
+exception
+  when duplicate_object then null;
+end $$;
+
+do $$
+begin
+  create type public.chainbrief_push_permission as enum ('default', 'granted', 'denied', 'unsupported');
+exception
+  when duplicate_object then null;
+end $$;
 
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
@@ -53,11 +93,10 @@ create table if not exists public.analyst_applications (
   twitter_handle text,
   expertise_areas text[] not null default '{}',
   experience_years public.chainbrief_experience_years not null default 'lt_1',
-  expertise text not null,
   bio text not null,
   sample_content text,
-  sample_url text,
-  motivation text,
+  sample_link text not null,
+  motivation text not null,
   markets text[] not null default '{}',
   no_investment_advice_agreed boolean not null default false,
   risk_disclosure_agreed boolean not null default false,
@@ -161,6 +200,8 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.chainbrief_handle_new_user();
+
+revoke execute on function public.chainbrief_handle_new_user() from public, anon, authenticated;
 
 alter table public.profiles enable row level security;
 alter table public.posts enable row level security;
@@ -310,3 +351,22 @@ create policy "users can read own notification deliveries"
 
 -- Admin-only review/status and role changes are handled through server actions
 -- that verify the caller's profile.role = 'admin'.
+
+grant usage on schema public to anon, authenticated;
+grant select on public.profiles, public.posts, public.analyst_scores, public.analyst_profiles, public.analyst_posts to anon, authenticated;
+grant insert on public.profiles, public.posts, public.analyst_applications, public.analyst_profiles, public.analyst_posts, public.revenue_events to authenticated;
+grant select on public.analyst_applications, public.analyst_memberships, public.revenue_events, public.notification_subscriptions, public.notification_deliveries to authenticated;
+grant insert on public.notification_subscriptions to authenticated;
+grant update on public.profiles, public.posts, public.analyst_applications, public.analyst_memberships, public.analyst_profiles, public.analyst_posts, public.notification_subscriptions to authenticated;
+grant delete on public.posts, public.notification_subscriptions to authenticated;
+
+revoke all on public.analyst_applications from anon;
+revoke all on public.analyst_memberships from anon;
+revoke all on public.revenue_events from anon;
+revoke insert, update, delete on public.profiles from anon;
+revoke insert, update, delete on public.posts from anon;
+revoke insert, update, delete on public.analyst_scores from anon;
+revoke insert, update, delete on public.analyst_profiles from anon;
+revoke insert, update, delete on public.analyst_posts from anon;
+
+notify pgrst, 'reload schema';

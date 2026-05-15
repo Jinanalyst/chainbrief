@@ -13,7 +13,7 @@ import {
 } from "@/lib/custom-rss-sources";
 import { formatShortTime } from "@/lib/i18n";
 import { snsSources, SNS_CATEGORIES } from "@/lib/sns/sources";
-import type { SnsVideo } from "@/lib/sns/types";
+import type { SnsCategory, SnsVideo } from "@/lib/sns/types";
 import { useI18n } from "@/lib/i18n/use-i18n";
 
 type SnsResponse = {
@@ -116,7 +116,14 @@ export function SNSFeed() {
   const [visibleVideoCount, setVisibleVideoCount] = useState(INITIAL_VISIBLE_VIDEOS);
 
   const enabledCustomSources = useMemo(
-    () => customSources.filter((source) => source.enabled),
+    () =>
+      customSources.filter(
+        (source) =>
+          source.enabled &&
+          (source.type === "youtube" ||
+            source.category === "SNS" ||
+            SNS_CATEGORIES.includes(source.category as SnsCategory)),
+      ),
     [customSources],
   );
   const sourceNames = useMemo(

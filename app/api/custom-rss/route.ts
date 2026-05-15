@@ -1,6 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 import Parser from "rss-parser";
-import type { CustomRssSource } from "@/lib/custom-rss-sources";
+import type {
+  CustomRssCreatorCategory,
+  CustomRssSource,
+} from "@/lib/custom-rss-sources";
 import type { SnsVideo } from "@/lib/sns/types";
 
 type FeedItem = {
@@ -127,10 +130,11 @@ function normalizeItem(item: FeedItem, source: CustomRssSource): SnsVideo | null
         stripHtml(item.contentSnippet ?? item.summary ?? item.content),
     ),
   );
-  const tags = createTags(title, description);
+  const sourceCategory = getCreatorCategory(source.category);
+  const tags = createTags(title, description, sourceCategory);
   const category = source.customCategory?.trim()
     ? source.customCategory.trim()
-    : inferCategory(title, description, tags);
+    : inferCategory(sourceCategory, title, description, tags);
 
   return {
     id: `custom-${source.id}-${createHash(`${url}-${title}`)}`,
@@ -182,7 +186,11 @@ function createDescription(value?: string) {
     : "Open the original RSS item for the full context.";
 }
 
-function createTags(title: string, description: string) {
+function createTags(
+  title: string,
+  description: string,
+  fallback: CustomRssCreatorCategory,
+) {
   const text = `${title} ${description}`;
   const inferredTags = [
     ["Bitcoin", /\b(bitcoin|btc|satoshi)\b/i],
@@ -196,13 +204,14 @@ function createTags(title: string, description: string) {
     .filter(([, pattern]) => pattern instanceof RegExp && pattern.test(text))
     .map(([tag]) => tag as string);
 
-  return Array.from(new Set(inferredTags.length ? inferredTags : ["Research"])).slice(
+  return Array.from(new Set([...inferredTags, fallback])).slice(
     0,
     4,
   );
 }
 
 function inferCategory(
+  fallback: CustomRssCreatorCategory,
   title: string,
   description: string,
   tags: string[],
@@ -233,7 +242,25 @@ function inferCategory(
     return "Macro";
   }
 
-  return "Research";
+  return fallback;
+}
+
+function getCreatorCategory(category: CustomRssSource["category"]) {
+  return isCreatorCategory(category) ? category : "Research";
+}
+
+function isCreatorCategory(
+  category: CustomRssSource["category"],
+): category is CustomRssCreatorCategory {
+  return (
+    category === "Research" ||
+    category === "Macro" ||
+    category === "Bitcoin" ||
+    category === "Ethereum" ||
+    category === "Solana" ||
+    category === "Security" ||
+    category === "AI & Crypto"
+  );
 }
 
 function cleanText(value?: unknown) {

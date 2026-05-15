@@ -21,9 +21,11 @@ export function Header() {
   const navItems = [
     { href: "/", label: copy.nav.home },
     { href: "/briefs", label: copy.nav.briefs },
+    { href: "/markets", label: "Markets" },
     { href: "/community", label: copy.nav.community },
     { href: "/market", label: copy.nav.market },
     { href: "/analyst", label: "Analyst" },
+    { href: "/membership", label: "Membership" },
     { href: "/sns", label: copy.nav.sns },
     { href: "/settings", label: copy.nav.settings },
     ...(user ? [{ href: "/profile", label: "Profile" }] : []),
