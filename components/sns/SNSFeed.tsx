@@ -85,7 +85,7 @@ function getSnsCopy(language: "ko" | "en"): SnsCopy {
     errorMessage: "SNS/RSS feeds could not be loaded right now.",
     errorTitle: "SNS/RSS fetching failed.",
     futureIntegrations: "Future Integrations",
-    headline: "Crypto research from creator feeds.",
+    headline: "Market research from creator feeds.",
     lastUpdated: (value: string) => `Last updated ${value}`,
     noMatchesDescription: "Try a broader category, source selection, or search query.",
     noMatchesTitle: "No content matches the current filters.",
@@ -116,7 +116,14 @@ export function SNSFeed() {
   const [visibleVideoCount, setVisibleVideoCount] = useState(INITIAL_VISIBLE_VIDEOS);
 
   const enabledCustomSources = useMemo(
-    () => customSources.filter((source) => source.enabled),
+    () =>
+      customSources.filter(
+        (source) =>
+          source.enabled &&
+          (source.type === "youtube" ||
+            source.category === "SNS" ||
+            SNS_CATEGORIES.includes(source.category as SnsCategory)),
+      ),
     [customSources],
   );
   const sourceNames = useMemo(

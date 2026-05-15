@@ -8,7 +8,20 @@ export type CustomRssSourceMarketType =
   | "Macro"
   | "Economy"
   | "Indices";
-export type CustomRssSourceCategory = "Crypto" | "SNS" | "Stock Market" | "Other";
+export type CustomRssCreatorCategory =
+  | "Research"
+  | "Macro"
+  | "Bitcoin"
+  | "Ethereum"
+  | "Solana"
+  | "Security"
+  | "AI & Crypto";
+export type CustomRssSourceCategory =
+  | "Crypto"
+  | "SNS"
+  | "Stock Market"
+  | "Other"
+  | CustomRssCreatorCategory;
 
 export type CustomRssSource = {
   id: string;
@@ -258,7 +271,16 @@ function normalizeStoredSource(value: unknown): CustomRssSource | null {
 }
 
 function normalizeCategory(value: unknown): CustomRssSourceCategory {
-  return value === "Stock Market" || value === "SNS" || value === "Other"
+  return value === "Stock Market" ||
+    value === "SNS" ||
+    value === "Other" ||
+    value === "Research" ||
+    value === "Macro" ||
+    value === "Bitcoin" ||
+    value === "Ethereum" ||
+    value === "Solana" ||
+    value === "Security" ||
+    value === "AI & Crypto"
     ? value
     : "Crypto";
 }

@@ -15,6 +15,7 @@ import {
   readCustomRssSources,
   updateCustomRssSource,
   writeCustomRssSources,
+  type CustomRssCreatorCategory,
   type CustomRssSource,
   type CustomRssSourceInput,
 } from "@/lib/custom-rss-sources";
@@ -74,6 +75,15 @@ const EMPTY_FORM: CustomRssSourceInput = {
 };
 
 const FEED_CATEGORIES = ["Crypto", "Stock Market", "SNS", "Other"] as const;
+const CREATOR_CATEGORIES = [
+  "Research",
+  "Macro",
+  "Bitcoin",
+  "Ethereum",
+  "Solana",
+  "Security",
+  "AI & Crypto",
+] as const satisfies readonly CustomRssCreatorCategory[];
 const MARKET_TYPES = ["Stocks", "ETFs", "Earnings", "Macro", "Economy", "Indices"] as const;
 const REGIONS = ["US", "Korea", "Global"] as const;
 
@@ -208,6 +218,8 @@ export function CustomRssSources({ language }: CustomRssSourcesProps) {
     [sources],
   );
   const isStockSource = form.category === "Stock Market";
+  const categoryOptions =
+    form.type === "youtube" ? CREATOR_CATEGORIES : FEED_CATEGORIES;
 
   useEffect(() => {
     if (!supabase) {
@@ -312,13 +324,15 @@ export function CustomRssSources({ language }: CustomRssSourcesProps) {
   }
 
   function startEdit(source: CustomRssSource) {
+    const sourceTypeUpdate = getSourceTypeFormUpdate(source.type, source.category);
+
     setEditingId(source.id);
     setForm({
       name: source.name,
       url: source.url,
-      type: source.type,
+      type: sourceTypeUpdate.type,
       language: source.language,
-      category: source.category,
+      category: sourceTypeUpdate.category,
       marketType: source.marketType,
       region: source.region,
       tickerSymbol: source.tickerSymbol ?? "",
@@ -387,10 +401,12 @@ export function CustomRssSources({ language }: CustomRssSourcesProps) {
                 setForm({
                   ...form,
                   url: nextUrl,
-                  type:
+                  ...getSourceTypeFormUpdate(
                     form.type === "rss" && isLikelyYouTubeChannelInput(nextUrl)
                       ? "youtube"
                       : form.type,
+                    form.category,
+                  ),
                 });
               }}
               placeholder={
@@ -414,7 +430,7 @@ export function CustomRssSources({ language }: CustomRssSourcesProps) {
               onChange={(event) =>
                 setForm({
                   ...form,
-                  type: event.target.value === "youtube" ? "youtube" : "rss",
+                  ...getSourceTypeFormUpdate(event.target.value, form.category),
                 })
               }
               value={form.type}
@@ -438,7 +454,7 @@ export function CustomRssSources({ language }: CustomRssSourcesProps) {
               }
               value={form.category}
             >
-              {FEED_CATEGORIES.map((category) => (
+              {categoryOptions.map((category) => (
                 <option key={category} value={category}>
                   {getFeedCategoryLabel(category, copy)}
                 </option>
@@ -658,5 +674,37 @@ function getFeedCategoryLabel(
   if (category === "Stock Market") return copy.feedCategoryStock;
   if (category === "SNS") return copy.feedCategorySns;
   if (category === "Other") return copy.feedCategoryOther;
+  if (isCreatorCategory(category)) return category;
   return copy.feedCategoryCrypto;
+}
+
+function getSourceTypeFormUpdate(
+  value: string,
+  category: CustomRssSourceInput["category"],
+): Pick<CustomRssSourceInput, "type" | "category"> {
+  const type = value === "youtube" ? "youtube" : "rss";
+
+  if (type === "youtube") {
+    return {
+      type,
+      category: isCreatorCategory(category) ? category : "Research",
+    };
+  }
+
+  return {
+    type,
+    category: isFeedCategory(category) ? category : "Crypto",
+  };
+}
+
+function isCreatorCategory(
+  category: CustomRssSourceInput["category"],
+): category is CustomRssCreatorCategory {
+  return CREATOR_CATEGORIES.includes(category as CustomRssCreatorCategory);
+}
+
+function isFeedCategory(
+  category: CustomRssSourceInput["category"],
+): category is (typeof FEED_CATEGORIES)[number] {
+  return FEED_CATEGORIES.includes(category as (typeof FEED_CATEGORIES)[number]);
 }

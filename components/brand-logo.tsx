@@ -52,7 +52,7 @@ export function BrandLogo({
           Chain Brief
         </span>
         <span className="hidden text-[0.7rem] font-medium uppercase tracking-[0.18em] text-muted-2 sm:block">
-          Crypto news, simplified.
+          Market News Simplified
         </span>
       </span>
     </Link>

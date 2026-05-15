@@ -1,16 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { isAuthorizedCronRequest } from "@/lib/cron-auth";
 import { dispatchNotificationsForLatestBriefs } from "@/lib/notification-dispatch";
 
 export async function GET(request: NextRequest) {
-  const cronHeader = request.headers.get("x-vercel-cron");
-  const authHeader = request.headers.get("authorization");
-  const expectedSecret = process.env.CRON_SECRET;
-
-  const isAuthorized =
-    Boolean(cronHeader) ||
-    (Boolean(expectedSecret) && authHeader === `Bearer ${expectedSecret}`);
-
-  if (!isAuthorized) {
+  if (!isAuthorizedCronRequest(request.headers)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

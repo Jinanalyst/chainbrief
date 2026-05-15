@@ -86,6 +86,10 @@ export async function submitAnalystApplicationAction(
     const motivation = optionalString(formData.get("motivation")).slice(0, 500);
     if (!motivation) return { error: "Motivation is required." };
 
+    if (formData.get("disclaimer_agreed") !== "on") {
+      return { error: "Please agree to the analyst content disclaimer." };
+    }
+
     const latest = await getLatestApplicationForUser(user.id);
     if (latest?.status === "pending" || latest?.status === "approved") {
       redirect("/analyst/status");
@@ -108,6 +112,8 @@ export async function submitAnalystApplicationAction(
       bio,
       sample_link: sampleLink,
       motivation,
+      no_investment_advice_agreed: true,
+      risk_disclosure_agreed: true,
       status: "pending",
     });
 
