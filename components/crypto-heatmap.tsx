@@ -103,16 +103,21 @@ function getTileBorder(pct: number): string {
   return `rgba(255,94,108,${alpha.toFixed(2)})`;
 }
 
-type SizeTier = { w: string; h: number; showPrice: boolean; showPct: boolean; fontSize: number };
+type GridConfig = {
+  colSpan: number;
+  rowSpan: number;
+  showPrice: boolean;
+  showPct: boolean;
+  fontSize: number;
+};
 
-function getSizeTier(volume: number, maxVolume: number): SizeTier {
+function getGridConfig(volume: number, maxVolume: number): GridConfig {
   const ratio = volume / maxVolume;
-  if (ratio > 0.35) return { w: "20%",   h: 108, showPrice: true,  showPct: true,  fontSize: 15 };
-  if (ratio > 0.12) return { w: "14%",   h: 88,  showPrice: true,  showPct: true,  fontSize: 13 };
-  if (ratio > 0.04) return { w: "10%",   h: 72,  showPrice: false, showPct: true,  fontSize: 11 };
-  if (ratio > 0.012) return { w: "7.5%", h: 62,  showPrice: false, showPct: true,  fontSize: 10 };
-  if (ratio > 0.003) return { w: "5.5%", h: 54,  showPrice: false, showPct: true,  fontSize: 9.5 };
-  return                     { w: "4%",  h: 46,  showPrice: false, showPct: false, fontSize: 8.5 };
+  if (ratio > 0.45) return { colSpan: 6, rowSpan: 2, showPrice: true,  showPct: true,  fontSize: 16 };
+  if (ratio > 0.15) return { colSpan: 5, rowSpan: 2, showPrice: true,  showPct: true,  fontSize: 14 };
+  if (ratio > 0.05) return { colSpan: 3, rowSpan: 1, showPrice: false, showPct: true,  fontSize: 12 };
+  if (ratio > 0.015)return { colSpan: 2, rowSpan: 1, showPrice: false, showPct: true,  fontSize: 11 };
+  return                   { colSpan: 1, rowSpan: 1, showPrice: false, showPct: true,  fontSize: 9.5 };
 }
 
 function formatPrice(price: number): string {
@@ -293,10 +298,7 @@ export function CryptoHeatmap() {
         )}
 
         {/* Heatmap */}
-        <div
-          className="overflow-hidden rounded-xl border border-white/[0.07] bg-surface"
-          style={{ minHeight: 300 }}
-        >
+        <div className="overflow-hidden rounded-xl border border-white/[0.07] bg-surface">
           {loading && (
             <div className="flex h-72 items-center justify-center">
               <div className="flex flex-col items-center gap-3">
@@ -321,9 +323,18 @@ export function CryptoHeatmap() {
           )}
 
           {!loading && !data?.error && visible.length > 0 && (
-            <div className="flex flex-wrap p-0.5">
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(12, 1fr)",
+                gridAutoRows: "58px",
+                gridAutoFlow: "dense",
+                gap: "2px",
+                padding: "2px",
+              }}
+            >
               {visible.map((coin) => {
-                const size = getSizeTier(coin.quoteVolume, maxVolume);
+                const tile   = getGridConfig(coin.quoteVolume, maxVolume);
                 const bg     = getTileBackground(coin.priceChangePercent);
                 const border = getTileBorder(coin.priceChangePercent);
                 const pctStr = (coin.priceChangePercent >= 0 ? "+" : "") +
@@ -332,49 +343,48 @@ export function CryptoHeatmap() {
                 return (
                   <div
                     key={coin.symbol}
-                    className="group relative flex-shrink-0 cursor-default overflow-hidden p-0.5"
-                    style={{ width: size.w }}
+                    className="group relative cursor-default overflow-hidden rounded transition-opacity duration-150 hover:opacity-80"
+                    style={{
+                      gridColumn: `span ${tile.colSpan}`,
+                      gridRow: `span ${tile.rowSpan}`,
+                      background: bg,
+                      border: `1px solid ${border}`,
+                    }}
                     title={`${coin.symbol}/USDT · ${pctStr} · ${formatVolume(coin.quoteVolume)} vol`}
                   >
-                    <div
-                      className="flex h-full w-full flex-col items-center justify-center rounded transition-opacity duration-150 group-hover:opacity-80"
-                      style={{
-                        height: size.h,
-                        background: bg,
-                        border: `1px solid ${border}`,
-                      }}
-                    >
+                    {/* Centered content */}
+                    <div className="flex h-full w-full flex-col items-center justify-center px-1">
                       <span
                         className="truncate font-bold leading-tight text-ink"
-                        style={{ fontSize: size.fontSize }}
+                        style={{ fontSize: tile.fontSize }}
                       >
                         {coin.symbol}
                       </span>
 
-                      {size.showPct && (
+                      {tile.showPct && (
                         <span
                           className={cn(
                             "mt-0.5 font-semibold leading-none",
                             coin.priceChangePercent >= 0 ? "text-success" : "text-danger",
                           )}
-                          style={{ fontSize: size.fontSize - 1 }}
+                          style={{ fontSize: tile.fontSize - 1 }}
                         >
                           {pctStr}
                         </span>
                       )}
 
-                      {size.showPrice && (
+                      {tile.showPrice && (
                         <span
                           className="mt-0.5 font-medium leading-none text-ink/70"
-                          style={{ fontSize: size.fontSize - 2 }}
+                          style={{ fontSize: tile.fontSize - 2 }}
                         >
                           ${formatPrice(coin.lastPrice)}
                         </span>
                       )}
                     </div>
 
-                    {/* Tooltip on hover — volume */}
-                    <div className="pointer-events-none absolute inset-x-0 bottom-full left-1/2 z-10 mb-1.5 hidden w-max -translate-x-1/2 rounded-md border border-white/10 bg-surface-3 px-2 py-1 text-[10px] leading-snug text-ink shadow-soft group-hover:block">
+                    {/* Hover tooltip */}
+                    <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1.5 hidden w-max -translate-x-1/2 rounded-md border border-white/10 bg-surface-3 px-2 py-1 text-[10px] leading-snug text-ink shadow-soft group-hover:block">
                       <span className="font-bold">{coin.symbol}/USDT</span>
                       <br />
                       <span className="text-muted-2">Vol</span> {formatVolume(coin.quoteVolume)}
