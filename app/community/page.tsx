@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import type { User } from "@supabase/supabase-js";
 import { Header } from "@/components/header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Container } from "@/components/ui/container";
+import "./community.css";
 import {
   addQuotePost,
   addThreadQuote,
@@ -101,11 +102,13 @@ export default function CommunityPage() {
   const { t: copy, language } = useI18n(preferences.language);
   const supabase = useMemo(() => (hasSupabaseConfig ? createClient() : null), []);
   const [authorName, setAuthorName] = useState("You");
+  const [authUser, setAuthUser] = useState<User | null>(null);
 
   useEffect(() => {
     if (!supabase) return;
     supabase.auth.getUser().then(({ data }) => {
       const user = data.user;
+      setAuthUser(user ?? null);
       if (!user) return;
       const profile = user.user_metadata?.chainBriefProfile as { displayName?: string } | undefined;
       const name =
@@ -116,6 +119,12 @@ export default function CommunityPage() {
         "You";
       setAuthorName(name);
     });
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_e, session) => {
+      setAuthUser(session?.user ?? null);
+    });
+    return () => subscription.unsubscribe();
   }, [supabase]);
 
   const [posts, setPosts] = useState<CommunityPost[]>([]);
@@ -204,105 +213,103 @@ export default function CommunityPage() {
   }
 
   return (
-    <main className="site-grid min-h-screen overflow-x-hidden pb-36">
-      <Header />
-      <section className="border-t border-white/10 bg-background/72">
-        <Container className="section-space">
-          <div className="grid min-w-0 gap-6 lg:grid-cols-[15rem_minmax(0,1fr)_18rem]">
-            <div className="hidden min-w-0 lg:block">
-              <CommunitySidebar language={language} onAction={handleSidebarAction} />
-            </div>
+    <>
+      <div className="cb-community cb-community-desktop-only">
+        <Header />
+        <div className="cb-wrap">
+          <CommunityLeftNav language={language} onAction={handleSidebarAction} />
 
-            <div className="min-w-0">
-              <CommunityHeader language={language} />
+          <main className="cb-main">
+            <CommunityHeader language={language} />
+            <CommunityTabs activeTab={activeTab} language={language} onChange={setActiveTab} />
+            <CommunityToolbar canWrite={Boolean(authUser)} language={language} />
 
-              {!focusedTarget ? (
-                <div className="mt-4 grid gap-4">
-                  <CommunityTabs activeTab={activeTab} language={language} onChange={setActiveTab} />
-                  <CommunityBanner language={language} />
-                  <AnalystPathSection />
-                  <div className="lg:hidden">
-                    <PopularPostsCard language={language} posts={popularPosts} />
-                  </div>
-                  <WriteStudioCallout language={language} />
-                </div>
-              ) : (
-                <div className="mt-4 grid gap-4">
-                  <RelatedNewsCard copy={copy} language={language} target={focusedTarget} />
-                  <WriteStudioCallout
-                    focusedTarget={focusedTarget}
-                    language={language}
-                    onClearTarget={() => {
-                      clearCommunityQuoteTarget();
-                      setQuoteTarget(null);
-                    }}
-                  />
-                </div>
-              )}
-
-              <div className="mt-6 lg:hidden">
-                {!focusedTarget ? null : null}
+            {focusedTarget ? (
+              <div style={{ padding: "16px 24px" }}>
+                <RelatedNewsCard copy={copy} language={language} target={focusedTarget} />
               </div>
+            ) : null}
 
-              <div id="community-feed" className="mt-6 grid gap-3 pb-4">
-                {visiblePosts.length === 0 ? (
-                  <Card className="p-5">
-                    <p className="text-sm leading-6 text-muted">
-                      {selectedArticleSlug
-                        ? language === "ko"
-                          ? "이 뉴스에 대한 토론이 아직 없습니다. 첫 의견을 남겨보세요."
-                          : "No discussion yet for this news item. Share the first take."
-                        : language === "ko"
-                          ? "아직 커뮤니티 글이 없습니다. 첫 의견을 남겨보세요."
-                          : "No community posts yet. Share the first take."}
-                    </p>
-                  </Card>
-                ) : analystTabActive ? (
+            <div id="community-feed">
+              {visiblePosts.length === 0 ? (
+                <div
+                  style={{
+                    padding: "48px 24px",
+                    fontSize: 13,
+                    color: "var(--cb-t3)",
+                    textAlign: "center",
+                  }}
+                >
+                  {selectedArticleSlug
+                    ? language === "ko"
+                      ? "이 뉴스에 대한 토론이 아직 없습니다. 첫 의견을 남겨보세요."
+                      : "No discussion yet for this news item. Share the first take."
+                    : language === "ko"
+                      ? "아직 커뮤니티 글이 없습니다. 첫 의견을 남겨보세요."
+                      : "No community posts yet. Share the first take."}
+                </div>
+              ) : analystTabActive ? (
+                <div style={{ padding: "16px 24px" }}>
                   <AnalystWorkList
                     copy={copy}
                     language={language}
                     posts={visiblePosts}
                     tier={activeTab}
                   />
-                ) : (
-                  visiblePosts.map((post) => (
-                    <CommunityPostCard key={post.id} authorName={authorName} copy={copy} language={language} post={post} />
-                  ))
-                )}
-              </div>
+                </div>
+              ) : (
+                visiblePosts.map((post) => (
+                  <div
+                    key={post.id}
+                    style={{ padding: "12px 24px", borderBottom: "1px solid var(--cb-b1)" }}
+                  >
+                    <CommunityPostCard authorName={authorName} copy={copy} language={language} post={post} />
+                  </div>
+                ))
+              )}
             </div>
+          </main>
 
-            <div className="hidden min-w-0 lg:block">
-              {!focusedTarget ? <TrendingAndGuidelines posts={popularPosts} copy={copy} /> : null}
-            </div>
-          </div>
-        </Container>
-      </section>
+          <aside className="cb-rightnav">
+            <TrendingWidget posts={popularPosts} language={language} />
+          </aside>
+        </div>
+      </div>
 
-      <FloatingCommunityActions language={language} />
-    </main>
+      <MobileFallback language={language} />
+    </>
   );
 }
 
 function CommunityHeader({ language }: { language: "ko" | "en" }) {
   return (
-    <header className="min-w-0">
-      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">
+    <div
+      style={{
+        padding: "20px 24px 0",
+        borderBottom: "1px solid var(--cb-b1)",
+      }}
+    >
+      <div
+        style={{
+          fontSize: 17,
+          fontWeight: 600,
+          letterSpacing: "-0.02em",
+          marginBottom: 3,
+          color: "var(--cb-t1)",
+        }}
+      >
         {language === "ko" ? "커뮤니티" : "Community"}
-      </p>
-      <h1 className="mt-3 text-3xl font-semibold tracking-tight text-ink">
-        {language === "ko" ? "커뮤니티" : "Community"}
-      </h1>
-      <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">
+      </div>
+      <div style={{ fontSize: 12, color: "var(--cb-t3)", marginBottom: 14 }}>
         {language === "ko"
           ? "시장 의견, 뉴스 반응, 그리고 크립토 리서치 아이디어를 빠르게 나누세요."
           : "Share market thoughts, news reactions, and crypto research ideas."}
-      </p>
-    </header>
+      </div>
+    </div>
   );
 }
 
-function CommunitySidebar({
+function CommunityLeftNav({
   language,
   onAction,
 }: {
@@ -310,26 +317,233 @@ function CommunitySidebar({
   onAction: (action: SidebarAction) => void;
 }) {
   return (
-    <Card className="min-w-0 p-4">
-      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
-        {language === "ko" ? "둘러보기" : "Explore"}
-      </p>
-      <div className="mt-3 grid gap-2">
-        {EXPLORE_ITEMS.map((item) => (
-          <button
-            key={item.action}
-            type="button"
-            onClick={() => onAction(item.action)}
-            className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-3 text-left text-sm transition hover:border-accent/50 hover:bg-white/[0.05]"
-          >
-            <span className="min-w-0 break-words font-medium text-ink">
-              {language === "ko" ? item.ko : item.en}
-            </span>
-            <span className="shrink-0 text-sm text-muted">→</span>
-          </button>
-        ))}
+    <aside className="cb-leftnav">
+      <CbSectionLabel>{language === "ko" ? "둘러보기" : "Explore"}</CbSectionLabel>
+      <CbMenuLink href="/" label={language === "ko" ? "홈" : "Home"} icon={<HomeIcon />} />
+      <CbMenuLink href="/briefs" label={language === "ko" ? "브리프" : "Briefs"} icon={<BoltIcon />} />
+      <CbMenuLink href="/market" label={language === "ko" ? "마켓" : "Market"} icon={<PulseIcon />} />
+      <CbMenuLink href="/analyst" label="Analyst" icon={<AwardIcon />} />
+      <CbMenuLink href="/sns" label="SNS" icon={<ChatIcon />} />
+
+      <CbDivider />
+      <CbSectionLabel>{language === "ko" ? "커뮤니티" : "Community"}</CbSectionLabel>
+      <CbMenuLink
+        href="/community"
+        label={language === "ko" ? "커뮤니티" : "Community"}
+        icon={<UsersIcon />}
+        active
+      />
+      {EXPLORE_ITEMS.map((item) => (
+        <button
+          key={item.action}
+          type="button"
+          onClick={() => onAction(item.action)}
+          className="flex items-center gap-2"
+          style={{
+            padding: "8px 10px",
+            borderRadius: 6,
+            fontSize: 13,
+            color: "var(--cb-t2)",
+            background: "transparent",
+            border: "none",
+            textAlign: "left",
+          }}
+        >
+          {language === "ko" ? item.ko : item.en}
+        </button>
+      ))}
+    </aside>
+  );
+}
+
+function CbSectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <span
+      style={{
+        fontSize: 10,
+        fontWeight: 600,
+        textTransform: "uppercase",
+        letterSpacing: "0.07em",
+        color: "var(--cb-t3)",
+        padding: "8px 10px 4px",
+        marginTop: 4,
+      }}
+    >
+      {children}
+    </span>
+  );
+}
+
+function CbMenuLink({
+  href,
+  icon,
+  label,
+  active,
+}: {
+  href: string;
+  icon?: React.ReactNode;
+  label: string;
+  active?: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      className="flex items-center gap-2"
+      style={{
+        padding: "8px 10px",
+        borderRadius: 6,
+        fontSize: 13,
+        color: active ? "var(--cb-accent)" : "var(--cb-t2)",
+        background: active ? "rgba(47,123,255,0.12)" : "transparent",
+        transition: "all .1s",
+      }}
+    >
+      {icon ? <span style={{ opacity: active ? 1 : 0.6, flexShrink: 0 }}>{icon}</span> : null}
+      <span>{label}</span>
+    </Link>
+  );
+}
+
+function CbDivider() {
+  return <div style={{ height: 1, background: "var(--cb-b1)", margin: "8px 4px" }} />;
+}
+
+function CommunityToolbar({
+  canWrite,
+  language,
+}: {
+  canWrite: boolean;
+  language: "ko" | "en";
+}) {
+  // Always link to the writing form — it handles its own login prompt.
+  void canWrite;
+  const writeHref = "/community/write";
+  return (
+    <div
+      className="flex items-center justify-between"
+      style={{
+        padding: "10px 24px",
+        borderBottom: "1px solid var(--cb-b1)",
+      }}
+    >
+      <div style={{ fontSize: 11, color: "var(--cb-t3)" }}>
+        {language === "ko" ? "최신순" : "Latest first"}
       </div>
-    </Card>
+      <Link
+        href={writeHref}
+        className="flex items-center gap-1.5"
+        style={{
+          padding: "6px 13px",
+          background: "var(--cb-accent)",
+          color: "#fff",
+          borderRadius: 6,
+          fontSize: 13,
+          fontWeight: 600,
+        }}
+      >
+        <svg
+          width="12"
+          height="12"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+        >
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+        {language === "ko" ? "글쓰기" : "Write"}
+      </Link>
+    </div>
+  );
+}
+
+function MobileFallback({ language }: { language: "ko" | "en" }) {
+  return (
+    <div
+      className="cb-community-mobile-only"
+      style={{
+        display: "none",
+        minHeight: "100vh",
+        background: "#070A12",
+        color: "#eef0f6",
+        padding: "32px 24px",
+        flexDirection: "column",
+        gap: 16,
+      }}
+    >
+      <div style={{ fontSize: 17, fontWeight: 600 }}>
+        {language === "ko" ? "커뮤니티" : "Community"}
+      </div>
+      <div style={{ fontSize: 13, color: "#7880a0", lineHeight: 1.6 }}>
+        {language === "ko"
+          ? "커뮤니티 페이지는 데스크탑(1024px 이상)에 최적화되어 있습니다. 넓은 화면에서 다시 열어주세요."
+          : "The community page is optimized for desktop (1024px+). Please open on a wider screen."}
+      </div>
+      <Link
+        href="/"
+        style={{
+          marginTop: 8,
+          alignSelf: "flex-start",
+          padding: "8px 14px",
+          background: "#2F7BFF",
+          color: "#fff",
+          borderRadius: 6,
+          fontSize: 13,
+          fontWeight: 600,
+        }}
+      >
+        {language === "ko" ? "홈으로" : "Home"}
+      </Link>
+    </div>
+  );
+}
+
+function HomeIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+      <polyline points="9 22 9 12 15 12 15 22" />
+    </svg>
+  );
+}
+function BoltIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+    </svg>
+  );
+}
+function PulseIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+    </svg>
+  );
+}
+function AwardIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="12" cy="8" r="6" />
+      <path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11" />
+    </svg>
+  );
+}
+function ChatIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+    </svg>
+  );
+}
+function UsersIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
   );
 }
 
@@ -443,29 +657,41 @@ function CommunityTabs({
     "Verified Analyst": "VA",
   };
 
+  void tabGlyphs;
   return (
-    <div className="max-w-full overflow-x-auto border-b border-white/10 [-webkit-overflow-scrolling:touch]">
-      <div className="flex w-max min-w-full gap-2 pb-1">
-        {TABS.map((tab) => (
+    <div
+      className="flex"
+      style={{
+        padding: "0 24px",
+        borderBottom: "1px solid var(--cb-b1)",
+        overflowX: "auto",
+      }}
+    >
+      {TABS.map((tab) => {
+        const active = activeTab === tab;
+        return (
           <button
             key={tab}
             type="button"
-            aria-pressed={activeTab === tab}
+            aria-pressed={active}
             onClick={() => onChange(tab)}
-            className={cn(
-              "inline-flex shrink-0 items-center gap-2 rounded-full border px-3 py-2 text-sm font-semibold transition",
-              activeTab === tab
-                ? "border-accent bg-accent/15 text-blue-100"
-                : "border-white/10 bg-white/[0.03] text-muted hover:border-accent/50 hover:text-ink",
-            )}
+            style={{
+              padding: "8px 14px",
+              fontSize: 13,
+              color: active ? "var(--cb-t1)" : "var(--cb-t2)",
+              background: "none",
+              border: "none",
+              borderBottom: `2px solid ${active ? "var(--cb-accent)" : "transparent"}`,
+              marginBottom: -1,
+              fontWeight: active ? 500 : 400,
+              whiteSpace: "nowrap",
+              cursor: "pointer",
+            }}
           >
-            <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-current/20 text-[10px]">
-              {tabGlyphs[tab]}
-            </span>
-            <span>{tabLabels[tab]}</span>
+            {tabLabels[tab]}
           </button>
-        ))}
-      </div>
+        );
+      })}
     </div>
   );
 }
@@ -1175,37 +1401,88 @@ function PopularPostsCard({
   );
 }
 
-function TrendingAndGuidelines({
+function TrendingWidget({
   posts,
-  copy,
+  language,
 }: {
   posts: CommunityPost[];
-  copy: ReturnType<typeof useI18n>["t"];
+  language: "ko" | "en";
 }) {
+  const top = posts.slice(0, 5);
   return (
-    <div className="space-y-3">
-      <Card className="min-w-0 p-4">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
-          {copy.community.trendingDiscussions}
-        </p>
-        <div className="mt-3 grid gap-3">
-          {posts.map((post) => (
-            <div key={post.id} className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-              <p className="break-words text-sm font-semibold text-ink">{post.title}</p>
-              <p className="mt-1 text-xs text-muted-2">
-                {post.relatedArticleSource ?? post.author}
-              </p>
-              <div className="mt-2 flex items-center gap-3 text-xs text-muted-2">
-                <span>{post.commentsCount} {copy.community.comments}</span>
-                <span>{post.likes} likes</span>
+    <div
+      style={{
+        border: "1px solid var(--cb-b1)",
+        borderRadius: 8,
+        overflow: "hidden",
+      }}
+    >
+      <div
+        className="flex items-center justify-between"
+        style={{
+          padding: "11px 14px",
+          borderBottom: "1px solid var(--cb-b1)",
+          fontSize: 12,
+          fontWeight: 600,
+          color: "var(--cb-t2)",
+        }}
+      >
+        {language === "ko" ? "인기글 TOP 5" : "Top 5"}
+      </div>
+      {top.length === 0 ? (
+        <div style={{ padding: "12px 14px", fontSize: 12, color: "var(--cb-t3)" }}>
+          {language === "ko" ? "아직 표시할 글이 없습니다." : "No trending posts yet."}
+        </div>
+      ) : (
+        top.map((post, i) => (
+          <div
+            key={post.id}
+            className="flex items-start gap-2.5"
+            style={{
+              padding: "10px 14px",
+              borderBottom: i === top.length - 1 ? "none" : "1px solid var(--cb-b1)",
+              cursor: "pointer",
+            }}
+          >
+            <div
+              style={{
+                fontSize: 13,
+                fontWeight: 700,
+                color: i < 3 ? "var(--cb-accent)" : "var(--cb-t3)",
+                minWidth: 14,
+                lineHeight: 1.3,
+              }}
+            >
+              {i + 1}
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <div
+                style={{
+                  fontSize: 12,
+                  color: "var(--cb-t1)",
+                  lineHeight: 1.4,
+                  display: "-webkit-box",
+                  WebkitBoxOrient: "vertical",
+                  WebkitLineClamp: 2,
+                  overflow: "hidden",
+                }}
+              >
+                {post.title}
+              </div>
+              <div style={{ fontSize: 11, color: "var(--cb-t3)", marginTop: 2 }}>
+                {language === "ko" ? "댓글" : "comments"} {post.commentsCount} · {formatViewCount(post.views)}
               </div>
             </div>
-          ))}
-        </div>
-      </Card>
-      <CommunityGuidelinesBox copy={copy} />
+          </div>
+        ))
+      )}
     </div>
   );
+}
+
+function formatViewCount(n: number): string {
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
+  return String(n);
 }
 
 function CommunityGuidelinesBox({
