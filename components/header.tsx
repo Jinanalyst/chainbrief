@@ -27,7 +27,6 @@ export function Header() {
     { href: "/membership", label: "Membership" },
     { href: "/sns", label: copy.nav.sns },
     { href: "/settings", label: copy.nav.settings },
-    ...(user ? [{ href: "/profile", label: "Profile" }] : []),
   ];
 
   function setLanguage(language: typeof preferences.language) {
