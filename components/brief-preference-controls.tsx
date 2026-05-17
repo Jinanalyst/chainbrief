@@ -34,7 +34,7 @@ export function BriefPreferenceControls({
   const dynamicCategories = useMemo(() => {
     const custom = customSources
       .filter((s) => s.enabled)
-      .map((s) => s.customCategory?.trim())
+      .map((s) => s.category?.trim())
       .filter((c): c is string => Boolean(c));
     const unique = Array.from(new Set(custom));
     const base = BRIEF_CATEGORIES.filter((c) => c !== "Web3");
