@@ -328,7 +328,7 @@ export function NotificationSettings({
       : "Login required for background push";
 
   return (
-    <div className="mt-4 min-w-0 rounded-lg border border-white/10 bg-background/60 p-3 sm:p-4">
+    <div className="mt-4 min-w-0 rounded-lg border border-tint/10 bg-background/60 p-3 sm:p-4">
       <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
@@ -344,7 +344,7 @@ export function NotificationSettings({
             "flex min-h-8 w-14 shrink-0 items-center rounded-full border p-1 transition",
             preferences.notificationsEnabled
               ? "justify-end border-accent bg-accent"
-              : "justify-start border-white/10 bg-white/[0.03]",
+              : "justify-start border-tint/10 bg-tint/[0.03]",
           )}
           disabled={preferences.notificationPermission === "unsupported" || isSyncing}
           onClick={toggleNotifications}
@@ -355,7 +355,7 @@ export function NotificationSettings({
       </div>
 
       <div className="mt-4 grid min-w-0 gap-3 text-sm md:grid-cols-2">
-        <div className="min-w-0 rounded-md border border-white/10 bg-white/[0.03] p-3">
+        <div className="min-w-0 rounded-md border border-tint/10 bg-tint/[0.03] p-3">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
             {copy.notifications.enabledState}
           </p>
@@ -365,7 +365,7 @@ export function NotificationSettings({
               : copy.notifications.disabled}
           </p>
         </div>
-        <div className="min-w-0 rounded-md border border-white/10 bg-white/[0.03] p-3">
+        <div className="min-w-0 rounded-md border border-tint/10 bg-tint/[0.03] p-3">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
             {copy.notifications.permissionStatus}
           </p>
@@ -380,14 +380,14 @@ export function NotificationSettings({
 
         <div className="mt-2 flex gap-2">
           <input
-            className="min-h-10 flex-1 rounded-md border border-white/10 bg-background px-3 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
+            className="min-h-10 flex-1 rounded-md border border-tint/10 bg-background px-3 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
             onChange={(e) => setKeywordInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && addKeyword()}
             placeholder={preferences.language === "ko" ? "키워드 입력 후 Enter" : "Type a keyword, press Enter"}
             value={keywordInput}
           />
           <button
-            className="shrink-0 rounded-md border border-accent/40 bg-accent/10 px-4 text-sm font-semibold text-blue-100 transition hover:bg-accent/20 disabled:opacity-40"
+            className="shrink-0 rounded-md border border-accent/40 bg-accent/10 px-4 text-sm font-semibold text-accent-ink transition hover:bg-accent/20 disabled:opacity-40"
             disabled={!keywordInput.trim()}
             onClick={addKeyword}
             type="button"
@@ -403,15 +403,15 @@ export function NotificationSettings({
                 className={cn(
                   "flex items-center gap-1.5 rounded-full border pl-3 pr-2 py-1 text-xs font-medium transition",
                   keyword === activeKeyword
-                    ? "border-accent/60 bg-accent/15 text-blue-100"
-                    : "border-accent/30 bg-accent/10 text-blue-100",
+                    ? "border-accent/60 bg-accent/15 text-accent-ink"
+                    : "border-accent/30 bg-accent/10 text-accent-ink",
                 )}
                 key={keyword}
               >
                 {keyword}
                 <button
                   aria-label={`Remove ${keyword}`}
-                  className="flex h-4 w-4 items-center justify-center rounded-full text-blue-200 transition hover:bg-white/10"
+                  className="flex h-4 w-4 items-center justify-center rounded-full text-accent-ink transition hover:bg-tint/10"
                   onClick={() => removeKeyword(keyword)}
                   type="button"
                 >
@@ -427,7 +427,7 @@ export function NotificationSettings({
         )}
       </div>
 
-      <div className="mt-4 grid gap-3 rounded-md border border-white/10 bg-white/[0.03] p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+      <div className="mt-4 grid gap-3 rounded-md border border-tint/10 bg-tint/[0.03] p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
         <div className="min-w-0">
           <p className="text-sm font-semibold text-ink">
             {accountLabel}
@@ -436,13 +436,13 @@ export function NotificationSettings({
             {statusCopy.saveHint}
           </p>
           {activeKeyword ? (
-            <p className="mt-1 break-words text-xs leading-5 text-blue-100">
+            <p className="mt-1 break-words text-xs leading-5 text-accent-ink">
               {`The test popup will highlight "${activeKeyword}".`}
             </p>
           ) : null}
         </div>
         <button
-          className="inline-flex min-h-9 items-center justify-center rounded-md border border-accent/30 bg-accent/10 px-3 text-xs font-semibold text-blue-100 transition hover:border-accent/50 hover:bg-accent/15 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex min-h-9 items-center justify-center rounded-md border border-accent/30 bg-accent/10 px-3 text-xs font-semibold text-accent-ink transition hover:border-accent/50 hover:bg-accent/15 disabled:cursor-not-allowed disabled:opacity-50"
           disabled={
             !preferences.notificationsEnabled ||
             preferences.notificationPermission !== "granted" ||
@@ -469,7 +469,7 @@ export function NotificationSettings({
               ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-100"
               : statusTone === "warning"
                 ? "border-amber-400/25 bg-amber-400/10 text-amber-100"
-                : "border-white/10 bg-white/[0.03] text-muted",
+                : "border-tint/10 bg-tint/[0.03] text-muted",
           )}
         >
           {statusMessage}

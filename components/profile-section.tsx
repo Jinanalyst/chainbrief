@@ -128,7 +128,7 @@ function CollapsibleCard({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition hover:bg-white/[0.03]"
+        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition hover:bg-tint/[0.03]"
       >
         <p className={cn(
           "text-xs font-semibold uppercase tracking-[0.18em]",
@@ -138,7 +138,7 @@ function CollapsibleCard({
         </p>
         <span className={cn("text-xs text-muted transition-transform duration-200", open ? "rotate-180" : "rotate-0")}>▾</span>
       </button>
-      <div className={cn("transition-all duration-200", open ? "border-t border-white/[0.06]" : "hidden")}>
+      <div className={cn("transition-all duration-200", open ? "border-t border-tint/[0.06]" : "hidden")}>
         <div className="p-4">
           {children}
         </div>
@@ -161,16 +161,16 @@ function FormSection({
   const [open, setOpen] = useState(defaultOpen);
 
   return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.02]">
+    <div className="rounded-xl border border-tint/10 bg-tint/[0.02]">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition hover:bg-white/[0.03]"
+        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition hover:bg-tint/[0.03]"
       >
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">{title}</p>
         <span className={cn("text-xs text-muted transition-transform duration-200", open ? "rotate-180" : "rotate-0")}>▾</span>
       </button>
-      {open && <div className="grid gap-4 border-t border-white/[0.06] px-4 pb-4 pt-4">{children}</div>}
+      {open && <div className="grid gap-4 border-t border-tint/[0.06] px-4 pb-4 pt-4">{children}</div>}
     </div>
   );
 }
@@ -411,9 +411,9 @@ export function ProfileSection() {
             >
               {avatarUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img alt="" className="h-14 w-14 rounded-full border border-white/10 object-cover" src={avatarUrl} />
+                <img alt="" className="h-14 w-14 rounded-full border border-tint/10 object-cover" src={avatarUrl} />
               ) : (
-                <div className="flex h-14 w-14 items-center justify-center rounded-full border border-accent/30 bg-accent/15 text-sm font-bold text-blue-100">
+                <div className="flex h-14 w-14 items-center justify-center rounded-full border border-accent/30 bg-accent/15 text-sm font-bold text-accent-ink">
                   {initials}
                 </div>
               )}
@@ -439,7 +439,7 @@ export function ProfileSection() {
             <label className="block">
               <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Display name</span>
               <input
-                className="mt-2 min-h-11 w-full rounded-md border border-white/10 bg-background px-4 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
+                className="mt-2 min-h-11 w-full rounded-md border border-tint/10 bg-background px-4 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
                 onChange={(e) => setDisplayName(e.target.value)}
                 placeholder="Your Chain Brief name"
                 required
@@ -450,7 +450,7 @@ export function ProfileSection() {
             <label className="block">
               <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Role</span>
               <select
-                className="mt-2 min-h-11 w-full rounded-md border border-white/10 bg-background px-4 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
+                className="mt-2 min-h-11 w-full rounded-md border border-tint/10 bg-background px-4 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
                 onChange={(e) => setRole(e.target.value)}
                 value={role}
               >
@@ -461,7 +461,7 @@ export function ProfileSection() {
             <label className="block">
               <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Topics</span>
               <input
-                className="mt-2 min-h-11 w-full rounded-md border border-white/10 bg-background px-4 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
+                className="mt-2 min-h-11 w-full rounded-md border border-tint/10 bg-background px-4 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
                 onChange={(e) => setInterests(e.target.value)}
                 placeholder="Bitcoin, DeFi, Macro"
                 value={interests}
@@ -471,7 +471,7 @@ export function ProfileSection() {
             <label className="block">
               <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Bio</span>
               <textarea
-                className="mt-2 min-h-28 w-full rounded-md border border-white/10 bg-background px-4 py-3 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
+                className="mt-2 min-h-28 w-full rounded-md border border-tint/10 bg-background px-4 py-3 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
                 maxLength={240}
                 onChange={(e) => setBio(e.target.value)}
                 placeholder="Share what you follow in crypto and how you use Chain Brief."
@@ -546,19 +546,19 @@ export function ProfileSection() {
           </p>
           <div className="mt-4 grid gap-3">
             <input
-              className="min-h-10 rounded-md border border-white/10 bg-background px-3 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
+              className="min-h-10 rounded-md border border-tint/10 bg-background px-3 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
               onChange={(e) => setExpertise(e.target.value)}
               placeholder="전문 분야"
               value={expertise}
             />
             <input
-              className="min-h-10 rounded-md border border-white/10 bg-background px-3 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
+              className="min-h-10 rounded-md border border-tint/10 bg-background px-3 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
               onChange={(e) => setMarkets(e.target.value)}
               placeholder="주로 분석하는 코인/시장"
               value={markets}
             />
             <textarea
-              className="min-h-28 rounded-md border border-white/10 bg-background px-3 py-3 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
+              className="min-h-28 rounded-md border border-tint/10 bg-background px-3 py-3 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
               onChange={(e) => setSampleContent(e.target.value)}
               placeholder="자기소개 및 샘플 분석글 링크 또는 내용"
               value={sampleContent}
@@ -649,9 +649,9 @@ const POST_TYPE_LABELS: Record<string, string> = {
 };
 
 const STANCE_COLORS: Record<string, string> = {
-  Bullish:  "bg-accent/15 text-blue-200",
+  Bullish:  "bg-accent/15 text-accent-ink",
   Bearish:  "bg-rose-500/15 text-rose-200",
-  Neutral:  "bg-white/[0.06] text-muted",
+  Neutral:  "bg-tint/[0.06] text-muted",
   Question: "bg-amber-400/10 text-amber-200",
 };
 
@@ -674,7 +674,7 @@ function PostHistoryCard({ post }: { post: CommunityPost }) {
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
-        className="flex w-full items-start gap-4 px-4 py-4 text-left transition hover:bg-white/[0.03]"
+        className="flex w-full items-start gap-4 px-4 py-4 text-left transition hover:bg-tint/[0.03]"
       >
         {/* Expand indicator */}
         <span className={cn("mt-1 shrink-0 text-xs text-muted transition-transform duration-200", expanded ? "rotate-180" : "rotate-0")}>▾</span>
@@ -683,17 +683,17 @@ function PostHistoryCard({ post }: { post: CommunityPost }) {
           {/* Badges row */}
           <div className="flex flex-wrap items-center gap-2">
             {post.postType && (
-              <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wider text-muted">
+              <span className="rounded-full border border-tint/10 bg-tint/[0.04] px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wider text-muted">
                 {POST_TYPE_LABELS[post.postType] ?? post.postType}
               </span>
             )}
             {post.stance && (
-              <span className={cn("rounded-full px-2 py-0.5 text-[0.65rem] font-bold", STANCE_COLORS[post.stance] ?? "bg-white/[0.06] text-muted")}>
+              <span className={cn("rounded-full px-2 py-0.5 text-[0.65rem] font-bold", STANCE_COLORS[post.stance] ?? "bg-tint/[0.06] text-muted")}>
                 {post.stance}
               </span>
             )}
             {kindLabel && (
-              <span className="rounded-full border border-accent/20 bg-accent/10 px-2 py-0.5 text-[0.65rem] font-semibold text-blue-200">
+              <span className="rounded-full border border-accent/20 bg-accent/10 px-2 py-0.5 text-[0.65rem] font-semibold text-accent-ink">
                 {kindLabel}
               </span>
             )}
@@ -728,7 +728,7 @@ function PostHistoryCard({ post }: { post: CommunityPost }) {
 
       {/* Expanded detail */}
       {expanded && (
-        <div className="border-t border-white/[0.06] px-4 pb-5 pt-4">
+        <div className="border-t border-tint/[0.06] px-4 pb-5 pt-4">
           {/* Exact timestamp */}
           <p className="mb-3 text-xs font-semibold text-muted-2">
             Posted: <span className="text-ink">{exactTime}</span>
@@ -743,7 +743,7 @@ function PostHistoryCard({ post }: { post: CommunityPost }) {
           {post.attachments?.length ? (
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               {post.attachments.map((a) => (
-                <figure key={a.id} className="overflow-hidden rounded-xl border border-white/10">
+                <figure key={a.id} className="overflow-hidden rounded-xl border border-tint/10">
                   {a.kind === "image" ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img alt={a.name} className="aspect-video w-full object-cover" src={a.dataUrl} />
@@ -781,9 +781,9 @@ function ScoreRow({ label, value, hint }: { label: string; value: number; hint: 
     <div>
       <div className="flex items-baseline justify-between gap-3 text-xs">
         <span className="text-muted">{label}</span>
-        <span className="font-semibold text-blue-100">{value}</span>
+        <span className="font-semibold text-accent-ink">{value}</span>
       </div>
-      <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/10">
+      <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-tint/10">
         <span
           className="block h-full rounded-full bg-accent transition-all duration-700"
           style={{ width: `${value}%` }}
@@ -796,7 +796,7 @@ function ScoreRow({ label, value, hint }: { label: string; value: number; hint: 
 
 function ProfileCheck({ complete, label }: { complete: boolean; label: string }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-md border border-white/10 bg-white/[0.03] px-3 py-2">
+    <div className="flex items-center justify-between gap-3 rounded-md border border-tint/10 bg-tint/[0.03] px-3 py-2">
       <span className="text-muted">{label}</span>
       <span className={complete ? "text-emerald-300" : "text-muted-2"}>{complete ? "Ready" : "Missing"}</span>
     </div>
@@ -812,7 +812,7 @@ function SocialLinkField({
     <label className="block">
       <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">{label}</span>
       <input
-        className="mt-2 min-h-11 w-full rounded-md border border-white/10 bg-background px-4 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
+        className="mt-2 min-h-11 w-full rounded-md border border-tint/10 bg-background px-4 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         value={value}
@@ -824,10 +824,10 @@ function SocialLinkField({
 function SocialPreviewRow({ label, value }: { label: string; value: string }) {
   const trimmed = value.trim();
   return (
-    <div className="flex items-center justify-between gap-3 rounded-md border border-white/10 bg-white/[0.03] px-3 py-2">
+    <div className="flex items-center justify-between gap-3 rounded-md border border-tint/10 bg-tint/[0.03] px-3 py-2">
       <span className="text-muted">{label}</span>
       {trimmed ? (
-        <a className="truncate text-sm font-semibold text-blue-100 underline-offset-4 hover:underline" href={normalizeLink(trimmed)} rel="noreferrer" target="_blank">
+        <a className="truncate text-sm font-semibold text-accent-ink underline-offset-4 hover:underline" href={normalizeLink(trimmed)} rel="noreferrer" target="_blank">
           {trimmed}
         </a>
       ) : (

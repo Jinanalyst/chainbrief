@@ -47,7 +47,7 @@ export function CategoryTabs({
   onChange,
 }: CategoryTabsProps) {
   return (
-    <div className="mt-5 max-w-full overflow-x-auto overscroll-x-contain border-b border-white/10 [-webkit-overflow-scrolling:touch]">
+    <div className="mt-5 max-w-full overflow-x-auto overscroll-x-contain border-b border-tint/10 [-webkit-overflow-scrolling:touch]">
       <div className="flex w-max min-w-full gap-1">
         {categories.map((category) => (
           <button

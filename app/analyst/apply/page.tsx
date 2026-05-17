@@ -96,7 +96,7 @@ export default async function AnalystApplyPage() {
   return (
     <main className="site-grid min-h-screen overflow-x-hidden pb-24">
       <Header />
-      <section className="border-t border-white/10 bg-background/72">
+      <section className="border-t border-tint/10 bg-background/72">
         <Container className="section-space">
           <div className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-[minmax(0,1.15fr)_20rem]">
 
@@ -153,7 +153,7 @@ export default async function AnalystApplyPage() {
                   {ANALYST_PATH.map((step, index) => (
                     <div
                       key={step.title}
-                      className="rounded-xl border border-white/10 bg-white/[0.03] p-3"
+                      className="rounded-xl border border-tint/10 bg-tint/[0.03] p-3"
                     >
                       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-accent">
                         Step {index + 1}

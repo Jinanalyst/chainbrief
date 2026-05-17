@@ -239,7 +239,7 @@ export default function MembershipPage() {
   return (
     <main className="site-grid min-h-screen overflow-x-hidden pb-24">
       <Header />
-      <section className="border-t border-white/10 bg-background/72">
+      <section className="border-t border-tint/10 bg-background/72">
         <Container className="section-space">
           <div className="grid min-w-0 gap-6 lg:grid-cols-[15rem_minmax(0,1fr)_18rem]">
             <aside className="hidden min-w-0 lg:block">
@@ -250,7 +250,7 @@ export default function MembershipPage() {
                 <div className="mt-4 grid gap-2">
                   {["Plans", "Analysis", "Community"].map((item) => (
                     <a
-                      className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-sm font-semibold text-muted transition hover:border-accent/50 hover:text-ink"
+                      className="rounded-md border border-tint/10 bg-tint/[0.03] px-3 py-2 text-sm font-semibold text-muted transition hover:border-accent/50 hover:text-ink"
                       href={`#${item.toLowerCase()}`}
                       key={item}
                     >
@@ -263,7 +263,7 @@ export default function MembershipPage() {
 
             <div className="min-w-0">
               <section
-                className="rounded-lg border border-white/10 bg-surface/78 p-5 sm:p-6"
+                className="rounded-lg border border-tint/10 bg-surface/78 p-5 sm:p-6"
                 id="plans"
               >
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">
@@ -307,7 +307,7 @@ export default function MembershipPage() {
                         Write for {selectedPlan?.name ?? "members"}
                       </h2>
                     </div>
-                    <span className="rounded-full border border-accent/30 bg-accent/10 px-3 py-1 text-xs font-semibold text-blue-100">
+                    <span className="rounded-full border border-accent/30 bg-accent/10 px-3 py-1 text-xs font-semibold text-accent-ink">
                       Verified Analyst
                     </span>
                   </div>
@@ -318,7 +318,7 @@ export default function MembershipPage() {
                         Analyst name
                       </span>
                       <input
-                        className="mt-2 min-h-11 w-full rounded-md border border-white/10 bg-background px-4 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
+                        className="mt-2 min-h-11 w-full rounded-md border border-tint/10 bg-background px-4 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
                         onChange={(event) => setAuthorName(event.target.value)}
                         placeholder="Your analyst name"
                         value={authorName}
@@ -330,7 +330,7 @@ export default function MembershipPage() {
                         Title
                       </span>
                       <input
-                        className="mt-2 min-h-11 w-full rounded-md border border-white/10 bg-background px-4 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
+                        className="mt-2 min-h-11 w-full rounded-md border border-tint/10 bg-background px-4 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
                         onChange={(event) => setTitle(event.target.value)}
                         placeholder="Example: Why BTC liquidity matters this week"
                         value={title}
@@ -350,7 +350,7 @@ export default function MembershipPage() {
                           Format
                         </span>
                         <select
-                          className="mt-2 min-h-11 w-full rounded-md border border-white/10 bg-background px-4 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
+                          className="mt-2 min-h-11 w-full rounded-md border border-tint/10 bg-background px-4 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
                           onChange={(event) =>
                             setPostType(event.target.value as CommunityPostType)
                           }
@@ -365,7 +365,7 @@ export default function MembershipPage() {
                       </label>
                     </div>
 
-                    <div className="grid gap-3 rounded-lg border border-white/10 bg-white/[0.03] p-3">
+                    <div className="grid gap-3 rounded-lg border border-tint/10 bg-tint/[0.03] p-3">
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <div>
                           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
@@ -382,7 +382,7 @@ export default function MembershipPage() {
                             "Macro event reaction",
                           ].map((template) => (
                             <button
-                              className="rounded-full border border-white/10 bg-background px-3 py-1.5 text-xs font-semibold text-muted transition hover:border-accent/50 hover:text-ink"
+                              className="rounded-full border border-tint/10 bg-background px-3 py-1.5 text-xs font-semibold text-muted transition hover:border-accent/50 hover:text-ink"
                               key={template}
                               onClick={() => applyTemplate(template)}
                               type="button"
@@ -423,7 +423,7 @@ export default function MembershipPage() {
                       />
                     </div>
 
-                    <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
+                    <div className="rounded-lg border border-tint/10 bg-tint/[0.03] p-3">
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <div>
                           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
@@ -457,7 +457,7 @@ export default function MembershipPage() {
                         <div className="mt-3 grid gap-3 sm:grid-cols-2">
                           {attachments.map((attachment) => (
                             <figure
-                              className="overflow-hidden rounded-lg border border-white/10 bg-background"
+                              className="overflow-hidden rounded-lg border border-tint/10 bg-background"
                               key={attachment.id}
                             >
                               {attachment.kind === "image" ? (
@@ -488,7 +488,7 @@ export default function MembershipPage() {
                           ))}
                         </div>
                       ) : (
-                        <div className="mt-3 rounded-md border border-dashed border-white/10 px-3 py-6 text-center text-sm text-muted">
+                        <div className="mt-3 rounded-md border border-dashed border-tint/10 px-3 py-6 text-center text-sm text-muted">
                           No media attached yet.
                         </div>
                       )}
@@ -528,7 +528,7 @@ export default function MembershipPage() {
                             Plan name
                           </span>
                           <input
-                            className="mt-1.5 min-h-9 w-full rounded-md border border-white/10 bg-background px-3 text-sm text-ink outline-none transition focus:border-accent"
+                            className="mt-1.5 min-h-9 w-full rounded-md border border-tint/10 bg-background px-3 text-sm text-ink outline-none transition focus:border-accent"
                             onChange={(event) =>
                               updatePlan(selectedPlan.id, { name: event.target.value })
                             }
@@ -540,7 +540,7 @@ export default function MembershipPage() {
                             Monthly price
                           </span>
                           <input
-                            className="mt-1.5 min-h-9 w-full rounded-md border border-white/10 bg-background px-3 text-sm text-ink outline-none transition focus:border-accent"
+                            className="mt-1.5 min-h-9 w-full rounded-md border border-tint/10 bg-background px-3 text-sm text-ink outline-none transition focus:border-accent"
                             min={0}
                             onChange={(event) =>
                               updatePlan(selectedPlan.id, {
@@ -556,7 +556,7 @@ export default function MembershipPage() {
                             Description
                           </span>
                           <textarea
-                            className="mt-1.5 min-h-20 w-full rounded-md border border-white/10 bg-background px-3 py-2 text-sm text-ink outline-none transition focus:border-accent"
+                            className="mt-1.5 min-h-20 w-full rounded-md border border-tint/10 bg-background px-3 py-2 text-sm text-ink outline-none transition focus:border-accent"
                             onChange={(event) =>
                               updatePlan(selectedPlan.id, {
                                 description: event.target.value,
@@ -584,7 +584,7 @@ export default function MembershipPage() {
                           <div className="mt-2 grid gap-2">
                             {selectedPlan.benefits.map((benefit, index) => (
                               <input
-                                className="min-h-9 rounded-md border border-white/10 bg-background px-3 text-sm text-ink outline-none transition focus:border-accent"
+                                className="min-h-9 rounded-md border border-tint/10 bg-background px-3 text-sm text-ink outline-none transition focus:border-accent"
                                 key={`${selectedPlan.id}-${index}`}
                                 onChange={(event) =>
                                   updateBenefit(
@@ -597,7 +597,7 @@ export default function MembershipPage() {
                               />
                             ))}
                             <button
-                              className="text-left text-xs font-semibold text-accent transition hover:text-blue-200"
+                              className="text-left text-xs font-semibold text-accent transition hover:text-accent-ink"
                               onClick={() => addBenefit(selectedPlan.id)}
                               type="button"
                             >
@@ -613,9 +613,9 @@ export default function MembershipPage() {
                     <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
                       Community Preview
                     </p>
-                    <div className="mt-3 rounded-md border border-white/10 bg-white/[0.03] p-3">
+                    <div className="mt-3 rounded-md border border-tint/10 bg-tint/[0.03] p-3">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="rounded bg-accent/15 px-2 py-1 text-[0.68rem] font-bold uppercase tracking-[0.12em] text-blue-200">
+                        <span className="rounded bg-accent/15 px-2 py-1 text-[0.68rem] font-bold uppercase tracking-[0.12em] text-accent-ink">
                           Verified Analyst
                         </span>
                         <span className="text-xs font-semibold text-muted">
@@ -633,7 +633,7 @@ export default function MembershipPage() {
                         <div className="mt-3 grid grid-cols-2 gap-2">
                           {attachments.slice(0, 2).map((attachment) => (
                             <div
-                              className="overflow-hidden rounded-md border border-white/10"
+                              className="overflow-hidden rounded-md border border-tint/10"
                               key={attachment.id}
                             >
                               {attachment.kind === "image" ? (
@@ -706,7 +706,7 @@ function PlanCard({
         "min-w-0 rounded-lg border p-4 text-left transition",
         active
           ? "border-accent/60 bg-accent/10"
-          : "border-white/10 bg-surface/70 hover:border-accent/40",
+          : "border-tint/10 bg-surface/70 hover:border-accent/40",
         !plan.enabled && "opacity-60",
       )}
       onClick={onSelect}
@@ -717,7 +717,7 @@ function PlanCard({
           <p className="break-words text-sm font-semibold text-ink">{plan.name}</p>
           <p className="mt-1 text-xs leading-5 text-muted">{plan.description}</p>
         </div>
-        <span className="shrink-0 rounded-full border border-white/10 bg-white/[0.03] px-2 py-1 text-xs font-semibold text-muted">
+        <span className="shrink-0 rounded-full border border-tint/10 bg-tint/[0.03] px-2 py-1 text-xs font-semibold text-muted">
           {plan.enabled ? "On" : "Off"}
         </span>
       </div>
@@ -746,7 +746,7 @@ function SelectField({
         {label}
       </span>
       <select
-        className="mt-2 min-h-11 w-full rounded-md border border-white/10 bg-background px-4 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
+        className="mt-2 min-h-11 w-full rounded-md border border-tint/10 bg-background px-4 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
         onChange={(event) => onChange(event.target.value)}
         value={value}
       >
@@ -779,7 +779,7 @@ function AnalysisField({
         {label}
       </span>
       <textarea
-        className="mt-2 w-full rounded-md border border-white/10 bg-background px-4 py-3 text-sm leading-7 text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
+        className="mt-2 w-full rounded-md border border-tint/10 bg-background px-4 py-3 text-sm leading-7 text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
         rows={rows}

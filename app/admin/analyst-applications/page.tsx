@@ -40,7 +40,7 @@ export default async function AdminAnalystApplicationsPage() {
   return (
     <main className="site-grid min-h-screen overflow-x-hidden pb-24">
       <Header />
-      <section className="border-t border-white/10 bg-background/72">
+      <section className="border-t border-tint/10 bg-background/72">
         <Container className="section-space">
           <div className="mx-auto grid max-w-7xl gap-6">
             <Card className="p-6">
@@ -55,7 +55,7 @@ export default async function AdminAnalystApplicationsPage() {
             <Card className="overflow-hidden p-0">
               <div className="overflow-x-auto">
                 <table className="min-w-[960px] w-full border-collapse text-left text-sm">
-                  <thead className="border-b border-white/10 bg-white/[0.03] text-xs uppercase tracking-[0.16em] text-muted">
+                  <thead className="border-b border-tint/10 bg-tint/[0.03] text-xs uppercase tracking-[0.16em] text-muted">
                     <tr>
                       <th className="px-4 py-3">Name</th>
                       <th className="px-4 py-3">Date</th>
@@ -67,7 +67,7 @@ export default async function AdminAnalystApplicationsPage() {
                   </thead>
                   <tbody>
                     {applications.map((application) => (
-                      <tr className="border-b border-white/10 last:border-0" key={application.id}>
+                      <tr className="border-b border-tint/10 last:border-0" key={application.id}>
                         <td className="px-4 py-4 align-top">
                           <p className="font-semibold text-ink">{application.full_name}</p>
                           <p className="mt-1 text-xs text-muted">{application.twitter_handle || "No handle"}</p>
@@ -84,7 +84,7 @@ export default async function AdminAnalystApplicationsPage() {
                         </td>
                         <td className="px-4 py-4 align-top">
                           <Link
-                            className="break-words text-sm font-semibold text-blue-100 underline-offset-4 hover:underline"
+                            className="break-words text-sm font-semibold text-accent-ink underline-offset-4 hover:underline"
                             href={application.sample_link}
                             rel="noreferrer"
                             target="_blank"
@@ -124,7 +124,7 @@ export default async function AdminAnalystApplicationsPage() {
 
 function Badge({ children }: { children: string }) {
   return (
-    <span className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-muted">
+    <span className="rounded-full border border-tint/10 bg-tint/[0.03] px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-muted">
       {children}
     </span>
   );

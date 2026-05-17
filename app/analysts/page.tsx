@@ -71,7 +71,7 @@ export default function AnalystsDirectoryPage() {
       <Header />
 
       {/* Hero */}
-      <section className="border-t border-white/10 bg-background/72">
+      <section className="border-t border-tint/10 bg-background/72">
         <Container className="pb-10 pt-8 sm:pb-12 sm:pt-10">
           <div className="mx-auto max-w-2xl text-center">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-accent">
@@ -92,7 +92,7 @@ export default function AnalystsDirectoryPage() {
       </section>
 
       {/* How it works */}
-      <section className="border-t border-white/10 bg-surface/40">
+      <section className="border-t border-tint/10 bg-surface/40">
         <Container className="py-8">
           <div className="grid gap-4 sm:grid-cols-3">
             {[
@@ -100,7 +100,7 @@ export default function AnalystsDirectoryPage() {
               { icon: "📬", title: "You subscribe", body: "Subscribe with your email. Free posts arrive instantly. Premium unlocks full depth." },
               { icon: "📈", title: "Stay ahead", body: "Get notified when your analysts publish. Read on the site or in your inbox." },
             ].map((step) => (
-              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-5 text-center" key={step.title}>
+              <div className="rounded-xl border border-tint/10 bg-tint/[0.03] p-5 text-center" key={step.title}>
                 <span className="text-2xl">{step.icon}</span>
                 <p className="mt-3 text-sm font-semibold text-ink">{step.title}</p>
                 <p className="mt-1.5 text-xs leading-5 text-muted">{step.body}</p>
@@ -111,7 +111,7 @@ export default function AnalystsDirectoryPage() {
       </section>
 
       {/* Analyst grid */}
-      <section className="border-t border-white/10 bg-background/72">
+      <section className="border-t border-tint/10 bg-background/72">
         <Container className="py-10">
           {analysts.length === 0 ? (
             <EmptyState />
@@ -140,7 +140,7 @@ function AnalystCard({ analyst }: { analyst: AnalystSummary }) {
   return (
     <Link
       href={`/analysts/${analyst.id}`}
-      className="group block overflow-hidden rounded-2xl border border-white/10 bg-surface/60 transition hover:border-accent/30 hover:bg-surface/80"
+      className="group block overflow-hidden rounded-2xl border border-tint/10 bg-surface/60 transition hover:border-accent/30 hover:bg-surface/80"
     >
       {/* Top accent bar */}
       <div className="h-1 w-full bg-gradient-to-r from-accent/60 to-blue-400/30" />
@@ -148,11 +148,11 @@ function AnalystCard({ analyst }: { analyst: AnalystSummary }) {
       <div className="p-5">
         {/* Header row */}
         <div className="flex items-start gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-accent/30 bg-accent/15 text-sm font-bold text-blue-100">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-accent/30 bg-accent/15 text-sm font-bold text-accent-ink">
             {analyst.avatar}
           </div>
           <div className="min-w-0">
-            <p className="truncate font-semibold text-ink group-hover:text-blue-100 transition">
+            <p className="truncate font-semibold text-ink group-hover:text-accent-ink transition">
               {analyst.name}
             </p>
             <p className="mt-0.5 text-xs text-muted-2">
@@ -175,7 +175,7 @@ function AnalystCard({ analyst }: { analyst: AnalystSummary }) {
 
         {/* Latest post preview */}
         {analyst.latestPost && (
-          <div className="mt-4 rounded-xl border border-white/[0.07] bg-white/[0.02] p-3">
+          <div className="mt-4 rounded-xl border border-tint/[0.07] bg-tint/[0.02] p-3">
             <p className="text-[0.65rem] font-semibold uppercase tracking-widest text-muted-2">
               Latest
             </p>
@@ -207,7 +207,7 @@ function AnalystCard({ analyst }: { analyst: AnalystSummary }) {
 function EmptyState() {
   return (
     <div className="mx-auto max-w-xl text-center">
-      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-white/10 bg-surface/60 text-3xl">
+      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-tint/10 bg-surface/60 text-3xl">
         📝
       </div>
       <h2 className="mt-5 text-xl font-semibold text-ink">No analysts yet</h2>

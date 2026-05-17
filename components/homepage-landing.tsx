@@ -312,7 +312,7 @@ export function HomepageLanding() {
 
 function HeroSection({ copy }: { copy: LandingCopy }) {
   return (
-    <section className="relative overflow-hidden border-t border-white/10 bg-background/72">
+    <section className="relative overflow-hidden border-t border-tint/10 bg-background/72">
       <div className="landing-signal-bg absolute inset-0" />
       <Container className="relative min-w-0 pb-12 pt-12 sm:pb-16 sm:pt-16 lg:pb-20 lg:pt-20">
         <div className="grid min-w-0 gap-10 lg:grid-cols-[minmax(0,0.95fr)_minmax(22rem,0.75fr)] lg:items-end">
@@ -335,7 +335,7 @@ function HeroSection({ copy }: { copy: LandingCopy }) {
             </div>
 
             {/* Live stats bar */}
-            <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-white/[0.07] pt-6">
+            <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-tint/[0.07] pt-6">
               <span className="flex items-center gap-1.5 text-xs font-semibold text-success">
                 <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-success" />
                 Live
@@ -356,7 +356,7 @@ function HeroSection({ copy }: { copy: LandingCopy }) {
           <div className="min-w-0">
             <div className="landing-radar relative min-h-[26rem] overflow-hidden rounded-lg border border-accent/20 bg-accent-soft/10">
               {/* Terminal header bar */}
-              <div className="flex items-center gap-1.5 border-b border-white/[0.07] px-4 py-2.5">
+              <div className="flex items-center gap-1.5 border-b border-tint/[0.07] px-4 py-2.5">
                 <span className="h-2 w-2 rounded-full bg-danger/60" />
                 <span className="h-2 w-2 rounded-full bg-accent/40" />
                 <span className="h-2 w-2 rounded-full bg-success/40" />
@@ -368,12 +368,12 @@ function HeroSection({ copy }: { copy: LandingCopy }) {
               <div className="absolute inset-x-3 top-12 space-y-2.5 sm:inset-x-4">
                 {copy.preview.map((item, index) => (
                   <div
-                    className="landing-float min-w-0 rounded-lg border border-white/10 bg-surface/90 p-3.5 shadow-soft backdrop-blur"
+                    className="landing-float min-w-0 rounded-lg border border-tint/10 bg-surface/90 p-3.5 shadow-soft backdrop-blur"
                     key={item.title}
                     style={{ animationDelay: `${index * 0.6}s` }}
                   >
                     <div className="flex min-w-0 items-center justify-between gap-2">
-                      <span className="shrink-0 rounded bg-accent/15 px-1.5 py-0.5 text-[0.6rem] font-bold uppercase tracking-[0.14em] text-blue-200">
+                      <span className="shrink-0 rounded bg-accent/15 px-1.5 py-0.5 text-[0.6rem] font-bold uppercase tracking-[0.14em] text-accent-ink">
                         {item.label}
                       </span>
                       <span
@@ -404,7 +404,7 @@ function HeroSection({ copy }: { copy: LandingCopy }) {
 
 function BridgeSection({ copy }: { copy: LandingCopy }) {
   return (
-    <section className="border-t border-white/10 bg-background/80">
+    <section className="border-t border-tint/10 bg-background/80">
       <Container className="section-space">
         <SectionIntro
           eyebrow={copy.bridgeEyebrow}
@@ -431,7 +431,7 @@ function BridgeSection({ copy }: { copy: LandingCopy }) {
 
 function StudioSection({ copy }: { copy: LandingCopy }) {
   return (
-    <section className="border-t border-white/10 bg-surface/35">
+    <section className="border-t border-tint/10 bg-surface/35">
       <Container className="section-space grid min-w-0 gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">
@@ -455,7 +455,7 @@ function StudioSection({ copy }: { copy: LandingCopy }) {
           {copy.chainItems.map((feature, i) => (
             <div
               className={cn(
-                "relative min-w-0 border border-white/[0.06] p-4 sm:p-5",
+                "relative min-w-0 border border-tint/[0.06] p-4 sm:p-5",
                 i === 0 && "rounded-tl-xl sm:rounded-tl-xl",
                 i === 1 && "rounded-tr-xl",
                 i === 2 && "rounded-bl-xl",
@@ -482,7 +482,7 @@ function StudioSection({ copy }: { copy: LandingCopy }) {
 
 function LadderSection({ copy }: { copy: LandingCopy }) {
   return (
-    <section className="border-t border-white/10 bg-background/80">
+    <section className="border-t border-tint/10 bg-background/80">
       <Container className="section-space">
         <SectionIntro
           eyebrow={copy.growthEyebrow}
@@ -513,7 +513,7 @@ function LadderSection({ copy }: { copy: LandingCopy }) {
 
 function TrustSection({ copy }: { copy: LandingCopy }) {
   return (
-    <section className="border-t border-white/10 bg-surface/35">
+    <section className="border-t border-tint/10 bg-surface/35">
       <Container className="section-space grid min-w-0 gap-8 lg:grid-cols-[1fr_24rem] lg:items-center">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">
@@ -540,9 +540,9 @@ function TrustSection({ copy }: { copy: LandingCopy }) {
               <div key={label}>
                 <div className="flex justify-between gap-3 text-xs">
                   <span className="text-muted">{label}</span>
-                  <span className="font-semibold tabular-nums text-blue-100">{value}</span>
+                  <span className="font-semibold tabular-nums text-accent-ink">{value}</span>
                 </div>
-                <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-white/[0.07]">
+                <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-tint/[0.07]">
                   <span
                     className="block h-full rounded-full bg-accent transition-all duration-700"
                     style={{ width: `${value}%` }}
@@ -559,7 +559,7 @@ function TrustSection({ copy }: { copy: LandingCopy }) {
 
 function ReaderSection({ copy }: { copy: LandingCopy }) {
   return (
-    <section className="border-t border-white/10 bg-background/80">
+    <section className="border-t border-tint/10 bg-background/80">
       <Container className="section-space">
         <SectionIntro
           eyebrow={copy.readerEyebrow}
@@ -583,14 +583,14 @@ function ReaderSection({ copy }: { copy: LandingCopy }) {
 
 function FinalCtaSection({ copy }: { copy: LandingCopy }) {
   return (
-    <section className="border-t border-white/10 bg-surface/35">
+    <section className="border-t border-tint/10 bg-surface/35">
       <Container className="section-space">
         <div className="relative overflow-hidden rounded-xl border border-accent/25 bg-accent-soft/25 p-6 shadow-glow sm:p-10 lg:p-12">
           {/* Background grid pulse */}
           <div className="landing-radar pointer-events-none absolute inset-0 opacity-30" />
           <div className="relative grid min-w-0 gap-6 lg:grid-cols-[1fr_auto] lg:items-center">
             <div className="min-w-0">
-              <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-200/80">
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-accent-ink/80">
                 {copy.finalEyebrow}
               </p>
               <h2 className="mt-3 break-words text-2xl font-semibold leading-tight text-ink sm:text-4xl">
@@ -614,7 +614,7 @@ function FinalCtaSection({ copy }: { copy: LandingCopy }) {
 
 function LandingFooter({ copy }: { copy: LandingCopy }) {
   return (
-    <footer className="border-t border-white/10 bg-background/90">
+    <footer className="border-t border-tint/10 bg-background/90">
       <Container className="flex min-w-0 flex-col gap-4 py-8 sm:flex-row sm:items-center sm:justify-between">
         <BrandLogo compact className="max-w-full" />
         <p className="max-w-xl text-sm leading-6 text-muted">{copy.footer}</p>

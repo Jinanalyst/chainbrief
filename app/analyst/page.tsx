@@ -67,12 +67,14 @@ export default async function AnalystRootPage() {
     <main className="site-grid min-h-screen overflow-x-hidden pb-20">
       <Header />
 
-      <section className="relative overflow-hidden border-t border-white/10">
-        <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_18%_12%,rgba(47,123,255,0.2),transparent_28rem),radial-gradient(circle_at_78%_18%,rgba(37,198,133,0.13),transparent_24rem),linear-gradient(180deg,rgba(13,17,28,0.7),rgba(7,10,18,0.96))]" />
+      <section className="relative overflow-hidden border-t border-tint/10">
+        <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_18%_12%,rgba(47,123,255,0.2),transparent_28rem),radial-gradient(circle_at_78%_18%,rgba(37,198,133,0.13),transparent_24rem)]">
+          <div className="absolute inset-0 bg-gradient-to-b from-surface/70 to-background/95" />
+        </div>
         <Container className="section-space">
           <div className="grid min-h-[calc(100vh-7rem)] items-center gap-10 py-4 lg:grid-cols-[minmax(0,1.03fr)_minmax(24rem,0.72fr)]">
             <div className="max-w-3xl">
-              <div className="inline-flex rounded-md border border-white/12 bg-white/[0.06] px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+              <div className="inline-flex rounded-md border border-tint/12 bg-tint/[0.06] px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted">
                 Chain Brief Analyst Program
               </div>
               <h1 className="mt-6 text-5xl font-semibold tracking-tight text-ink sm:text-6xl lg:text-7xl">
@@ -93,9 +95,9 @@ export default async function AnalystRootPage() {
               </div>
             </div>
 
-            <aside className="relative min-h-[34rem] overflow-hidden rounded-lg border border-white/12 bg-[#0b101a]/88 p-5 shadow-glow backdrop-blur">
-              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-accent via-success to-white/70" />
-              <div className="flex items-center justify-between gap-4 border-b border-white/10 pb-5">
+            <aside className="relative min-h-[34rem] overflow-hidden rounded-lg border border-tint/12 bg-surface/88 p-5 shadow-glow backdrop-blur">
+              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-accent via-success to-tint/70" />
+              <div className="flex items-center justify-between gap-4 border-b border-tint/10 pb-5">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
                     Creator Studio
@@ -112,7 +114,7 @@ export default async function AnalystRootPage() {
               <div className="mt-5 grid gap-3">
                 {CREATOR_METRICS.map((metric) => (
                   <div
-                    className="grid grid-cols-[4.25rem_minmax(0,1fr)] items-center gap-4 rounded-md border border-white/10 bg-white/[0.04] p-4"
+                    className="grid grid-cols-[4.25rem_minmax(0,1fr)] items-center gap-4 rounded-md border border-tint/10 bg-tint/[0.04] p-4"
                     key={metric.label}
                   >
                     <span className="text-2xl font-semibold text-ink">
@@ -125,14 +127,14 @@ export default async function AnalystRootPage() {
                 ))}
               </div>
 
-              <div className="mt-5 rounded-md border border-white/10 bg-background/80 p-4">
+              <div className="mt-5 rounded-md border border-tint/10 bg-background/80 p-4">
                 <div className="flex items-center justify-between gap-4 text-xs font-semibold uppercase tracking-[0.16em] text-muted">
                   <span>Audience growth</span>
                   <span>Members</span>
                 </div>
                 <div className="mt-4 grid gap-3">
                   {[78, 64, 88, 52].map((width, index) => (
-                    <div className="h-2 overflow-hidden rounded-full bg-white/10" key={width}>
+                    <div className="h-2 overflow-hidden rounded-full bg-tint/10" key={width}>
                       <div
                         className="h-full rounded-full bg-gradient-to-r from-accent to-success"
                         style={{ width: `${width - index * 4}%` }}
@@ -142,7 +144,7 @@ export default async function AnalystRootPage() {
                 </div>
               </div>
 
-              <div className="mt-5 rounded-md border border-white/10 bg-white/[0.04] p-4">
+              <div className="mt-5 rounded-md border border-tint/10 bg-tint/[0.04] p-4">
                 <p className="text-sm font-semibold text-ink">
                   Premium membership
                 </p>
@@ -156,12 +158,12 @@ export default async function AnalystRootPage() {
         </Container>
       </section>
 
-      <section className="border-y border-white/10 bg-surface/46">
+      <section className="border-y border-tint/10 bg-surface/46">
         <Container className="py-12">
           <div className="grid gap-4 md:grid-cols-3">
             {PLATFORM_POINTS.map((point) => (
               <article
-                className="rounded-lg border border-white/10 bg-white/[0.035] p-5"
+                className="rounded-lg border border-tint/10 bg-tint/[0.035] p-5"
                 key={point.label}
               >
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">
@@ -206,10 +208,10 @@ export default async function AnalystRootPage() {
             <div className="grid gap-3">
               {PROGRAM_STEPS.map((step, index) => (
                 <div
-                  className="grid grid-cols-[3rem_minmax(0,1fr)] gap-4 rounded-lg border border-white/10 bg-surface/78 p-5"
+                  className="grid grid-cols-[3rem_minmax(0,1fr)] gap-4 rounded-lg border border-tint/10 bg-surface/78 p-5"
                   key={step}
                 >
-                  <span className="flex h-12 w-12 items-center justify-center rounded-md border border-white/10 bg-white/[0.04] text-sm font-semibold text-ink">
+                  <span className="flex h-12 w-12 items-center justify-center rounded-md border border-tint/10 bg-tint/[0.04] text-sm font-semibold text-ink">
                     {index + 1}
                   </span>
                   <div>

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { BrandLogo } from "@/components/brand-logo";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { cn } from "@/lib/cn";
@@ -65,7 +66,7 @@ export function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-50 border-b border-white/10 bg-background/86 backdrop-blur-xl">
+    <header className="sticky top-0 z-50 border-b border-tint/10 bg-background/86 backdrop-blur-xl">
       <Container className="flex min-w-0 items-center justify-between gap-3 py-3 sm:py-4">
         <BrandLogo compact priority className="max-w-[12rem] sm:max-w-none" />
 
@@ -78,7 +79,8 @@ export function Header() {
         </nav>
 
         <div className="flex shrink-0 items-center gap-2">
-          <div className="grid grid-cols-2 rounded-md border border-white/10 bg-white/[0.03] p-1">
+          <ThemeToggle />
+          <div className="grid grid-cols-2 rounded-md border border-tint/10 bg-tint/[0.03] p-1">
             {[
               { value: "ko", label: "KR" },
               { value: "en", label: "EN" },
@@ -118,7 +120,7 @@ export function Header() {
           <button
             aria-expanded={menuOpen}
             aria-label="Toggle navigation menu"
-            className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-md border border-white/10 bg-white/[0.04] text-ink transition hover:border-accent/50 md:hidden"
+            className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-md border border-tint/10 bg-tint/[0.04] text-ink transition hover:border-accent/50 md:hidden"
             onClick={() => setMenuOpen((current) => !current)}
             type="button"
           >
@@ -148,7 +150,7 @@ export function Header() {
 
       <div
         className={cn(
-          "grid overflow-hidden border-t border-white/10 bg-background/96 transition-[grid-template-rows] duration-200 md:hidden",
+          "grid overflow-hidden border-t border-tint/10 bg-background/96 transition-[grid-template-rows] duration-200 md:hidden",
           menuOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
         )}
       >
@@ -157,7 +159,7 @@ export function Header() {
             <nav className="grid gap-2 text-sm font-semibold text-muted">
               {navItems.map((item) => (
                 <Link
-                  className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-3 transition hover:text-ink"
+                  className="rounded-md border border-tint/10 bg-tint/[0.03] px-3 py-3 transition hover:text-ink"
                   href={item.href}
                   key={item.href}
                   onClick={closeMenu}

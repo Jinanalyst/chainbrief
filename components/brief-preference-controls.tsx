@@ -53,7 +53,7 @@ export function BriefPreferenceControls({
   }
 
   return (
-    <div className="min-w-0 rounded-lg border border-white/10 bg-surface/78 p-3 shadow-soft sm:p-4">
+    <div className="min-w-0 rounded-lg border border-tint/10 bg-surface/78 p-3 shadow-soft sm:p-4">
       <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
@@ -69,7 +69,7 @@ export function BriefPreferenceControls({
                     "rounded-md border px-3 py-2 text-sm font-semibold transition",
                     isActive
                       ? "border-accent bg-accent text-white"
-                      : "border-white/10 bg-white/[0.03] text-muted hover:text-ink",
+                      : "border-tint/10 bg-tint/[0.03] text-muted hover:text-ink",
                   )}
                   key={source}
                   onClick={() => toggleSource(source)}
@@ -93,7 +93,7 @@ export function BriefPreferenceControls({
                   "whitespace-nowrap rounded-md border px-3 py-2 text-sm font-semibold transition",
                   preferences.category === category
                     ? "border-accent bg-accent text-white"
-                    : "border-white/10 bg-white/[0.03] text-muted hover:text-ink",
+                    : "border-tint/10 bg-tint/[0.03] text-muted hover:text-ink",
                 )}
                 key={category}
                 onClick={() => onChange({ ...preferences, category })}
@@ -112,7 +112,7 @@ export function BriefPreferenceControls({
             {copy.preferences.includeKeywords}
           </span>
           <input
-            className="mt-2 min-h-11 w-full rounded-md border border-white/10 bg-background px-4 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
+            className="mt-2 min-h-11 w-full rounded-md border border-tint/10 bg-background px-4 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
             onChange={(event) =>
               onChange({ ...preferences, includeKeywords: event.target.value })
             }
@@ -125,7 +125,7 @@ export function BriefPreferenceControls({
             {copy.preferences.excludeKeywords}
           </span>
           <input
-            className="mt-2 min-h-11 w-full rounded-md border border-white/10 bg-background px-4 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
+            className="mt-2 min-h-11 w-full rounded-md border border-tint/10 bg-background px-4 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
             onChange={(event) =>
               onChange({ ...preferences, excludeKeywords: event.target.value })
             }
@@ -135,7 +135,7 @@ export function BriefPreferenceControls({
         </label>
       </div>
 
-      <div className="mt-4 min-w-0 rounded-lg border border-white/10 bg-background/60 p-3 sm:p-4">
+      <div className="mt-4 min-w-0 rounded-lg border border-tint/10 bg-background/60 p-3 sm:p-4">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
           {copy.feed.language}
         </p>
@@ -160,7 +160,7 @@ export function BriefPreferenceControls({
                   "rounded-md border p-3 text-left transition",
                   isActive
                     ? "border-accent bg-accent/15 text-ink"
-                    : "border-white/10 bg-white/[0.03] text-muted hover:text-ink",
+                    : "border-tint/10 bg-tint/[0.03] text-muted hover:text-ink",
                 )}
                 key={language.value}
                 onClick={() =>

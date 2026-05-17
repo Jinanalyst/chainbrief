@@ -368,7 +368,7 @@ export function CustomRssSources({ language }: CustomRssSourcesProps) {
   }
 
   return (
-    <section className="mt-4 min-w-0 rounded-lg border border-white/10 bg-background/60 p-3 sm:p-4">
+    <section className="mt-4 min-w-0 rounded-lg border border-tint/10 bg-background/60 p-3 sm:p-4">
       <div className="min-w-0">
         <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
@@ -379,18 +379,18 @@ export function CustomRssSources({ language }: CustomRssSourcesProps) {
               {copy.description}
             </p>
           </div>
-          <span className="shrink-0 rounded-full border border-accent/30 bg-accent/10 px-3 py-1 text-xs font-semibold text-blue-100">
+          <span className="shrink-0 rounded-full border border-accent/30 bg-accent/10 px-3 py-1 text-xs font-semibold text-accent-ink">
             {enabledCount}/{sources.length} {copy.enabled}
           </span>
         </div>
 
-        <div className="mt-4 grid gap-3 rounded-md border border-white/10 bg-white/[0.03] p-3 md:grid-cols-2">
+        <div className="mt-4 grid gap-3 rounded-md border border-tint/10 bg-tint/[0.03] p-3 md:grid-cols-2">
           <label className="block min-w-0">
             <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
               {copy.name}
             </span>
             <input
-              className="mt-2 min-h-10 w-full rounded-md border border-white/10 bg-background px-3 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
+              className="mt-2 min-h-10 w-full rounded-md border border-tint/10 bg-background px-3 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
               onChange={(event) => setForm({ ...form, name: event.target.value })}
               placeholder={copy.namePlaceholder}
               value={form.name}
@@ -402,7 +402,7 @@ export function CustomRssSources({ language }: CustomRssSourcesProps) {
               {copy.rssUrl}
             </span>
             <input
-              className="mt-2 min-h-10 w-full rounded-md border border-white/10 bg-background px-3 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
+              className="mt-2 min-h-10 w-full rounded-md border border-tint/10 bg-background px-3 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
               onChange={(event) => {
                 const nextUrl = event.target.value;
 
@@ -434,7 +434,7 @@ export function CustomRssSources({ language }: CustomRssSourcesProps) {
               {copy.sourceType}
             </span>
             <select
-              className="mt-2 min-h-10 w-full rounded-md border border-white/10 bg-background px-3 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
+              className="mt-2 min-h-10 w-full rounded-md border border-tint/10 bg-background px-3 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
               onChange={(event) =>
                 setForm({
                   ...form,
@@ -453,7 +453,7 @@ export function CustomRssSources({ language }: CustomRssSourcesProps) {
               {copy.category}
             </span>
             <select
-              className="mt-2 min-h-10 w-full rounded-md border border-white/10 bg-background px-3 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
+              className="mt-2 min-h-10 w-full rounded-md border border-tint/10 bg-background px-3 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
               onChange={(event) =>
                 setForm({
                   ...form,
@@ -475,7 +475,7 @@ export function CustomRssSources({ language }: CustomRssSourcesProps) {
               {copy.customCategory}
             </span>
             <input
-              className="mt-2 min-h-10 w-full rounded-md border border-white/10 bg-background px-3 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
+              className="mt-2 min-h-10 w-full rounded-md border border-tint/10 bg-background px-3 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
               maxLength={40}
               onChange={(event) =>
                 setForm({ ...form, customCategory: event.target.value })
@@ -492,7 +492,7 @@ export function CustomRssSources({ language }: CustomRssSourcesProps) {
                   {copy.marketType}
                 </span>
                 <select
-                  className="mt-2 min-h-10 w-full rounded-md border border-white/10 bg-background px-3 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
+                  className="mt-2 min-h-10 w-full rounded-md border border-tint/10 bg-background px-3 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
                   onChange={(event) =>
                     setForm({
                       ...form,
@@ -518,7 +518,7 @@ export function CustomRssSources({ language }: CustomRssSourcesProps) {
                   {copy.region}
                 </span>
                 <select
-                  className="mt-2 min-h-10 w-full rounded-md border border-white/10 bg-background px-3 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
+                  className="mt-2 min-h-10 w-full rounded-md border border-tint/10 bg-background px-3 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
                   onChange={(event) =>
                     setForm({
                       ...form,
@@ -544,7 +544,7 @@ export function CustomRssSources({ language }: CustomRssSourcesProps) {
                   {copy.tickerSymbol}
                 </span>
                 <input
-                  className="mt-2 min-h-10 w-full rounded-md border border-white/10 bg-background px-3 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
+                  className="mt-2 min-h-10 w-full rounded-md border border-tint/10 bg-background px-3 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
                   onChange={(event) =>
                     setForm({ ...form, tickerSymbol: event.target.value })
                   }
@@ -560,7 +560,7 @@ export function CustomRssSources({ language }: CustomRssSourcesProps) {
               {copy.language}
             </span>
             <select
-              className="mt-2 min-h-10 w-full rounded-md border border-white/10 bg-background px-3 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
+              className="mt-2 min-h-10 w-full rounded-md border border-tint/10 bg-background px-3 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
               onChange={(event) =>
                 setForm({
                   ...form,
@@ -616,13 +616,13 @@ export function CustomRssSources({ language }: CustomRssSourcesProps) {
 
         <div className="mt-4 grid gap-2">
           {sources.length === 0 ? (
-            <p className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-3 text-sm leading-6 text-muted">
+            <p className="rounded-md border border-tint/10 bg-tint/[0.03] px-3 py-3 text-sm leading-6 text-muted">
               {copy.empty}
             </p>
           ) : (
             sources.map((source) => (
               <div
-                className="grid min-w-0 gap-3 rounded-md border border-white/10 bg-white/[0.03] p-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-center"
+                className="grid min-w-0 gap-3 rounded-md border border-tint/10 bg-tint/[0.03] p-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-center"
                 key={source.id}
               >
                 <div className="min-w-0">
@@ -645,7 +645,7 @@ export function CustomRssSources({ language }: CustomRssSourcesProps) {
                         "rounded-full border px-2 py-0.5 text-[0.68rem] font-semibold uppercase tracking-[0.12em]",
                         source.enabled
                           ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-200"
-                          : "border-white/10 bg-white/[0.03] text-muted-2",
+                          : "border-tint/10 bg-tint/[0.03] text-muted-2",
                       )}
                     >
                       {source.enabled ? copy.enabled : copy.disabled}
@@ -655,14 +655,14 @@ export function CustomRssSources({ language }: CustomRssSourcesProps) {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <button
-                    className="rounded-md border border-white/10 px-3 py-2 text-xs font-semibold text-muted transition hover:border-accent/50 hover:text-ink"
+                    className="rounded-md border border-tint/10 px-3 py-2 text-xs font-semibold text-muted transition hover:border-accent/50 hover:text-ink"
                     onClick={() => toggleSource(source.id)}
                     type="button"
                   >
                     {source.enabled ? copy.disabled : copy.enabled}
                   </button>
                   <button
-                    className="rounded-md border border-white/10 px-3 py-2 text-xs font-semibold text-muted transition hover:border-accent/50 hover:text-ink"
+                    className="rounded-md border border-tint/10 px-3 py-2 text-xs font-semibold text-muted transition hover:border-accent/50 hover:text-ink"
                     onClick={() => startEdit(source)}
                     type="button"
                   >
@@ -687,7 +687,7 @@ export function CustomRssSources({ language }: CustomRssSourcesProps) {
 
 function SourcePill({ children }: { children: string }) {
   return (
-    <span className="rounded-full border border-white/10 px-2 py-0.5 text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-muted">
+    <span className="rounded-full border border-tint/10 px-2 py-0.5 text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-muted">
       {children}
     </span>
   );

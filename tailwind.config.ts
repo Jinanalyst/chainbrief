@@ -1,26 +1,31 @@
 import type { Config } from "tailwindcss";
 
+const withAlpha = (variable: string) => `rgb(var(${variable}) / <alpha-value>)`;
+
 const config: Config = {
   content: [
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
   ],
+  darkMode: ["class", "html:not(.theme-light)"],
   theme: {
     extend: {
       colors: {
-        background: "#070A12",
-        surface: "#0D111C",
-        "surface-2": "#121827",
-        "surface-3": "#182033",
-        border: "#263044",
-        line: "#263044",
-        ink: "#F7FAFC",
-        muted: "#9AA7B8",
-        "muted-2": "#66758A",
-        accent: "#2F7BFF",
-        "accent-soft": "#102B5C",
-        success: "#25C685",
-        danger: "#FF5E6C",
+        background: withAlpha("--color-background"),
+        surface: withAlpha("--color-surface"),
+        "surface-2": withAlpha("--color-surface-2"),
+        "surface-3": withAlpha("--color-surface-3"),
+        border: withAlpha("--color-border"),
+        line: withAlpha("--color-line"),
+        ink: withAlpha("--color-ink"),
+        muted: withAlpha("--color-muted"),
+        "muted-2": withAlpha("--color-muted-2"),
+        accent: withAlpha("--color-accent"),
+        "accent-soft": withAlpha("--color-accent-soft"),
+        success: withAlpha("--color-success"),
+        danger: withAlpha("--color-danger"),
+        tint: withAlpha("--color-tint"),
+        "accent-ink": withAlpha("--color-accent-ink"),
       },
       fontFamily: {
         sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],

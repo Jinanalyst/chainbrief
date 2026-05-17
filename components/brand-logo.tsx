@@ -24,7 +24,7 @@ export function BrandLogo({
         aria-label="Chain Brief"
         className={cn("inline-flex w-full max-w-[22rem] shrink-0 items-center sm:max-w-[28rem] lg:max-w-[34rem]", className)}
       >
-        <span className="relative block aspect-[1400/900] w-full overflow-hidden rounded-lg border border-white/10 bg-[#070A12] shadow-[0_24px_80px_rgba(0,0,0,0.35)] sm:rounded-xl">
+        <span className="relative block aspect-[1400/900] w-full overflow-hidden rounded-lg border border-tint/10 bg-[#070A12] shadow-[0_24px_80px_rgba(0,0,0,0.35)] sm:rounded-xl">
           <Image alt="" className="object-cover" fill priority={priority} sizes="(max-width: 768px) 100vw, 760px" src={asset} />
         </span>
       </Link>

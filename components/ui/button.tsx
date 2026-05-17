@@ -22,7 +22,7 @@ const variants = {
   primary:
     "border-accent bg-accent text-white shadow-[0_14px_35px_rgba(47,123,255,0.28)] hover:bg-blue-500",
   secondary:
-    "border-white/12 bg-white/[0.06] text-ink hover:border-accent/50 hover:bg-white/[0.09]",
+    "border-tint/12 bg-tint/[0.06] text-ink hover:border-accent/50 hover:bg-tint/[0.09]",
   ghost: "border-transparent bg-transparent text-muted hover:text-ink",
 };
 

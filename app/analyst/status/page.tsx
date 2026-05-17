@@ -42,7 +42,7 @@ export default async function AnalystStatusPage() {
   return (
     <main className="site-grid min-h-screen overflow-x-hidden pb-24">
       <Header />
-      <section className="border-t border-white/10 bg-background/72">
+      <section className="border-t border-tint/10 bg-background/72">
         <Container className="section-space">
           <div className="mx-auto grid max-w-4xl gap-6">
             <Card className="min-w-0 p-6">
@@ -83,7 +83,7 @@ export default async function AnalystStatusPage() {
 
               {application.status === "rejected" ? (
                 <div className="mt-6 grid gap-3">
-                  <Card className="border border-white/10 bg-white/[0.03] p-4">
+                  <Card className="border border-tint/10 bg-tint/[0.03] p-4">
                     <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
                       Rejection reason
                     </p>
@@ -148,7 +148,7 @@ export default async function AnalystStatusPage() {
 
 function StatusLine({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
+    <div className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-tint/10 bg-tint/[0.03] px-4 py-3">
       <span className="text-muted">{label}</span>
       <span className="font-semibold text-ink">{value}</span>
     </div>

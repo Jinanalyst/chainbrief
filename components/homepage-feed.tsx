@@ -260,9 +260,9 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
   }
 
   return (
-    <section className="border-t border-white/10 bg-background/72">
+    <section className="border-t border-tint/10 bg-background/72">
       <Container className="min-w-0 pb-10 pt-4 sm:pb-12 sm:pt-5 lg:pb-16">
-        <div className="mb-5 grid min-w-0 gap-4 border-b border-white/10 pb-5 sm:mb-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-end">
+        <div className="mb-5 grid min-w-0 gap-4 border-b border-tint/10 pb-5 sm:mb-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-end">
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">
               {showIntro ? copy.feed.briefsLabel : copy.feed.homeLabel}
@@ -291,11 +291,11 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
         <div className="mt-6 min-w-0">
           {pendingArticles ? (
             <div className="flex flex-wrap items-center gap-3 rounded-md border border-accent/30 bg-accent-soft/30 px-3 py-2">
-              <span className="text-xs font-semibold text-blue-100">
+              <span className="text-xs font-semibold text-accent-ink">
                 {copy.feed.newBriefsReady}
               </span>
               <button
-                className="text-xs font-bold text-accent transition hover:text-blue-200"
+                className="text-xs font-bold text-accent transition hover:text-accent-ink"
                 onClick={reloadPendingArticles}
                 type="button"
               >
@@ -334,8 +334,8 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
             ) : null}
 
             {!isLoading && !error && filteredArticles.length > 0 ? (
-              <div className="overflow-hidden rounded-lg border border-white/10 bg-surface/78">
-                <div className="flex min-w-0 items-center justify-between gap-3 border-b border-white/10 px-3 py-3 sm:px-4">
+              <div className="overflow-hidden rounded-lg border border-tint/10 bg-surface/78">
+                <div className="flex min-w-0 items-center justify-between gap-3 border-b border-tint/10 px-3 py-3 sm:px-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
                     {copy.feed.mainFeed}
                   </p>
@@ -343,7 +343,7 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
                     {copy.feed.briefCount(filteredArticles.length)}
                   </span>
                 </div>
-                <div className="divide-y divide-white/10">
+                <div className="divide-y divide-tint/10">
                   {visibleArticles.map((article) => (
                     <TimelineItem
                       article={article}
@@ -356,7 +356,7 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
                   ))}
                 </div>
                 {hasMoreArticles ? (
-                  <div className="border-t border-white/10 p-3 sm:p-4">
+                  <div className="border-t border-tint/10 p-3 sm:p-4">
                     <Button
                       className="w-full"
                       onClick={showMoreArticles}
@@ -400,7 +400,7 @@ function LiveIssueBar({
       <div className="grid min-w-0 gap-3 px-3 py-3 sm:px-4 lg:grid-cols-[8rem_minmax(0,1fr)] lg:items-center">
         <div className="flex shrink-0 items-center gap-2 whitespace-nowrap">
           <span className="h-2 w-2 rounded-full bg-accent shadow-[0_0_16px_rgba(47,123,255,0.9)]" />
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-100">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent-ink">
             {label}
           </p>
         </div>
@@ -410,7 +410,7 @@ function LiveIssueBar({
             <div className="flex gap-3">
               {[0, 1, 2].map((item) => (
                 <span
-                  className="h-7 min-w-64 animate-pulse rounded-full bg-white/10"
+                  className="h-7 min-w-64 animate-pulse rounded-full bg-tint/10"
                   key={item}
                 />
               ))}
@@ -419,13 +419,13 @@ function LiveIssueBar({
             <div className="live-issues-track flex gap-3 will-change-transform">
               {tickerArticles.map((article, index) => (
                 <a
-                className="flex min-w-[15rem] max-w-[85vw] items-center gap-2 rounded-full border border-white/10 bg-background/60 px-3 py-2 text-sm font-medium text-ink transition hover:border-accent/50 hover:text-blue-200 sm:min-w-[18rem] sm:max-w-sm"
+                className="flex min-w-[15rem] max-w-[85vw] items-center gap-2 rounded-full border border-tint/15 bg-surface px-3 py-2 text-sm font-medium text-ink transition hover:border-accent/50 hover:text-accent-ink sm:min-w-[18rem] sm:max-w-sm"
                   href={article.originalUrl}
                   key={`${article.id}-${index}`}
                   rel="noreferrer"
                   target="_blank"
                 >
-                  <span className="shrink-0 rounded-full bg-accent/20 px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-[0.12em] text-blue-200">
+                  <span className="shrink-0 rounded-full bg-accent/20 px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-[0.12em] text-accent-ink">
                     {article.sourceName}
                   </span>
                   <span className="truncate">{article.title}</span>
@@ -453,7 +453,7 @@ function CategoryTabs({
   onChange: (category: string) => void;
 }) {
   return (
-    <div className="mt-5 max-w-full overflow-x-auto overscroll-x-contain border-b border-white/10 [-webkit-overflow-scrolling:touch]">
+    <div className="mt-5 max-w-full overflow-x-auto overscroll-x-contain border-b border-tint/10 [-webkit-overflow-scrolling:touch]">
       <div className="flex w-max min-w-full gap-1">
         {categories.map((category) => (
           <button
@@ -505,7 +505,7 @@ function StockMarketFilters({
   }
 
   return (
-    <div className="mt-3 grid gap-3 rounded-lg border border-white/10 bg-surface/60 p-3 lg:grid-cols-2">
+    <div className="mt-3 grid gap-3 rounded-lg border border-tint/10 bg-surface/60 p-3 lg:grid-cols-2">
       <FilterButtonGroup
         activeItems={preferences.stockRegions}
         allItems={STOCK_REGIONS}
@@ -548,8 +548,8 @@ function FilterButtonGroup({
               className={cn(
                 "rounded-full border px-3 py-1.5 text-xs font-bold transition",
                 isActive
-                  ? "border-accent/60 bg-accent/20 text-blue-100"
-                  : "border-white/10 bg-white/[0.03] text-muted hover:border-accent/50 hover:text-ink",
+                  ? "border-accent/60 bg-accent/20 text-accent-ink"
+                  : "border-tint/10 bg-tint/[0.03] text-muted hover:border-accent/50 hover:text-ink",
               )}
               key={item}
               onClick={() => onToggle(item)}
@@ -641,7 +641,7 @@ function TimelineItem({
     : article.title;
 
   return (
-    <article className="group grid min-w-0 gap-3 px-3 py-3 transition hover:bg-white/[0.03] sm:grid-cols-[4.5rem_1fr] sm:px-4">
+    <article className="group grid min-w-0 gap-3 px-3 py-3 transition hover:bg-tint/[0.03] sm:grid-cols-[4.5rem_1fr] sm:px-4">
       <time
         className="text-xs font-semibold tabular-nums text-muted-2"
         dateTime={article.publishedAt}
@@ -651,7 +651,7 @@ function TimelineItem({
       </time>
       <div className="min-w-0">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <span className="rounded bg-accent/15 px-2 py-1 text-[0.68rem] font-bold uppercase tracking-[0.12em] text-blue-200">
+          <span className="rounded bg-accent/15 px-2 py-1 text-[0.68rem] font-bold uppercase tracking-[0.12em] text-accent-ink">
             {article.sourceName}
           </span>
           <Badge tone="muted">{getCategoryLabel(article.category, language)}</Badge>
@@ -665,7 +665,7 @@ function TimelineItem({
 
         <a href={article.originalUrl} rel="noreferrer" target="_blank">
           <h2
-            className="mt-2 break-words text-base font-semibold leading-snug text-ink transition group-hover:text-blue-100 sm:text-lg"
+            className="mt-2 break-words text-base font-semibold leading-snug text-ink transition group-hover:text-accent-ink sm:text-lg"
             key={showKo ? "ko" : "en"}
           >
             <span className={showKo ? "brief-fade-in" : undefined}>{displayTitle}</span>
@@ -674,7 +674,7 @@ function TimelineItem({
 
         <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
           <button
-            className="text-sm font-semibold text-accent transition hover:text-blue-300"
+            className="text-sm font-semibold text-accent transition hover:text-accent-ink"
             onClick={onToggle}
             type="button"
           >
@@ -690,7 +690,7 @@ function TimelineItem({
           </a>
           <button
             aria-label={copy.feed.quoteToCommunity}
-            className="inline-flex h-7 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] px-3 text-xs font-bold text-muted transition hover:border-accent/50 hover:text-ink"
+            className="inline-flex h-7 items-center justify-center rounded-full border border-tint/10 bg-tint/[0.03] px-3 text-xs font-bold text-muted transition hover:border-accent/50 hover:text-ink"
             onClick={onQuote}
             type="button"
             title={copy.feed.quoteToCommunity}
@@ -709,7 +709,7 @@ function TimelineItem({
         ) : null}
 
         {expanded ? (
-          <div className="mt-3 rounded-md border border-white/10 bg-background/70 p-3">
+          <div className="mt-3 rounded-md border border-tint/10 bg-background/70 p-3">
             {showKo && translation.translatedBody ? (
               <p key="body-ko" className="brief-fade-in break-words text-sm leading-6 text-ink">
                 {translation.translatedBody}
@@ -726,7 +726,7 @@ function TimelineItem({
               <div className="mt-3 flex flex-wrap gap-2">
                 {article.tags.map((tag) => (
                   <span
-                    className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-xs font-medium text-muted"
+                    className="rounded-full border border-tint/10 bg-tint/[0.03] px-2.5 py-1 text-xs font-medium text-muted"
                     key={tag}
                   >
                     {tag}
@@ -767,7 +767,7 @@ function TranslateButton({
 
   return (
     <button
-      className="inline-flex h-7 items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-3 text-xs font-bold text-muted transition hover:border-accent/50 hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
+      className="inline-flex h-7 items-center gap-1.5 rounded-full border border-tint/10 bg-tint/[0.03] px-3 text-xs font-bold text-muted transition hover:border-accent/50 hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
       disabled={isLoading}
       onClick={onClick}
       type="button"
@@ -850,8 +850,8 @@ function FeedSidebar({
             className={cn(
               "rounded-full border px-3 py-1.5 text-xs font-bold transition",
               allSourcesSelected
-                ? "border-accent/60 bg-accent/20 text-blue-100"
-                : "border-white/10 bg-white/[0.03] text-muted hover:border-accent/50 hover:text-ink",
+                ? "border-accent/60 bg-accent/20 text-accent-ink"
+                : "border-tint/10 bg-tint/[0.03] text-muted hover:border-accent/50 hover:text-ink",
             )}
             onClick={() => onSourceChange("All")}
             type="button"
@@ -864,8 +864,8 @@ function FeedSidebar({
               className={cn(
                 "rounded-full border px-3 py-1.5 text-xs font-bold transition",
                 !allSourcesSelected && preferences.sources.includes(source)
-                  ? "border-accent/60 bg-accent/20 text-blue-100"
-                  : "border-white/10 bg-white/[0.03] text-muted hover:border-accent/50 hover:text-ink",
+                  ? "border-accent/60 bg-accent/20 text-accent-ink"
+                  : "border-tint/10 bg-tint/[0.03] text-muted hover:border-accent/50 hover:text-ink",
               )}
               key={source}
               onClick={() => onSourceChange(source)}
@@ -938,19 +938,19 @@ function FeedSidebar({
 
 function LoadingState() {
   return (
-    <div className="overflow-hidden rounded-lg border border-white/10 bg-surface/78">
+    <div className="overflow-hidden rounded-lg border border-tint/10 bg-surface/78">
       {[0, 1, 2, 3, 4, 5].map((item) => (
         <div
-          className="grid animate-pulse gap-3 border-b border-white/10 px-4 py-4 last:border-b-0 sm:grid-cols-[4.5rem_1fr]"
+          className="grid animate-pulse gap-3 border-b border-tint/10 px-4 py-4 last:border-b-0 sm:grid-cols-[4.5rem_1fr]"
           key={item}
         >
-          <div className="h-4 w-12 rounded bg-white/10" />
+          <div className="h-4 w-12 rounded bg-tint/10" />
           <div>
             <div className="flex gap-2">
-              <div className="h-5 w-24 rounded bg-white/10" />
-              <div className="h-5 w-20 rounded bg-white/10" />
+              <div className="h-5 w-24 rounded bg-tint/10" />
+              <div className="h-5 w-20 rounded bg-tint/10" />
             </div>
-            <div className="mt-4 h-5 w-4/5 rounded bg-white/10" />
+            <div className="mt-4 h-5 w-4/5 rounded bg-tint/10" />
           </div>
         </div>
       ))}

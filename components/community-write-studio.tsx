@@ -280,7 +280,7 @@ function TextEditor({ block, onChange }: { block: TextBlock; onChange: (b: TextB
   const rows = Math.max(2, block.content.split("\n").length);
   return (
     <textarea
-      className="w-full resize-none rounded-md border border-transparent bg-transparent px-1 py-2 text-base leading-7 text-ink outline-none transition placeholder:text-muted-2 focus:bg-white/[0.025]"
+      className="w-full resize-none rounded-md border border-transparent bg-transparent px-1 py-2 text-base leading-7 text-ink outline-none transition placeholder:text-muted-2 focus:bg-tint/[0.025]"
       rows={rows}
       value={block.content}
       onChange={(e) => onChange({ ...block, content: e.target.value })}
@@ -295,14 +295,14 @@ function HeadingEditor({ block, onChange }: { block: HeadingBlock; onChange: (b:
       <button
         type="button"
         onClick={() => onChange({ ...block, level: block.level === 2 ? 3 : 2 })}
-        className="shrink-0 rounded border border-white/10 bg-white/[0.04] px-2 py-1 text-xs font-bold text-muted transition hover:text-ink"
+        className="shrink-0 rounded border border-tint/10 bg-tint/[0.04] px-2 py-1 text-xs font-bold text-muted transition hover:text-ink"
         title="Toggle heading level"
       >
         H{block.level}
       </button>
       <input
         className={cn(
-          "w-full rounded-md border border-transparent bg-transparent px-1 py-2 font-bold text-ink outline-none transition placeholder:text-muted-2 focus:bg-white/[0.025]",
+          "w-full rounded-md border border-transparent bg-transparent px-1 py-2 font-bold text-ink outline-none transition placeholder:text-muted-2 focus:bg-tint/[0.025]",
           block.level === 2 ? "text-2xl" : "text-lg",
         )}
         value={block.content}
@@ -317,14 +317,14 @@ function QuoteEditor({ block, onChange }: { block: QuoteBlock; onChange: (b: Quo
   return (
     <div className="space-y-2 border-l-2 border-accent/60 pl-3">
       <textarea
-        className="w-full resize-none rounded-md border border-transparent bg-transparent px-1 py-2 text-base italic leading-7 text-ink outline-none transition placeholder:text-muted-2 focus:bg-white/[0.025]"
+        className="w-full resize-none rounded-md border border-transparent bg-transparent px-1 py-2 text-base italic leading-7 text-ink outline-none transition placeholder:text-muted-2 focus:bg-tint/[0.025]"
         rows={2}
         value={block.content}
         onChange={(e) => onChange({ ...block, content: e.target.value })}
         placeholder="Quote text…"
       />
       <input
-        className="w-full rounded-md border border-transparent bg-transparent px-1 py-1.5 text-xs text-muted outline-none transition placeholder:text-muted-2 focus:bg-white/[0.025]"
+        className="w-full rounded-md border border-transparent bg-transparent px-1 py-1.5 text-xs text-muted outline-none transition placeholder:text-muted-2 focus:bg-tint/[0.025]"
         value={block.attribution}
         onChange={(e) => onChange({ ...block, attribution: e.target.value })}
         placeholder="— Attribution (optional)"
@@ -351,7 +351,7 @@ function ImageEditor({ block, onChange }: { block: ImageBlock; onChange: (b: Ima
         <button
           type="button"
           onClick={() => fileRef.current?.click()}
-          className="flex h-24 w-full items-center justify-center rounded-xl border border-dashed border-white/10 bg-white/[0.02] text-sm text-muted transition hover:border-accent/50 hover:text-accent"
+          className="flex h-24 w-full items-center justify-center rounded-xl border border-dashed border-tint/10 bg-tint/[0.02] text-sm text-muted transition hover:border-accent/50 hover:text-accent"
         >
           Click to upload image (max 8 MB)
         </button>
@@ -366,7 +366,7 @@ function ImageEditor({ block, onChange }: { block: ImageBlock; onChange: (b: Ima
       {block.dataUrl && (
         <div className="flex gap-2">
           <input
-            className="flex-1 rounded-md border border-white/10 bg-background px-3 py-1.5 text-xs text-ink outline-none placeholder:text-muted-2 focus:border-accent"
+            className="flex-1 rounded-md border border-tint/10 bg-background px-3 py-1.5 text-xs text-ink outline-none placeholder:text-muted-2 focus:border-accent"
             value={block.caption}
             onChange={(e) => onChange({ ...block, caption: e.target.value })}
             placeholder="Caption (optional)"
@@ -400,14 +400,14 @@ function VideoEditor({ block, onChange }: { block: VideoBlock; onChange: (b: Vid
         <button
           type="button"
           onClick={() => onChange({ ...block, source: "url", dataUrl: undefined, url: block.url ?? "", name: undefined, size: undefined, mimeType: undefined })}
-          className={cn("rounded-full border px-3 py-1 text-xs font-semibold transition", block.source === "url" ? "border-accent/60 bg-accent/15 text-blue-100" : "border-white/10 text-muted hover:text-ink")}
+          className={cn("rounded-full border px-3 py-1 text-xs font-semibold transition", block.source === "url" ? "border-accent/60 bg-accent/15 text-accent-ink" : "border-tint/10 text-muted hover:text-ink")}
         >
           URL
         </button>
         <button
           type="button"
           onClick={() => fileRef.current?.click()}
-          className={cn("rounded-full border px-3 py-1 text-xs font-semibold transition", block.source === "file" ? "border-accent/60 bg-accent/15 text-blue-100" : "border-white/10 text-muted hover:text-ink")}
+          className={cn("rounded-full border px-3 py-1 text-xs font-semibold transition", block.source === "file" ? "border-accent/60 bg-accent/15 text-accent-ink" : "border-tint/10 text-muted hover:text-ink")}
         >
           Upload file
         </button>
@@ -422,7 +422,7 @@ function VideoEditor({ block, onChange }: { block: VideoBlock; onChange: (b: Vid
 
       {block.source === "url" && (
         <input
-          className="w-full rounded-md border border-white/10 bg-background px-3 py-2 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-1 focus:ring-accent/30"
+          className="w-full rounded-md border border-tint/10 bg-background px-3 py-2 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-1 focus:ring-accent/30"
           value={block.url ?? ""}
           onChange={(e) => onChange({ ...block, url: e.target.value })}
           placeholder="YouTube or direct video URL…"
@@ -446,7 +446,7 @@ function VideoEditor({ block, onChange }: { block: VideoBlock; onChange: (b: Vid
       )}
 
       <input
-        className="w-full rounded-md border border-white/10 bg-background px-3 py-1.5 text-xs text-ink outline-none placeholder:text-muted-2 focus:border-accent"
+        className="w-full rounded-md border border-tint/10 bg-background px-3 py-1.5 text-xs text-ink outline-none placeholder:text-muted-2 focus:border-accent"
         value={block.caption}
         onChange={(e) => onChange({ ...block, caption: e.target.value })}
         placeholder="Caption (optional)"
@@ -457,16 +457,16 @@ function VideoEditor({ block, onChange }: { block: VideoBlock; onChange: (b: Vid
 
 function LinkEditor({ block, onChange }: { block: LinkBlock; onChange: (b: LinkBlock) => void }) {
   return (
-    <div className="space-y-2 rounded-xl border border-white/10 bg-white/[0.03] p-3">
+    <div className="space-y-2 rounded-xl border border-tint/10 bg-tint/[0.03] p-3">
       <input
-        className="w-full rounded-md border border-white/10 bg-background px-3 py-2 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent"
+        className="w-full rounded-md border border-tint/10 bg-background px-3 py-2 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent"
         value={block.url}
         onChange={(e) => onChange({ ...block, url: e.target.value })}
         placeholder="https://…"
         type="url"
       />
       <input
-        className="w-full rounded-md border border-white/10 bg-background px-3 py-1.5 text-xs text-ink outline-none placeholder:text-muted-2 focus:border-accent"
+        className="w-full rounded-md border border-tint/10 bg-background px-3 py-1.5 text-xs text-ink outline-none placeholder:text-muted-2 focus:border-accent"
         value={block.label}
         onChange={(e) => onChange({ ...block, label: e.target.value })}
         placeholder="Link label (optional)"
@@ -499,7 +499,7 @@ function ChecklistEditor({ block, onChange }: { block: ChecklistBlock; onChange:
             onClick={() => toggleItem(item.id)}
             className={cn(
               "mt-px h-4 w-4 shrink-0 rounded border transition",
-              item.checked ? "border-accent bg-accent/80" : "border-white/20 bg-white/[0.03] hover:border-accent/60",
+              item.checked ? "border-accent bg-accent/80" : "border-tint/20 bg-tint/[0.03] hover:border-accent/60",
             )}
           >
             {item.checked && <span className="flex h-full w-full items-center justify-center text-[10px] font-bold text-white">✓</span>}
@@ -559,7 +559,7 @@ function BlockRow({ block, index, total, onChange, onDelete, onMoveUp, onMoveDow
         "group relative rounded-md transition",
         dragHandlers.isDragOver
           ? "bg-accent/5 ring-1 ring-accent/30"
-          : "hover:bg-white/[0.025]",
+          : "hover:bg-tint/[0.025]",
       )}
     >
       {/* Toolbar — shown on hover */}
@@ -577,7 +577,7 @@ function BlockRow({ block, index, total, onChange, onDelete, onMoveUp, onMoveDow
         {block.type === "image"     && <ImageEditor     block={block} onChange={(b) => onChange(b)} />}
         {block.type === "video"     && <VideoEditor     block={block} onChange={(b) => onChange(b)} />}
         {block.type === "link"      && <LinkEditor      block={block} onChange={(b) => onChange(b)} />}
-        {block.type === "divider"   && <hr className="border-white/10" />}
+        {block.type === "divider"   && <hr className="border-tint/10" />}
         {block.type === "checklist" && <ChecklistEditor block={block} onChange={(b) => onChange(b)} />}
       </div>
     </div>
@@ -616,7 +616,7 @@ function BlockPreview({ blocks }: { blocks: Block[] }) {
                 {b.caption && <figcaption className="mt-1 text-center text-xs text-muted">{b.caption}</figcaption>}
               </figure>
             ) : (
-              <div key={b.id} className="rounded-xl border border-dashed border-white/10 p-4 text-center text-xs text-muted">[No image uploaded]</div>
+              <div key={b.id} className="rounded-xl border border-dashed border-tint/10 p-4 text-center text-xs text-muted">[No image uploaded]</div>
             );
           case "video": {
             const ytId = b.source === "url" && b.url ? getYouTubeId(b.url) : null;
@@ -635,7 +635,7 @@ function BlockPreview({ blocks }: { blocks: Block[] }) {
                 ) : b.source === "file" && b.dataUrl ? (
                   <video src={b.dataUrl} controls className="w-full rounded-lg bg-black" />
                 ) : (
-                  <div className="rounded-xl border border-dashed border-white/10 p-4 text-center text-xs text-muted">[Video: {b.url ?? "no source"}]</div>
+                  <div className="rounded-xl border border-dashed border-tint/10 p-4 text-center text-xs text-muted">[Video: {b.url ?? "no source"}]</div>
                 )}
                 {b.caption && <figcaption className="mt-1 text-center text-xs text-muted">{b.caption}</figcaption>}
               </figure>
@@ -643,7 +643,7 @@ function BlockPreview({ blocks }: { blocks: Block[] }) {
           }
           case "link":
             return (
-              <div key={b.id} className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
+              <div key={b.id} className="flex items-center gap-2 rounded-lg border border-tint/10 bg-tint/[0.03] px-3 py-2">
                 <span className="text-accent">↗</span>
                 <a href={b.url} target="_blank" rel="noopener noreferrer" className="text-sm text-accent underline-offset-2 hover:underline">
                   {b.label || b.url}
@@ -651,13 +651,13 @@ function BlockPreview({ blocks }: { blocks: Block[] }) {
               </div>
             );
           case "divider":
-            return <hr key={b.id} className="border-white/10" />;
+            return <hr key={b.id} className="border-tint/10" />;
           case "checklist":
             return (
               <ul key={b.id} className="space-y-1">
                 {b.items.map((item) => (
                   <li key={item.id} className={cn("flex items-center gap-2 text-sm", item.checked && "text-muted line-through")}>
-                    <span className={cn("flex h-4 w-4 shrink-0 items-center justify-center rounded border", item.checked ? "border-accent bg-accent/80" : "border-white/20")}>
+                    <span className={cn("flex h-4 w-4 shrink-0 items-center justify-center rounded border", item.checked ? "border-accent bg-accent/80" : "border-tint/20")}>
                       {item.checked && <span className="text-[10px] font-bold text-white">✓</span>}
                     </span>
                     {item.text}
@@ -850,7 +850,7 @@ export function CommunityWriteStudio({
   return (
     <main className="site-grid min-h-screen overflow-x-hidden pb-24">
       <Header />
-      <section className="border-t border-white/10 bg-background/72">
+      <section className="border-t border-tint/10 bg-background/72">
         <Container className="section-space">
           <div className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-[minmax(0,1.2fr)_22rem]">
 
@@ -870,8 +870,8 @@ export function CommunityWriteStudio({
                   className={cn(
                     "mt-1 shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold transition",
                     previewMode
-                      ? "border-accent/60 bg-accent/15 text-blue-100"
-                      : "border-white/10 text-muted hover:border-accent/50 hover:text-ink",
+                      ? "border-accent/60 bg-accent/15 text-accent-ink"
+                      : "border-tint/10 text-muted hover:border-accent/50 hover:text-ink",
                   )}
                 >
                   {previewMode ? "← Edit" : "Preview"}
@@ -881,7 +881,7 @@ export function CommunityWriteStudio({
               <div className="mt-6 grid gap-5">
                 {quoteTarget ? (
                   <div className="rounded-md border border-accent/25 bg-accent-soft/25 p-3">
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-100">
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-accent-ink">
                       Writing about this news
                     </p>
                     <p className="mt-2 break-words text-sm font-semibold text-ink">
@@ -897,7 +897,7 @@ export function CommunityWriteStudio({
                 <label className="block">
                   <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Title</span>
                   <input
-                    className="mt-2 h-11 w-full rounded-md border border-white/10 bg-background px-3 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
+                    className="mt-2 h-11 w-full rounded-md border border-tint/10 bg-background px-3 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder="Short, clear title"
                     value={title}
@@ -909,7 +909,7 @@ export function CommunityWriteStudio({
                   <label className="block">
                     <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Topic</span>
                     <select
-                      className="mt-2 h-11 w-full rounded-md border border-white/10 bg-background px-3 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
+                      className="mt-2 h-11 w-full rounded-md border border-tint/10 bg-background px-3 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
                       onChange={(e) => setTopic(e.target.value)}
                       value={topic}
                     >
@@ -929,8 +929,8 @@ export function CommunityWriteStudio({
                           className={cn(
                             "rounded-full border px-3 py-1.5 text-xs font-bold transition",
                             stance === s
-                              ? "border-accent/60 bg-accent/20 text-blue-100"
-                              : "border-white/10 bg-white/[0.03] text-muted hover:border-accent/50 hover:text-ink",
+                              ? "border-accent/60 bg-accent/20 text-accent-ink"
+                              : "border-tint/10 bg-tint/[0.03] text-muted hover:border-accent/50 hover:text-ink",
                           )}
                         >
                           {s}
@@ -948,20 +948,20 @@ export function CommunityWriteStudio({
                       <button
                         type="button"
                         onClick={() => setAddMenuOpen((v) => !v)}
-                        className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs font-semibold text-muted transition hover:border-accent/50 hover:text-accent"
+                        className="rounded-full border border-tint/10 bg-tint/[0.03] px-3 py-1.5 text-xs font-semibold text-muted transition hover:border-accent/50 hover:text-accent"
                       >
                         + Add content
                       </button>
                       {addMenuOpen && (
                         <>
                           <div className="fixed inset-0 z-10" onClick={() => setAddMenuOpen(false)} />
-                          <div className="absolute right-0 top-9 z-20 w-44 overflow-hidden rounded-xl border border-white/10 bg-[#0f1420] shadow-2xl">
+                          <div className="absolute right-0 top-9 z-20 w-44 overflow-hidden rounded-xl border border-tint/10 bg-[#0f1420] shadow-2xl">
                             {BLOCK_MENU_ITEMS.map((item) => (
                               <button
                                 key={item.type}
                                 type="button"
                                 onClick={() => { addBlockAtEnd(item.type); setAddMenuOpen(false); }}
-                                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-ink transition hover:bg-white/[0.06]"
+                                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-ink transition hover:bg-tint/[0.06]"
                               >
                                 <span className="w-5 text-center text-xs text-muted">{item.icon}</span>
                                 {item.label}
@@ -974,11 +974,11 @@ export function CommunityWriteStudio({
                   </div>
 
                   {previewMode ? (
-                    <div className="min-h-40 rounded-xl border border-white/10 bg-white/[0.02] p-5">
+                    <div className="min-h-40 rounded-xl border border-tint/10 bg-tint/[0.02] p-5">
                       <BlockPreview blocks={blocks} />
                     </div>
                   ) : (
-                    <div className="min-h-[28rem] rounded-xl border border-white/10 bg-background px-4 py-4 shadow-inner sm:px-5">
+                    <div className="min-h-[28rem] rounded-xl border border-tint/10 bg-background px-4 py-4 shadow-inner sm:px-5">
                       {blocks.map((block, index) => (
                         <BlockRow
                           key={block.id}
@@ -1048,7 +1048,7 @@ export function CommunityWriteStudio({
                     <button
                       type="button"
                       onClick={saveAuthorName}
-                      className="rounded-md border border-accent/50 bg-accent/15 px-3 py-1.5 text-xs font-semibold text-blue-100 transition hover:bg-accent/25"
+                      className="rounded-md border border-accent/50 bg-accent/15 px-3 py-1.5 text-xs font-semibold text-accent-ink transition hover:bg-accent/25"
                     >
                       Save
                     </button>
@@ -1056,7 +1056,7 @@ export function CommunityWriteStudio({
                 ) : (
                   <div className="mt-3 flex items-center justify-between gap-3">
                     <div className="flex min-w-0 items-center gap-2.5">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-accent/30 bg-accent/15 text-xs font-bold text-blue-100">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-accent/30 bg-accent/15 text-xs font-bold text-accent-ink">
                         {authorName ? authorName.slice(0, 2).toUpperCase() : "?"}
                       </div>
                       <span className="truncate text-sm font-semibold text-ink">
@@ -1066,7 +1066,7 @@ export function CommunityWriteStudio({
                     <button
                       type="button"
                       onClick={() => { setAuthorDraft(authorName); setEditingAuthor(true); }}
-                      className="shrink-0 rounded-md border border-white/10 px-2.5 py-1 text-xs font-semibold text-muted transition hover:border-accent/50 hover:text-accent"
+                      className="shrink-0 rounded-md border border-tint/10 px-2.5 py-1 text-xs font-semibold text-muted transition hover:border-accent/50 hover:text-accent"
                     >
                       Edit
                     </button>
@@ -1090,7 +1090,7 @@ export function CommunityWriteStudio({
                   <span className="text-xs text-muted">{templateOpen ? "▲" : "▼"}</span>
                 </button>
                 {templateOpen && (
-                  <div className="grid gap-2 border-t border-white/[0.06] px-3 pb-3 pt-2">
+                  <div className="grid gap-2 border-t border-tint/[0.06] px-3 pb-3 pt-2">
                     {TEMPLATES.map((tpl) => (
                       <button
                         key={tpl.id}
@@ -1100,7 +1100,7 @@ export function CommunityWriteStudio({
                           "rounded-xl border p-3 text-left transition",
                           activeTemplateId === tpl.id
                             ? "border-accent/60 bg-accent/10"
-                            : "border-white/[0.06] bg-white/[0.02] hover:border-accent/40 hover:bg-white/[0.04]",
+                            : "border-tint/[0.06] bg-tint/[0.02] hover:border-accent/40 hover:bg-tint/[0.04]",
                         )}
                       >
                         <p className="text-sm font-semibold text-ink">{tpl.label}</p>

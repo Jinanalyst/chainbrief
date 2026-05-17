@@ -21,7 +21,7 @@ export function MarketPage() {
 
   return (
     <>
-      <div className="border-b border-white/10 bg-surface/60">
+      <div className="border-b border-tint/10 bg-surface/60">
         <Container>
           <div className="flex gap-1 pt-4">
             {TABS.map((item) => (

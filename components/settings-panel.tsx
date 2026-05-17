@@ -59,7 +59,7 @@ export function SettingsPanel() {
         <p className="mt-3 break-words text-sm leading-6 text-muted">
           {copy.preferences.languageHelp} {copy.preferences.languageNote}
         </p>
-        <div className="mt-4 rounded-md border border-white/10 bg-background/70 p-3">
+        <div className="mt-4 rounded-md border border-tint/10 bg-background/70 p-3">
           <p className="text-sm font-semibold text-ink">
             {copy.preferences.currentLanguage}:{" "}
             {preferences.language === "ko"

@@ -465,8 +465,8 @@ function MobileFallback({ language }: { language: "ko" | "en" }) {
       style={{
         display: "none",
         minHeight: "100vh",
-        background: "#070A12",
-        color: "#eef0f6",
+        background: "rgb(var(--color-background))",
+        color: "rgb(var(--color-ink))",
         padding: "32px 24px",
         flexDirection: "column",
         gap: 16,
@@ -475,7 +475,7 @@ function MobileFallback({ language }: { language: "ko" | "en" }) {
       <div style={{ fontSize: 17, fontWeight: 600 }}>
         {language === "ko" ? "커뮤니티" : "Community"}
       </div>
-      <div style={{ fontSize: 13, color: "#7880a0", lineHeight: 1.6 }}>
+      <div style={{ fontSize: 13, color: "rgb(var(--color-muted))", lineHeight: 1.6 }}>
         {language === "ko"
           ? "커뮤니티 페이지는 데스크탑(1024px 이상)에 최적화되어 있습니다. 넓은 화면에서 다시 열어주세요."
           : "The community page is optimized for desktop (1024px+). Please open on a wider screen."}
@@ -549,7 +549,7 @@ function UsersIcon() {
 
 function CommunityBanner({ language }: { language: "ko" | "en" }) {
   return (
-    <Card id="community-banner" className="min-w-0 overflow-hidden border-accent/20 bg-[#08172c] p-0">
+    <Card id="community-banner" className="min-w-0 overflow-hidden border-accent/20 bg-accent-soft/40 p-0">
       <div className="flex min-w-0 flex-col gap-4 border-l-4 border-accent p-5 sm:p-6">
         <div className="flex flex-wrap items-center gap-2">
           <Badge tone="accent">{language === "ko" ? "커뮤니티" : "Community"}</Badge>
@@ -596,7 +596,7 @@ function WriteStudioCallout({
     : "/community/write";
 
   return (
-    <Card className="min-w-0 border-accent/20 bg-white/[0.03] p-4 sm:p-5">
+    <Card className="min-w-0 border-accent/20 bg-tint/[0.03] p-4 sm:p-5">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">
@@ -716,7 +716,7 @@ function AnalystPathSection() {
         {ANALYST_PATH.map((step, index) => (
           <Card className="min-w-0 p-4" key={step.title}>
             <div className="flex items-center justify-between gap-3">
-              <span className="rounded-md border border-accent/30 bg-accent/15 px-2 py-1 text-xs font-bold text-blue-100">
+              <span className="rounded-md border border-accent/30 bg-accent/15 px-2 py-1 text-xs font-bold text-accent-ink">
                 {index + 1}
               </span>
               <span className="text-[0.65rem] font-bold uppercase tracking-[0.16em] text-muted-2">
@@ -748,9 +748,9 @@ function AnalystScoreCard({ compact = false }: { compact?: boolean }) {
         <div key={label}>
           <div className="flex justify-between gap-3 text-xs">
             <span className="text-muted">{label}</span>
-            <span className="font-semibold text-blue-100">{value}</span>
+            <span className="font-semibold text-accent-ink">{value}</span>
           </div>
-          <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/10">
+          <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-tint/10">
             <span className="block h-full rounded-full bg-accent" style={{ width: `${value}%` }} />
           </div>
         </div>
@@ -789,7 +789,7 @@ function AnalystWorkList({
 
   return (
     <section className="grid min-w-0 gap-3">
-      <Card className="min-w-0 overflow-hidden border-accent/20 bg-[#07182a] p-0">
+      <Card className="min-w-0 overflow-hidden border-accent/20 bg-accent-soft/40 p-0">
         <div className="grid gap-4 p-4 sm:p-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
@@ -811,7 +811,7 @@ function AnalystWorkList({
             Write analyst post
           </Button>
         </div>
-        <div className="grid border-t border-white/10 sm:grid-cols-3">
+        <div className="grid border-t border-tint/10 sm:grid-cols-3">
           <AnalystWorkStat label="Works" value={posts.length.toString()} />
           <AnalystWorkStat label="Analysts" value={analystCount.toString()} />
           <AnalystWorkStat
@@ -839,7 +839,7 @@ function AnalystWorkList({
 
 function AnalystWorkStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="min-w-0 border-white/10 px-4 py-3 sm:border-l sm:first:border-l-0">
+    <div className="min-w-0 border-tint/10 px-4 py-3 sm:border-l sm:first:border-l-0">
       <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-2">{label}</p>
       <p className="mt-1 truncate text-lg font-semibold text-ink">{value}</p>
     </div>
@@ -867,7 +867,7 @@ function AnalystWorkItem({
       <article className="grid min-w-0 gap-4 p-4 sm:p-5 md:grid-cols-[minmax(0,1fr)_12rem] md:items-start">
         <div className="min-w-0">
           <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-accent/30 bg-accent/15 text-xs font-bold text-blue-100">
+            <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-accent/30 bg-accent/15 text-xs font-bold text-accent-ink">
               {index + 1}
             </span>
             <span className="min-w-0 truncate text-sm font-semibold text-ink">{post.author}</span>
@@ -886,14 +886,14 @@ function AnalystWorkItem({
           </div>
         </div>
 
-        <aside className="min-w-0 rounded-md border border-white/10 bg-white/[0.03] p-3">
+        <aside className="min-w-0 rounded-md border border-tint/10 bg-tint/[0.03] p-3">
           <div className="flex items-center justify-between gap-3">
             <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-2">
               Work score
             </span>
-            <span className="text-sm font-semibold text-blue-100">{score}</span>
+            <span className="text-sm font-semibold text-accent-ink">{score}</span>
           </div>
-          <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
+          <div className="mt-3 h-2 overflow-hidden rounded-full bg-tint/10">
             <span className="block h-full rounded-full bg-accent" style={{ width: `${share}%` }} />
           </div>
           <p className="mt-3 text-xs leading-5 text-muted">
@@ -965,7 +965,7 @@ function OpinionComposer({
   return (
     <Card className="min-w-0 p-4 sm:p-5">
       <div className="flex min-w-0 gap-3">
-        <div className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-accent/15 text-sm font-bold text-blue-100">
+        <div className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-tint/10 bg-accent/15 text-sm font-bold text-accent-ink">
           CB
         </div>
         <div className="min-w-0 flex-1">
@@ -979,7 +979,7 @@ function OpinionComposer({
           {focusedTarget ? (
             <div className="mt-3 rounded-xl border border-accent/20 bg-accent/10 p-3">
               <div className="flex items-center justify-between gap-3">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-blue-100">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-accent-ink">
                   {copy.community.discussing}
                 </p>
                 <button
@@ -1006,7 +1006,7 @@ function OpinionComposer({
                 {copy.community.opinionTitleLabel}
               </span>
               <input
-                className="mt-2 h-11 w-full rounded-md border border-white/10 bg-background px-3 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
+                className="mt-2 h-11 w-full rounded-md border border-tint/10 bg-background px-3 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
                 onChange={(event) => onTitleChange(event.target.value)}
                 placeholder={copy.community.opinionTitlePlaceholder}
                 value={title}
@@ -1018,7 +1018,7 @@ function OpinionComposer({
                 {copy.community.opinionBodyLabel}
               </span>
               <textarea
-                className="mt-2 min-h-32 w-full rounded-md border border-white/10 bg-background px-4 py-3 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
+                className="mt-2 min-h-32 w-full rounded-md border border-tint/10 bg-background px-4 py-3 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
                 onChange={(event) => onBodyChange(event.target.value)}
                 placeholder={
                   focusedTarget
@@ -1040,8 +1040,8 @@ function OpinionComposer({
                 className={cn(
                   "rounded-full border px-3 py-1.5 text-xs font-bold transition",
                   stance === item
-                    ? "border-accent/60 bg-accent/20 text-blue-100"
-                    : "border-white/10 bg-white/[0.03] text-muted hover:border-accent/50 hover:text-ink",
+                    ? "border-accent/60 bg-accent/20 text-accent-ink"
+                    : "border-tint/10 bg-tint/[0.03] text-muted hover:border-accent/50 hover:text-ink",
                 )}
               >
                 {language === "ko"
@@ -1114,7 +1114,7 @@ function CommunityPostCard({
       ) : null}
 
       <div className="flex min-w-0 items-start gap-3">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-sm font-bold text-ink">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-tint/10 bg-tint/[0.04] text-sm font-bold text-ink">
           {isRepost && post.quotedCommunityPost
             ? avatarFromName(post.quotedCommunityPost.author)
             : (post.avatar ?? avatarFromName(post.author))}
@@ -1152,7 +1152,7 @@ function CommunityPostCard({
           </p>
 
           {post.relatedArticleTitle ? (
-            <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.03] p-3">
+            <div className="mt-4 rounded-xl border border-tint/10 bg-tint/[0.03] p-3">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-2">
                 {copy.community.discussing}: {post.relatedArticleTitle}
               </p>
@@ -1179,7 +1179,7 @@ function CommunityPostCard({
               {post.attachments.map((attachment) => (
                 <figure
                   key={attachment.id}
-                  className="overflow-hidden rounded-xl border border-white/10 bg-white/[0.03]"
+                  className="overflow-hidden rounded-xl border border-tint/10 bg-tint/[0.03]"
                 >
                   {attachment.kind === "image" ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -1212,12 +1212,12 @@ function CommunityPostCard({
           </div>
 
           {post.analystTier ? (
-            <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.03] p-3">
+            <div className="mt-4 rounded-xl border border-tint/10 bg-tint/[0.03] p-3">
               <div className="mb-3 flex items-center justify-between gap-3">
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
                   Analyst Score
                 </p>
-                <span className="text-xs font-semibold text-blue-100">
+                <span className="text-xs font-semibold text-accent-ink">
                   {formatAnalystTier(post.analystTier)}
                 </span>
               </div>
@@ -1263,7 +1263,7 @@ function CommunityPostCard({
               </p>
               <textarea
                 autoFocus
-                className="min-h-24 w-full rounded-md border border-white/10 bg-background px-4 py-3 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
+                className="min-h-24 w-full rounded-md border border-tint/10 bg-background px-4 py-3 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
                 onChange={(e) => setQuoteBody(e.target.value)}
                 placeholder={
                   language === "ko"
@@ -1282,8 +1282,8 @@ function CommunityPostCard({
                     className={cn(
                       "rounded-full border px-3 py-1.5 text-xs font-bold transition",
                       quoteStance === s
-                        ? "border-accent/60 bg-accent/20 text-blue-100"
-                        : "border-white/10 bg-white/[0.03] text-muted hover:border-accent/50 hover:text-ink",
+                        ? "border-accent/60 bg-accent/20 text-accent-ink"
+                        : "border-tint/10 bg-tint/[0.03] text-muted hover:border-accent/50 hover:text-ink",
                     )}
                   >
                     {language === "ko"
@@ -1320,9 +1320,9 @@ function QuotedPostEmbed({
   language: "ko" | "en";
 }) {
   return (
-    <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.03] p-4">
+    <div className="mt-4 rounded-xl border border-tint/10 bg-tint/[0.03] p-4">
       <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-[0.6rem] font-bold text-ink">
+        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-tint/10 bg-tint/[0.06] text-[0.6rem] font-bold text-ink">
           {avatarFromName(snapshot.author)}
         </div>
         <p className="text-xs font-semibold text-ink">{snapshot.author}</p>
@@ -1332,8 +1332,8 @@ function QuotedPostEmbed({
             className={cn(
               "rounded-full px-2 py-0.5 text-[0.65rem] font-bold",
               snapshot.stance === "Bullish"
-                ? "bg-accent/15 text-blue-200"
-                : "bg-white/[0.06] text-muted-2",
+                ? "bg-accent/15 text-accent-ink"
+                : "bg-tint/[0.06] text-muted-2",
             )}
           >
             {language === "ko"
@@ -1350,7 +1350,7 @@ function QuotedPostEmbed({
       {snapshot.attachments?.length ? (
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
           {snapshot.attachments.map((a) => (
-            <div key={a.id} className="overflow-hidden rounded-lg border border-white/10">
+            <div key={a.id} className="overflow-hidden rounded-lg border border-tint/10">
               {a.kind === "image" ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img alt={a.name} className="aspect-video w-full object-cover" src={a.dataUrl} />
@@ -1381,9 +1381,9 @@ function PopularPostsCard({
         {posts.map((post, index) => (
           <div
             key={post.id}
-            className="flex min-w-0 items-start gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-3"
+            className="flex min-w-0 items-start gap-3 rounded-xl border border-tint/10 bg-tint/[0.03] p-3"
           >
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-accent/20 bg-accent/10 text-xs font-bold text-blue-100">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-accent/20 bg-accent/10 text-xs font-bold text-accent-ink">
               {index + 1}
             </div>
             <div className="min-w-0 flex-1">
@@ -1506,7 +1506,7 @@ function FloatingCommunityActions({ language }: { language: "ko" | "en" }) {
       <button
         type="button"
         onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-        className="flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-white/[0.08] text-lg text-ink shadow-[0_12px_30px_rgba(0,0,0,0.35)] transition hover:border-accent/50 hover:bg-white/[0.12]"
+        className="flex h-12 w-12 items-center justify-center rounded-full border border-tint/10 bg-tint/[0.08] text-lg text-ink shadow-[0_12px_30px_rgba(0,0,0,0.35)] transition hover:border-accent/50 hover:bg-tint/[0.12]"
         aria-label={language === "ko" ? "맨 위로 이동" : "Scroll to top"}
         title={language === "ko" ? "맨 위로 이동" : "Scroll to top"}
       >
@@ -1544,8 +1544,8 @@ function IconButton({
       className={cn(
         "inline-flex h-9 w-9 items-center justify-center rounded-full border text-sm transition",
         active
-          ? "border-accent/60 bg-accent/15 text-blue-100"
-          : "border-white/10 bg-white/[0.03] text-muted hover:border-accent/50 hover:text-ink",
+          ? "border-accent/60 bg-accent/15 text-accent-ink"
+          : "border-tint/10 bg-tint/[0.03] text-muted hover:border-accent/50 hover:text-ink",
       )}
     >
       {glyph}

@@ -138,7 +138,7 @@ export default function AnalystNewsletterPage() {
     return (
       <main className="site-grid min-h-screen overflow-x-hidden">
         <Header />
-        <section className="border-t border-white/10 bg-background/72">
+        <section className="border-t border-tint/10 bg-background/72">
           <Container className="section-space">
             <Card className="p-8 text-center">
               <p className="text-lg font-semibold text-ink">Analyst not found</p>
@@ -169,7 +169,7 @@ export default function AnalystNewsletterPage() {
       )}
       {checkoutBanner === "cancelled" && (
         <div className="fixed inset-x-0 top-16 z-50 flex justify-center px-4 pt-3">
-          <div className="flex w-full max-w-md items-center gap-3 rounded-2xl border border-white/10 bg-surface/80 px-5 py-4 shadow-xl backdrop-blur-sm">
+          <div className="flex w-full max-w-md items-center gap-3 rounded-2xl border border-tint/10 bg-surface/80 px-5 py-4 shadow-xl backdrop-blur-sm">
             <span className="text-lg">ℹ️</span>
             <p className="text-sm text-muted">Checkout cancelled. You can subscribe anytime.</p>
           </div>
@@ -189,7 +189,7 @@ export default function AnalystNewsletterPage() {
       )}
 
       {/* Hero / Profile header */}
-      <section className="border-t border-white/10 bg-gradient-to-b from-accent/[0.06] to-background/0">
+      <section className="border-t border-tint/10 bg-gradient-to-b from-accent/[0.06] to-background/0">
         <Container className="py-10 sm:py-14">
           <div className="mx-auto max-w-2xl">
             {/* Breadcrumb */}
@@ -201,7 +201,7 @@ export default function AnalystNewsletterPage() {
 
             {/* Avatar + name */}
             <div className="flex items-center gap-4">
-              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border-2 border-accent/30 bg-accent/15 text-xl font-bold text-blue-100">
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border-2 border-accent/30 bg-accent/15 text-xl font-bold text-accent-ink">
                 {avatar}
               </div>
               <div>
@@ -244,7 +244,7 @@ export default function AnalystNewsletterPage() {
                   <button
                     type="button"
                     onClick={handleUnsubscribe}
-                    className="rounded-full border border-white/10 px-4 py-2 text-sm font-semibold text-muted transition hover:border-rose-400/30 hover:text-rose-300"
+                    className="rounded-full border border-tint/10 px-4 py-2 text-sm font-semibold text-muted transition hover:border-rose-400/30 hover:text-rose-300"
                   >
                     Unsubscribe
                   </button>
@@ -267,7 +267,7 @@ export default function AnalystNewsletterPage() {
       </section>
 
       {/* Posts feed */}
-      <section className="border-t border-white/10 bg-background/72">
+      <section className="border-t border-tint/10 bg-background/72">
         <Container className="py-10">
           <div className="mx-auto max-w-2xl gap-8 grid">
 
@@ -362,7 +362,7 @@ function NewsletterPostCard({
   });
 
   return (
-    <article className="overflow-hidden rounded-2xl border border-white/10 bg-surface/60">
+    <article className="overflow-hidden rounded-2xl border border-tint/10 bg-surface/60">
       {/* Accent bar for premium */}
       {post.isPremium && (
         <div className="h-0.5 w-full bg-gradient-to-r from-amber-400/60 to-amber-400/10" />
@@ -401,7 +401,7 @@ function NewsletterPostCard({
         <div className="relative">
           {/* Blurred body teaser */}
           <div className="px-5 pb-3 select-none">
-            <div className="relative overflow-hidden rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+            <div className="relative overflow-hidden rounded-xl border border-tint/[0.06] bg-tint/[0.02] p-4">
               <p className="pointer-events-none line-clamp-3 text-sm leading-6 text-muted blur-[3px]">
                 {post.body}
               </p>
@@ -409,7 +409,7 @@ function NewsletterPostCard({
             </div>
           </div>
           {/* Lock CTA */}
-          <div className="border-t border-white/[0.06] bg-white/[0.02] px-5 py-5 text-center">
+          <div className="border-t border-tint/[0.06] bg-tint/[0.02] px-5 py-5 text-center">
             <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full border border-accent/30 bg-accent/15 text-lg">
               🔒
             </div>
@@ -426,11 +426,11 @@ function NewsletterPostCard({
         </div>
       ) : (
         /* ── Full body (free or subscribed) ── */
-        <div className="border-t border-white/[0.06]">
+        <div className="border-t border-tint/[0.06]">
           <button
             type="button"
             onClick={() => setExpanded((v) => !v)}
-            className="flex w-full items-center justify-between px-5 py-3 text-left hover:bg-white/[0.02]"
+            className="flex w-full items-center justify-between px-5 py-3 text-left hover:bg-tint/[0.02]"
           >
             <span className="text-xs font-semibold text-accent">
               {expanded ? "Collapse" : "Read full post"}
@@ -495,9 +495,9 @@ function SubscribeModal({
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="w-full max-w-md overflow-hidden rounded-2xl border border-white/10 bg-[#0d1220] shadow-2xl">
+      <div className="w-full max-w-md overflow-hidden rounded-2xl border border-tint/10 bg-[#0d1220] shadow-2xl">
         {/* Header */}
-        <div className="border-b border-white/10 px-6 py-5">
+        <div className="border-b border-tint/10 px-6 py-5">
           <div className="flex items-center justify-between gap-3">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">
               Subscribe
@@ -543,7 +543,7 @@ function SubscribeModal({
                         "rounded-xl border p-3 text-left transition",
                         plan === p
                           ? "border-accent/60 bg-accent/10"
-                          : "border-white/[0.08] bg-white/[0.02] hover:border-white/20",
+                          : "border-tint/[0.08] bg-tint/[0.02] hover:border-tint/20",
                       )}
                     >
                       <p className="text-sm font-semibold capitalize text-ink">{p}</p>
@@ -570,7 +570,7 @@ function SubscribeModal({
               </span>
               <input
                 autoFocus
-                className="mt-2 min-h-11 w-full rounded-md border border-white/10 bg-background px-4 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
+                className="mt-2 min-h-11 w-full rounded-md border border-tint/10 bg-background px-4 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
                 onChange={(e) => setEmail(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
                 placeholder="you@example.com"

@@ -54,7 +54,7 @@ export default async function AnalystDashboardPage() {
   return (
     <main className="site-grid min-h-screen overflow-x-hidden pb-24">
       <Header />
-      <section className="border-t border-white/10 bg-background/72">
+      <section className="border-t border-tint/10 bg-background/72">
         <Container className="section-space">
           <div className="mx-auto grid max-w-7xl gap-6">
             <Card className="min-w-0 p-6">
@@ -87,13 +87,13 @@ export default async function AnalystDashboardPage() {
                         Monthly membership revenue
                       </h2>
                     </div>
-                    <div className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-muted">
+                    <div className="rounded-md border border-tint/10 bg-tint/[0.03] px-3 py-2 text-sm text-muted">
                       70% analyst / 30% Chain Brief
                     </div>
                   </div>
 
                   <form className="mt-5 grid gap-4" action={saveAnalystDashboardSettingsAction}>
-                    <label className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
+                    <label className="flex items-center gap-3 rounded-xl border border-tint/10 bg-tint/[0.03] px-4 py-3">
                       <input
                         defaultChecked={snapshot.profile?.membership_enabled ?? false}
                         name="membership_enabled"
@@ -113,7 +113,7 @@ export default async function AnalystDashboardPage() {
                           Monthly price
                         </span>
                         <input
-                          className="mt-2 min-h-11 w-full rounded-md border border-white/10 bg-background px-4 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
+                          className="mt-2 min-h-11 w-full rounded-md border border-tint/10 bg-background px-4 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
                           defaultValue={snapshot.profile?.membership_price_usd ?? 1}
                           min={1}
                           max={50}
@@ -128,7 +128,7 @@ export default async function AnalystDashboardPage() {
                           Membership description
                         </span>
                         <textarea
-                          className="mt-2 min-h-28 w-full rounded-md border border-white/10 bg-background px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
+                          className="mt-2 min-h-28 w-full rounded-md border border-tint/10 bg-background px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
                           defaultValue={snapshot.profile?.membership_description ?? ""}
                           name="membership_description"
                           placeholder="Describe what members receive."
@@ -161,7 +161,7 @@ export default async function AnalystDashboardPage() {
                         <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
                           {bar.label}
                         </span>
-                        <div className="h-3 overflow-hidden rounded-full bg-white/10">
+                        <div className="h-3 overflow-hidden rounded-full bg-tint/10">
                           <div
                             className="h-full rounded-full bg-accent"
                             style={{ width: `${Math.max((bar.amount / maxRevenue) * 100, 6)}%` }}
@@ -186,7 +186,7 @@ export default async function AnalystDashboardPage() {
                       snapshot.memberships.map((membership) => (
                         <div
                           key={membership.id}
-                          className="rounded-xl border border-white/10 bg-white/[0.03] p-3"
+                          className="rounded-xl border border-tint/10 bg-tint/[0.03] p-3"
                         >
                           <div className="flex items-center justify-between gap-3">
                             <p className="text-sm font-semibold text-ink">
@@ -257,7 +257,7 @@ function MetricCard({ label, value }: { label: string; value: string }) {
 
 function StatRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-start justify-between gap-4 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2">
+    <div className="flex items-start justify-between gap-4 rounded-xl border border-tint/10 bg-tint/[0.03] px-3 py-2">
       <span className="text-muted">{label}</span>
       <span className="text-right font-semibold text-ink">{value}</span>
     </div>
@@ -266,7 +266,7 @@ function StatRow({ label, value }: { label: string; value: string }) {
 
 function Badge({ status }: { status: string }) {
   return (
-    <span className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-muted">
+    <span className="rounded-full border border-tint/10 bg-tint/[0.03] px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-muted">
       {status}
     </span>
   );

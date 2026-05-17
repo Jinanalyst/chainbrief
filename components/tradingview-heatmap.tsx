@@ -149,7 +149,7 @@ function TradingViewHeatmapComponent({
   return (
     <section className="bg-background/72 py-6 sm:py-8 lg:py-10">
       <Container className="min-w-0">
-        <div className="mb-5 flex min-w-0 flex-col gap-3 border-b border-white/10 pb-5 sm:flex-row sm:items-end sm:justify-between">
+        <div className="mb-5 flex min-w-0 flex-col gap-3 border-b border-tint/10 pb-5 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">
               {config.eyebrow[language]}
@@ -161,12 +161,12 @@ function TradingViewHeatmapComponent({
               {config.summary[language]}
             </p>
           </div>
-          <span className="w-fit rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs font-semibold text-muted-2">
+          <span className="w-fit rounded-full border border-tint/10 bg-tint/[0.03] px-3 py-1.5 text-xs font-semibold text-muted-2">
             TradingView
           </span>
         </div>
 
-        <div className="overflow-hidden rounded-lg border border-white/10 bg-white shadow-soft">
+        <div className="overflow-hidden rounded-lg border border-tint/10 bg-white shadow-soft">
           <div
             className="tradingview-widget-container w-full"
             ref={containerRef}
