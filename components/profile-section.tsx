@@ -538,6 +538,16 @@ export function ProfileSection() {
           </div>
         </CollapsibleCard>
 
+        {/* Membership */}
+        <CollapsibleCard title="Membership" id="membership" defaultOpen={false}>
+          <p className="text-sm leading-6 text-muted">
+            Configure your plan ladder, write member-aware analysis, and publish into Community as a Verified Analyst.
+          </p>
+          <Button className="mt-4 w-full" href="/membership" variant="secondary">
+            Open Membership Studio
+          </Button>
+        </CollapsibleCard>
+
         {/* Verified Analyst */}
         <CollapsibleCard title="Verified Analyst" accent id="verified-analyst" defaultOpen={false}>
           <h3 className="text-base font-semibold text-ink">콘텐츠 기반 시장 분석가 신청</h3>
