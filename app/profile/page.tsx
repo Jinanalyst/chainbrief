@@ -7,7 +7,7 @@ export default function ProfilePage() {
   return (
     <main className="site-grid min-h-screen overflow-hidden">
       <Header />
-      <section className="border-t border-white/10 bg-background/72">
+      <section className="border-t border-tint/10 bg-background/72">
         <Container className="section-space">
           <SectionTitle
             eyebrow="Profile"

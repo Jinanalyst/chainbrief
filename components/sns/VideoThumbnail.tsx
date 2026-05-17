@@ -11,7 +11,7 @@ export function VideoThumbnail({ alt, className, src }: VideoThumbnailProps) {
   return (
     <div
       className={cn(
-        "relative aspect-video overflow-hidden rounded-md border border-white/10 bg-white/[0.04]",
+        "relative aspect-video overflow-hidden rounded-md border border-tint/10 bg-tint/[0.04]",
         className,
       )}
     >

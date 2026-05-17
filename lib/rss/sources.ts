@@ -10,6 +10,7 @@ export type RssSource = {
 export const RSS_REFRESH_SECONDS = 20 * 60;
 
 export const rssSources: RssSource[] = [
+  // ── Crypto ──────────────────────────────────────────────────────────────────
   {
     id: "coindesk",
     name: "CoinDesk",
@@ -41,5 +42,31 @@ export const rssSources: RssSource[] = [
     description: "Crypto markets, DeFi, policy, and institutional coverage.",
     enabledByDefault: true,
     defaultCategory: "Markets",
+  },
+
+  // ── Stock Market ─────────────────────────────────────────────────────────────
+  {
+    id: "marketwatch",
+    name: "MarketWatch",
+    url: "https://feeds.content.dowjones.io/public/rss/mw_topstories",
+    description: "Top financial markets, equities, and business news from MarketWatch.",
+    enabledByDefault: true,
+    defaultCategory: "Stock Market",
+  },
+  {
+    id: "cnbc-markets",
+    name: "CNBC Markets",
+    url: "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000664",
+    description: "U.S. and global equity market news and analysis from CNBC.",
+    enabledByDefault: true,
+    defaultCategory: "Stock Market",
+  },
+  {
+    id: "reuters-business",
+    name: "Reuters Business",
+    url: "https://feeds.reuters.com/reuters/businessNews",
+    description: "Global business, corporate, and financial market news from Reuters.",
+    enabledByDefault: true,
+    defaultCategory: "Stock Market",
   },
 ];

@@ -28,6 +28,6 @@ export type SnsVideo = {
   thumbnailUrl: string;
   publishedAt: string;
   description: string;
-  category: Exclude<SnsCategory, "All">;
+  category: string;
   tags: string[];
 };

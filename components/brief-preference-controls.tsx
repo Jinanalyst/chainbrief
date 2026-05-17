@@ -1,6 +1,8 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import { ACTIVE_SOURCES, BRIEF_CATEGORIES, type BriefPreferences } from "@/lib/preferences";
+import { readCustomRssSources } from "@/lib/custom-rss-sources";
 import { cn } from "@/lib/cn";
 import { getCategoryLabel } from "@/lib/i18n";
 import { useI18n } from "@/lib/i18n/use-i18n";
@@ -15,6 +17,29 @@ export function BriefPreferenceControls({
   onChange,
 }: BriefPreferenceControlsProps) {
   const { t: copy } = useI18n(preferences.language);
+  const [customSources, setCustomSources] = useState(() => readCustomRssSources());
+
+  useEffect(() => {
+    function sync() {
+      setCustomSources(readCustomRssSources());
+    }
+    window.addEventListener("chain-brief-custom-rss-sources-changed", sync);
+    window.addEventListener("storage", sync);
+    return () => {
+      window.removeEventListener("chain-brief-custom-rss-sources-changed", sync);
+      window.removeEventListener("storage", sync);
+    };
+  }, []);
+
+  const dynamicCategories = useMemo(() => {
+    const custom = customSources
+      .filter((s) => s.enabled)
+      .map((s) => s.customCategory?.trim())
+      .filter((c): c is string => Boolean(c));
+    const unique = Array.from(new Set(custom));
+    const base = BRIEF_CATEGORIES.filter((c) => c !== "Web3");
+    return [...base, ...unique.filter((c) => !base.includes(c))];
+  }, [customSources]);
 
   function toggleSource(source: string) {
     const nextSources = preferences.sources.includes(source)
@@ -28,7 +53,7 @@ export function BriefPreferenceControls({
   }
 
   return (
-    <div className="min-w-0 rounded-lg border border-white/10 bg-surface/78 p-3 shadow-soft sm:p-4">
+    <div className="min-w-0 rounded-lg border border-tint/10 bg-surface/78 p-3 shadow-soft sm:p-4">
       <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
@@ -44,7 +69,7 @@ export function BriefPreferenceControls({
                     "rounded-md border px-3 py-2 text-sm font-semibold transition",
                     isActive
                       ? "border-accent bg-accent text-white"
-                      : "border-white/10 bg-white/[0.03] text-muted hover:text-ink",
+                      : "border-tint/10 bg-tint/[0.03] text-muted hover:text-ink",
                   )}
                   key={source}
                   onClick={() => toggleSource(source)}
@@ -62,13 +87,13 @@ export function BriefPreferenceControls({
             {copy.preferences.category}
           </p>
           <div className="mt-3 flex max-w-full gap-2 overflow-x-auto overscroll-x-contain pb-1 [-webkit-overflow-scrolling:touch]">
-            {BRIEF_CATEGORIES.map((category) => (
+            {dynamicCategories.map((category) => (
               <button
                 className={cn(
                   "whitespace-nowrap rounded-md border px-3 py-2 text-sm font-semibold transition",
                   preferences.category === category
                     ? "border-accent bg-accent text-white"
-                    : "border-white/10 bg-white/[0.03] text-muted hover:text-ink",
+                    : "border-tint/10 bg-tint/[0.03] text-muted hover:text-ink",
                 )}
                 key={category}
                 onClick={() => onChange({ ...preferences, category })}
@@ -87,7 +112,7 @@ export function BriefPreferenceControls({
             {copy.preferences.includeKeywords}
           </span>
           <input
-            className="mt-2 min-h-11 w-full rounded-md border border-white/10 bg-background px-4 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
+            className="mt-2 min-h-11 w-full rounded-md border border-tint/10 bg-background px-4 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
             onChange={(event) =>
               onChange({ ...preferences, includeKeywords: event.target.value })
             }
@@ -100,7 +125,7 @@ export function BriefPreferenceControls({
             {copy.preferences.excludeKeywords}
           </span>
           <input
-            className="mt-2 min-h-11 w-full rounded-md border border-white/10 bg-background px-4 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
+            className="mt-2 min-h-11 w-full rounded-md border border-tint/10 bg-background px-4 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
             onChange={(event) =>
               onChange({ ...preferences, excludeKeywords: event.target.value })
             }
@@ -110,7 +135,7 @@ export function BriefPreferenceControls({
         </label>
       </div>
 
-      <div className="mt-4 min-w-0 rounded-lg border border-white/10 bg-background/60 p-3 sm:p-4">
+      <div className="mt-4 min-w-0 rounded-lg border border-tint/10 bg-background/60 p-3 sm:p-4">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
           {copy.feed.language}
         </p>
@@ -135,7 +160,7 @@ export function BriefPreferenceControls({
                   "rounded-md border p-3 text-left transition",
                   isActive
                     ? "border-accent bg-accent/15 text-ink"
-                    : "border-white/10 bg-white/[0.03] text-muted hover:text-ink",
+                    : "border-tint/10 bg-tint/[0.03] text-muted hover:text-ink",
                 )}
                 key={language.value}
                 onClick={() =>

@@ -63,7 +63,7 @@ export function AnalystApplyForm({
             Full name *
           </span>
           <input
-            className="mt-2 min-h-11 w-full rounded-md border border-white/10 bg-background px-4 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
+            className="mt-2 min-h-11 w-full rounded-md border border-tint/10 bg-background px-4 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
             name="full_name"
             required
             placeholder="Your legal or display name"
@@ -75,7 +75,7 @@ export function AnalystApplyForm({
             Twitter / X handle
           </span>
           <input
-            className="mt-2 min-h-11 w-full rounded-md border border-white/10 bg-background px-4 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
+            className="mt-2 min-h-11 w-full rounded-md border border-tint/10 bg-background px-4 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
             name="twitter_handle"
             placeholder="@yourhandle"
           />
@@ -90,7 +90,7 @@ export function AnalystApplyForm({
           {EXPERTISE_OPTIONS.map((item) => (
             <label
               key={item}
-              className="flex cursor-pointer items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-ink transition hover:border-accent/40 hover:bg-white/[0.05]"
+              className="flex cursor-pointer items-center gap-3 rounded-xl border border-tint/10 bg-tint/[0.03] px-4 py-3 text-sm text-ink transition hover:border-accent/40 hover:bg-tint/[0.05]"
             >
               <input
                 className="accent-blue-400"
@@ -109,7 +109,7 @@ export function AnalystApplyForm({
           Years of experience *
         </span>
         <select
-          className="mt-2 min-h-11 w-full rounded-md border border-white/10 bg-background px-4 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
+          className="mt-2 min-h-11 w-full rounded-md border border-tint/10 bg-background px-4 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
           name="experience_years"
           defaultValue="lt_1"
         >
@@ -126,7 +126,7 @@ export function AnalystApplyForm({
           Short bio * <span className="normal-case text-muted-2">(max 300 chars)</span>
         </span>
         <textarea
-          className="mt-2 min-h-28 w-full rounded-md border border-white/10 bg-background px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
+          className="mt-2 min-h-28 w-full rounded-md border border-tint/10 bg-background px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
           maxLength={300}
           name="bio"
           required
@@ -139,7 +139,7 @@ export function AnalystApplyForm({
           Sample analysis link *
         </span>
         <input
-          className="mt-2 min-h-11 w-full rounded-md border border-white/10 bg-background px-4 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
+          className="mt-2 min-h-11 w-full rounded-md border border-tint/10 bg-background px-4 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
           name="sample_link"
           required
           type="url"
@@ -152,7 +152,7 @@ export function AnalystApplyForm({
           Motivation * <span className="normal-case text-muted-2">(max 500 chars)</span>
         </span>
         <textarea
-          className="mt-2 min-h-32 w-full rounded-md border border-white/10 bg-background px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
+          className="mt-2 min-h-32 w-full rounded-md border border-tint/10 bg-background px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
           maxLength={500}
           name="motivation"
           required
@@ -161,7 +161,7 @@ export function AnalystApplyForm({
       </label>
 
       {/* Disclaimer agreement */}
-      <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
+      <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-tint/10 bg-tint/[0.03] px-4 py-3">
         <input
           required
           className="mt-1 accent-blue-400"

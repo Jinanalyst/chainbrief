@@ -22,7 +22,7 @@ export function BriefingCard({ article, featured = false }: BriefingCardProps) {
     <Card
       as="article"
       className={cn(
-        "group border-l-2 border-l-white/10 p-4 hover:-translate-y-0.5 hover:border-accent/45 hover:border-l-accent hover:shadow-glow",
+        "group border-l-2 border-l-tint/10 p-4 hover:-translate-y-0.5 hover:border-accent/45 hover:border-l-accent hover:shadow-glow",
         featured && "bg-surface-2/90 p-5 sm:p-6",
       )}
     >
@@ -44,7 +44,7 @@ export function BriefingCard({ article, featured = false }: BriefingCardProps) {
       <a href={article.originalUrl} target="_blank" rel="noreferrer">
         <h2
           className={cn(
-            "mt-4 font-semibold leading-tight text-ink transition group-hover:text-blue-100",
+            "mt-4 font-semibold leading-tight text-ink transition group-hover:text-accent-ink",
             featured ? "text-2xl sm:text-3xl" : "text-lg",
           )}
         >
@@ -67,7 +67,7 @@ export function BriefingCard({ article, featured = false }: BriefingCardProps) {
         {article.tags.map((tag) => (
           <span
             key={tag}
-            className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs font-medium text-muted"
+            className="rounded-full border border-tint/10 bg-tint/[0.03] px-3 py-1 text-xs font-medium text-muted"
           >
             {tag}
           </span>

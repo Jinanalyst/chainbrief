@@ -7,7 +7,7 @@ export default function LoginPage() {
   return (
     <main className="site-grid min-h-screen overflow-hidden">
       <Header />
-      <section className="border-t border-white/10 bg-background/72">
+      <section className="border-t border-tint/10 bg-background/72">
         <Container className="flex min-h-[calc(100vh-5rem)] items-center justify-center py-12">
           <Card className="w-full max-w-md p-6 sm:p-8">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">

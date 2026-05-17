@@ -4,7 +4,58 @@
 
 :root {
   color-scheme: dark;
-  background: #070a12;
+
+  --color-background: 7 10 18;
+  --color-surface: 13 17 28;
+  --color-surface-2: 18 24 39;
+  --color-surface-3: 24 32 51;
+  --color-border: 38 48 68;
+  --color-line: 38 48 68;
+  --color-ink: 247 250 252;
+  --color-muted: 154 167 184;
+  --color-muted-2: 102 117 138;
+  --color-accent: 47 123 255;
+  --color-accent-soft: 16 43 92;
+  --color-success: 37 198 133;
+  --color-danger: 255 94 108;
+  --color-tint: 255 255 255;
+  --color-accent-ink: 219 234 254;
+
+  --body-gradient: linear-gradient(180deg, rgba(47, 123, 255, 0.10), transparent 24rem);
+  --selection-bg: rgba(47, 123, 255, 0.35);
+  --selection-fg: #ffffff;
+  --grid-line: rgba(255, 255, 255, 0.035);
+  --premium-border: rgba(148, 163, 184, 0.18);
+  --signal-grid-strong: rgba(255, 255, 255, 0.045);
+  --signal-grid-soft: rgba(255, 255, 255, 0.035);
+}
+
+html.theme-light {
+  color-scheme: light;
+
+  --color-background: 255 255 255;
+  --color-surface: 245 247 251;
+  --color-surface-2: 238 241 247;
+  --color-surface-3: 226 232 240;
+  --color-border: 203 213 225;
+  --color-line: 203 213 225;
+  --color-ink: 11 18 32;
+  --color-muted: 51 65 85;
+  --color-muted-2: 71 85 105;
+  --color-accent: 37 99 235;
+  --color-accent-soft: 219 234 254;
+  --color-success: 22 163 105;
+  --color-danger: 220 38 56;
+  --color-tint: 15 23 42;
+  --color-accent-ink: 29 78 216;
+
+  --body-gradient: linear-gradient(180deg, rgba(47, 123, 255, 0.06), transparent 24rem);
+  --selection-bg: rgba(47, 123, 255, 0.25);
+  --selection-fg: #ffffff;
+  --grid-line: rgba(15, 23, 42, 0.045);
+  --premium-border: rgba(15, 23, 42, 0.12);
+  --signal-grid-strong: rgba(15, 23, 42, 0.06);
+  --signal-grid-soft: rgba(15, 23, 42, 0.04);
 }
 
 * {
@@ -15,10 +66,8 @@ body {
   margin: 0;
   min-height: 100vh;
   overflow-x: hidden;
-  background:
-    linear-gradient(180deg, rgba(47, 123, 255, 0.10), transparent 24rem),
-    #070a12;
-  color: #f7fafc;
+  background: var(--body-gradient), rgb(var(--color-background));
+  color: rgb(var(--color-ink));
 }
 
 a {
@@ -34,20 +83,20 @@ select {
 }
 
 ::selection {
-  background: rgba(47, 123, 255, 0.35);
-  color: #ffffff;
+  background: var(--selection-bg);
+  color: var(--selection-fg);
 }
 
 @layer components {
   .site-grid {
     background-image:
-      linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+      linear-gradient(var(--grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
     background-size: 44px 44px;
   }
 
   .premium-border {
-    border-color: rgba(148, 163, 184, 0.18);
+    border-color: var(--premium-border);
   }
 
   .live-issues-mask {
@@ -77,8 +126,8 @@ select {
   .landing-signal-bg {
     background:
       linear-gradient(120deg, rgba(47, 123, 255, 0.16), transparent 34rem),
-      linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+      linear-gradient(var(--signal-grid-strong) 1px, transparent 1px),
+      linear-gradient(90deg, var(--signal-grid-soft) 1px, transparent 1px);
     background-size: auto, 28px 28px, 28px 28px;
     mask-image: linear-gradient(180deg, #000, transparent 88%);
   }

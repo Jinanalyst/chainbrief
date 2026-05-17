@@ -45,13 +45,13 @@ export function SNSCard({ language, video }: SNSCardProps) {
         : "Open original";
 
   return (
-    <article className="group grid min-w-0 gap-3 px-3 py-4 transition hover:bg-white/[0.03] sm:gap-4 sm:px-4 md:grid-cols-[13rem_minmax(0,1fr)] lg:grid-cols-[15rem_minmax(0,1fr)]">
+    <article className="group grid min-w-0 gap-3 px-3 py-4 transition hover:bg-tint/[0.03] sm:gap-4 sm:px-4 md:grid-cols-[13rem_minmax(0,1fr)] lg:grid-cols-[15rem_minmax(0,1fr)]">
       <div className="min-w-0">
         {embedUrl ? (
           <iframe
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             allowFullScreen
-            className="aspect-video w-full rounded-md border border-white/10 bg-black"
+            className="aspect-video w-full rounded-md border border-tint/10 bg-black"
             loading="lazy"
             referrerPolicy="strict-origin-when-cross-origin"
             src={embedUrl}
@@ -60,7 +60,7 @@ export function SNSCard({ language, video }: SNSCardProps) {
         ) : video.thumbnailUrl ? (
           <VideoThumbnail alt={video.title} src={video.thumbnailUrl} />
         ) : (
-          <div className="flex aspect-video items-center justify-center rounded-md border border-white/10 bg-white/[0.04] px-4 text-center text-xs font-semibold uppercase tracking-[0.16em] text-muted">
+          <div className="flex aspect-video items-center justify-center rounded-md border border-tint/10 bg-tint/[0.04] px-4 text-center text-xs font-semibold uppercase tracking-[0.16em] text-muted">
             RSS
           </div>
         )}
@@ -86,7 +86,7 @@ export function SNSCard({ language, video }: SNSCardProps) {
           </h2>
         ) : (
           <a href={video.url} rel="noreferrer" target="_blank">
-            <h2 className="mt-3 break-words text-base font-semibold leading-snug text-ink transition group-hover:text-blue-100 sm:text-lg">
+            <h2 className="mt-3 break-words text-base font-semibold leading-snug text-ink transition group-hover:text-accent-ink sm:text-lg">
               {video.title}
             </h2>
           </a>
@@ -100,7 +100,7 @@ export function SNSCard({ language, video }: SNSCardProps) {
           <div className="mt-3 flex flex-wrap gap-2">
             {video.tags.map((tag) => (
               <span
-                className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-xs font-medium text-muted"
+                className="rounded-full border border-tint/10 bg-tint/[0.03] px-2.5 py-1 text-xs font-medium text-muted"
                 key={tag}
               >
                 {tag}

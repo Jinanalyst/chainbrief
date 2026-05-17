@@ -1,0 +1,82 @@
+/*
+ * Chain Brief community — desktop layout tokens.
+ * Uses the site's standard <Header /> at the top, then a 3-column grid
+ * where the side rails stick alongside the scrolling feed.
+ *
+ * LAYOUT LOCK (prototype intent): --cb-lw / --cb-rw stay 200 / 256 px.
+ */
+.cb-community {
+  --cb-lw: 200px;
+  --cb-rw: 256px;
+  --cb-header-offset: 77px;
+  --cb-bg: rgb(var(--color-background));
+  --cb-surf: rgb(var(--color-surface));
+  --cb-card: rgb(var(--color-surface-2));
+  --cb-hover: rgb(var(--color-surface-3));
+  --cb-b1: rgb(var(--color-tint) / 0.07);
+  --cb-b2: rgb(var(--color-tint) / 0.12);
+  --cb-accent: rgb(var(--color-accent));
+  --cb-t1: rgb(var(--color-ink));
+  --cb-t2: rgb(var(--color-muted));
+  --cb-t3: rgb(var(--color-muted-2));
+  background: var(--cb-bg);
+  color: var(--cb-t1);
+  font-family: "Inter", "Apple SD Gothic Neo", system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+.cb-community a { text-decoration: none; color: inherit; }
+.cb-community button { font-family: inherit; cursor: pointer; }
+
+/* The site <Header /> renders above this grid. */
+.cb-wrap {
+  display: grid;
+  grid-template-columns: var(--cb-lw) minmax(0, 1fr) var(--cb-rw);
+  min-height: calc(100vh - var(--cb-header-offset));
+}
+
+.cb-leftnav {
+  position: sticky;
+  top: var(--cb-header-offset);
+  align-self: start;
+  height: calc(100vh - var(--cb-header-offset));
+  width: var(--cb-lw);
+  background: var(--cb-surf);
+  border-right: 1px solid var(--cb-b1);
+  overflow-y: auto;
+  scrollbar-width: none;
+  padding: 14px 8px;
+  display: flex;
+  flex-direction: column;
+}
+.cb-leftnav::-webkit-scrollbar { display: none; }
+
+.cb-main {
+  min-width: 0;
+  border-right: 1px solid var(--cb-b1);
+}
+
+.cb-rightnav {
+  position: sticky;
+  top: var(--cb-header-offset);
+  align-self: start;
+  height: calc(100vh - var(--cb-header-offset));
+  width: var(--cb-rw);
+  overflow-y: auto;
+  scrollbar-width: none;
+  padding: 16px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.cb-rightnav::-webkit-scrollbar { display: none; }
+
+@media (max-width: 1023px) {
+  .cb-community-desktop-only { display: none; }
+  .cb-community-mobile-only  { display: flex !important; }
+}
+@media (min-width: 1024px) {
+  .cb-community-mobile-only  { display: none !important; }
+}

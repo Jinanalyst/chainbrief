@@ -1,0 +1,31 @@
+{
+  "expo": {
+    "name": "ChainBrief",
+    "slug": "chainbrief-mobile",
+    "scheme": "chainbrief",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "backgroundColor": "#ffffff",
+      "resizeMode": "contain"
+    },
+    "ios": {
+      "bundleIdentifier": "kr.chainbrief.mobile",
+      "supportsTablet": false
+    },
+    "android": {
+      "package": "kr.chainbrief.mobile",
+      "adaptiveIcon": {
+        "backgroundColor": "#ffffff"
+      }
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-status-bar"
+    ]
+  }
+}

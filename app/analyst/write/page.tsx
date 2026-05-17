@@ -62,14 +62,16 @@ export default function AnalystWritePage() {
     // Resolve author name from localStorage > Supabase metadata
     const saved = readAuthorName();
     if (saved) {
-      setAuthorName(saved);
-      const profile = readAnalystProfile(slugifyAnalyst(saved));
-      if (profile) {
-        setAuthorBio(profile.bio);
-        setMembershipPrice(profile.membershipPrice);
-        setMembershipEnabled(profile.membershipEnabled);
-      }
-      return;
+      const timer = window.setTimeout(() => {
+        setAuthorName(saved);
+        const profile = readAnalystProfile(slugifyAnalyst(saved));
+        if (profile) {
+          setAuthorBio(profile.bio);
+          setMembershipPrice(profile.membershipPrice);
+          setMembershipEnabled(profile.membershipEnabled);
+        }
+      }, 0);
+      return () => window.clearTimeout(timer);
     }
     if (!supabase) return;
     supabase.auth.getUser().then(({ data }) => {
@@ -155,7 +157,7 @@ export default function AnalystWritePage() {
   return (
     <main className="site-grid min-h-screen overflow-x-hidden pb-24">
       <Header />
-      <section className="border-t border-white/10 bg-background/72">
+      <section className="border-t border-tint/10 bg-background/72">
         <Container className="section-space">
           <div className="mx-auto grid max-w-5xl gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
 
@@ -176,8 +178,8 @@ export default function AnalystWritePage() {
                   className={cn(
                     "mt-1 shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold transition",
                     previewMode
-                      ? "border-accent/60 bg-accent/15 text-blue-100"
-                      : "border-white/10 text-muted hover:border-accent/50 hover:text-ink",
+                      ? "border-accent/60 bg-accent/15 text-accent-ink"
+                      : "border-tint/10 text-muted hover:border-accent/50 hover:text-ink",
                   )}
                 >
                   {previewMode ? "← Edit" : "Preview"}
@@ -186,11 +188,11 @@ export default function AnalystWritePage() {
 
               {previewMode ? (
                 /* ── Preview ── */
-                <div className="mt-5 rounded-2xl border border-white/10 bg-surface/60 overflow-hidden">
+                <div className="mt-5 rounded-2xl border border-tint/10 bg-surface/60 overflow-hidden">
                   <div className="h-1 w-full bg-gradient-to-r from-accent/60 to-blue-400/30" />
                   <div className="p-6">
                     <div className="flex items-center gap-3 mb-5">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-accent/30 bg-accent/15 text-sm font-bold text-blue-100">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-accent/30 bg-accent/15 text-sm font-bold text-accent-ink">
                         {avatar}
                       </div>
                       <div>
@@ -216,7 +218,7 @@ export default function AnalystWritePage() {
                   <label className="block">
                     <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Title</span>
                     <input
-                      className="mt-2 min-h-11 w-full rounded-md border border-white/10 bg-background px-4 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
+                      className="mt-2 min-h-11 w-full rounded-md border border-tint/10 bg-background px-4 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
                       onChange={(e) => setTitle(e.target.value)}
                       placeholder="Research headline…"
                       value={title}
@@ -227,7 +229,7 @@ export default function AnalystWritePage() {
                     <label className="block">
                       <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Topic</span>
                       <select
-                        className="mt-2 min-h-11 w-full rounded-md border border-white/10 bg-background px-4 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
+                        className="mt-2 min-h-11 w-full rounded-md border border-tint/10 bg-background px-4 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
                         onChange={(e) => setTopic(e.target.value)}
                         value={topic}
                       >
@@ -250,7 +252,7 @@ export default function AnalystWritePage() {
                               "rounded-xl border p-2.5 text-left transition",
                               isPremium === opt.value
                                 ? "border-accent/60 bg-accent/10"
-                                : "border-white/[0.08] bg-white/[0.02] hover:border-white/20",
+                                : "border-tint/[0.08] bg-tint/[0.02] hover:border-tint/20",
                             )}
                           >
                             <p className="text-xs font-semibold text-ink">{opt.label}</p>
@@ -266,7 +268,7 @@ export default function AnalystWritePage() {
                       Content
                     </span>
                     <textarea
-                      className="mt-2 min-h-72 w-full rounded-md border border-white/10 bg-background px-4 py-3 text-sm leading-7 text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
+                      className="mt-2 min-h-72 w-full rounded-md border border-tint/10 bg-background px-4 py-3 text-sm leading-7 text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
                       onChange={(e) => setBody(e.target.value)}
                       placeholder={`Share your analysis, thesis, key data points, and risk assessment…\n\nTip: Include your sources, acknowledge uncertainty, and always mention risk.`}
                       value={body}
@@ -327,7 +329,7 @@ export default function AnalystWritePage() {
                   <label className="block">
                     <span className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-2">Display name</span>
                     <input
-                      className="mt-1.5 min-h-9 w-full rounded-md border border-white/10 bg-background px-3 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent"
+                      className="mt-1.5 min-h-9 w-full rounded-md border border-tint/10 bg-background px-3 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent"
                       onChange={(e) => setAuthorName(e.target.value)}
                       placeholder="Your name"
                       value={authorName}
@@ -336,7 +338,7 @@ export default function AnalystWritePage() {
                   <label className="block">
                     <span className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-2">Bio (optional)</span>
                     <textarea
-                      className="mt-1.5 min-h-20 w-full rounded-md border border-white/10 bg-background px-3 py-2 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent"
+                      className="mt-1.5 min-h-20 w-full rounded-md border border-tint/10 bg-background px-3 py-2 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent"
                       onChange={(e) => setAuthorBio(e.target.value)}
                       placeholder="Short bio shown on your analyst page"
                       value={authorBio}
@@ -349,7 +351,7 @@ export default function AnalystWritePage() {
               <Card className="p-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">Membership</p>
                 <div className="mt-3 grid gap-3">
-                  <label className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5 cursor-pointer">
+                  <label className="flex items-center gap-3 rounded-xl border border-tint/10 bg-tint/[0.03] px-3 py-2.5 cursor-pointer">
                     <input
                       checked={membershipEnabled}
                       onChange={(e) => setMembershipEnabled(e.target.checked)}
@@ -366,7 +368,7 @@ export default function AnalystWritePage() {
                         Monthly price (USD)
                       </span>
                       <input
-                        className="mt-1.5 min-h-9 w-full rounded-md border border-white/10 bg-background px-3 text-sm text-ink outline-none transition focus:border-accent"
+                        className="mt-1.5 min-h-9 w-full rounded-md border border-tint/10 bg-background px-3 text-sm text-ink outline-none transition focus:border-accent"
                         max={99}
                         min={1}
                         onChange={(e) => setMembershipPrice(Number(e.target.value))}

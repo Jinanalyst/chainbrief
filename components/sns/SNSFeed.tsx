@@ -107,7 +107,7 @@ export function SNSFeed() {
   const copy = getSnsCopy(language);
   const [videos, setVideos] = useState<SnsVideo[]>([]);
   const [customSources, setCustomSources] = useState<CustomRssSource[]>([]);
-  const [activeCategory, setActiveCategory] = useState<SnsCategory>("All");
+  const [activeCategory, setActiveCategory] = useState("All");
   const [activeSources, setActiveSources] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -203,6 +203,16 @@ export function SNSFeed() {
   }, [copy.errorMessage, enabledCustomSources]);
 
   const effectiveActiveSources = activeSources.length > 0 ? activeSources : sourceNames;
+
+  const dynamicCategories = useMemo(() => {
+    const custom = enabledCustomSources
+      .map((s) => s.customCategory?.trim())
+      .filter((c): c is string => Boolean(c));
+    const unique = Array.from(new Set(custom));
+    const base = SNS_CATEGORIES as string[];
+    return [...base, ...unique.filter((c) => !base.includes(c))];
+  }, [enabledCustomSources]);
+
   const filteredVideos = useMemo(
     () => filterVideos(videos, activeCategory, effectiveActiveSources, searchQuery),
     [activeCategory, effectiveActiveSources, searchQuery, videos],
@@ -210,8 +220,8 @@ export function SNSFeed() {
   const visibleVideos = filteredVideos.slice(0, visibleVideoCount);
   const hasMoreVideos = visibleVideos.length < filteredVideos.length;
   const categoryCounts = useMemo(
-    () => getCategoryCounts(videos, effectiveActiveSources, searchQuery),
-    [effectiveActiveSources, searchQuery, videos],
+    () => getCategoryCounts(videos, dynamicCategories, effectiveActiveSources, searchQuery),
+    [dynamicCategories, effectiveActiveSources, searchQuery, videos],
   );
 
   function toggleSource(sourceName: string) {
@@ -232,7 +242,7 @@ export function SNSFeed() {
     setVisibleVideoCount(INITIAL_VISIBLE_VIDEOS);
   }
 
-  function handleCategoryChange(category: SnsCategory) {
+  function handleCategoryChange(category: string) {
     setActiveCategory(category);
     setVisibleVideoCount(INITIAL_VISIBLE_VIDEOS);
   }
@@ -249,7 +259,7 @@ export function SNSFeed() {
   const allSourcesSelected = activeSources.length === 0;
 
   return (
-    <section className="border-t border-white/10 bg-background/72">
+    <section className="border-t border-tint/10 bg-background/72">
       <Container className="min-w-0 pb-10 pt-4 sm:pb-12 sm:pt-5 lg:pb-16">
         <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0">
@@ -272,6 +282,7 @@ export function SNSFeed() {
 
         <CategoryTabs
           activeCategory={activeCategory}
+          categories={dynamicCategories}
           counts={categoryCounts}
           language={language}
           onChange={handleCategoryChange}
@@ -279,13 +290,13 @@ export function SNSFeed() {
 
         <div className="mt-5 grid min-w-0 gap-5 lg:grid-cols-[minmax(0,1fr)_18rem]">
           <div className="min-w-0">
-            <div className="mb-4 min-w-0 rounded-lg border border-white/10 bg-surface/78 p-3 sm:p-4">
+            <div className="mb-4 min-w-0 rounded-lg border border-tint/10 bg-surface/78 p-3 sm:p-4">
               <label className="block">
                 <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
                   {copy.searchLabel}
                 </span>
                 <input
-                  className="mt-2 min-h-11 w-full rounded-md border border-white/10 bg-background px-4 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
+                  className="mt-2 min-h-11 w-full rounded-md border border-tint/10 bg-background px-4 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
                   onChange={(event) => handleSearchChange(event.target.value)}
                   placeholder={copy.searchPlaceholder}
                   value={searchQuery}
@@ -311,8 +322,8 @@ export function SNSFeed() {
             ) : null}
 
             {!isLoading && !error && filteredVideos.length > 0 ? (
-              <div className="overflow-hidden rounded-lg border border-white/10 bg-surface/78">
-                <div className="flex min-w-0 items-center justify-between gap-3 border-b border-white/10 px-3 py-3 sm:px-4">
+              <div className="overflow-hidden rounded-lg border border-tint/10 bg-surface/78">
+                <div className="flex min-w-0 items-center justify-between gap-3 border-b border-tint/10 px-3 py-3 sm:px-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
                     {copy.researchFeed}
                   </p>
@@ -320,13 +331,13 @@ export function SNSFeed() {
                     {copy.videoCount(filteredVideos.length)}
                   </span>
                 </div>
-                <div className="divide-y divide-white/10">
+                <div className="divide-y divide-tint/10">
                   {visibleVideos.map((video) => (
                     <SNSCard key={video.id} language={language} video={video} />
                   ))}
                 </div>
                 {hasMoreVideos ? (
-                  <div className="border-t border-white/10 p-3 sm:p-4">
+                  <div className="border-t border-tint/10 p-3 sm:p-4">
                     <Button
                       className="w-full"
                       onClick={showMoreVideos}
@@ -393,7 +404,7 @@ export function SNSFeed() {
               <div className="mt-3 grid gap-2">
                 {["Telegram", "Twitter/X", "Mirror", "Substack"].map((item) => (
                   <div
-                    className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-sm font-semibold text-muted"
+                    className="rounded-md border border-tint/10 bg-tint/[0.03] px-3 py-2 text-sm font-semibold text-muted"
                     key={item}
                   >
                     {item}
@@ -448,20 +459,20 @@ async function fetchCustomRssVideos(sources: CustomRssSource[]) {
 
 function LoadingState() {
   return (
-    <div className="overflow-hidden rounded-lg border border-white/10 bg-surface/78">
+    <div className="overflow-hidden rounded-lg border border-tint/10 bg-surface/78">
       {[0, 1, 2, 3, 4].map((item) => (
         <div
-          className="grid animate-pulse gap-4 border-b border-white/10 px-4 py-4 last:border-b-0 md:grid-cols-[15rem_minmax(0,1fr)]"
+          className="grid animate-pulse gap-4 border-b border-tint/10 px-4 py-4 last:border-b-0 md:grid-cols-[15rem_minmax(0,1fr)]"
           key={item}
         >
-          <div className="aspect-video rounded-md bg-white/10" />
+          <div className="aspect-video rounded-md bg-tint/10" />
           <div>
             <div className="flex gap-2">
-              <div className="h-5 w-20 rounded bg-white/10" />
-              <div className="h-5 w-28 rounded bg-white/10" />
+              <div className="h-5 w-20 rounded bg-tint/10" />
+              <div className="h-5 w-28 rounded bg-tint/10" />
             </div>
-            <div className="mt-4 h-5 w-4/5 rounded bg-white/10" />
-            <div className="mt-3 h-4 w-3/5 rounded bg-white/10" />
+            <div className="mt-4 h-5 w-4/5 rounded bg-tint/10" />
+            <div className="mt-3 h-4 w-3/5 rounded bg-tint/10" />
           </div>
         </div>
       ))}
@@ -510,7 +521,7 @@ function NoMatchesState({
 
 function filterVideos(
   videos: SnsVideo[],
-  activeCategory: SnsCategory,
+  activeCategory: string,
   activeSources: string[],
   searchQuery: string,
 ) {
@@ -535,18 +546,17 @@ function filterVideos(
 
 function getCategoryCounts(
   videos: SnsVideo[],
+  categories: string[],
   activeSources: string[],
   searchQuery: string,
 ) {
   const baseMatches = filterVideos(videos, "All", activeSources, searchQuery);
-  const counts = Object.fromEntries(
-    SNS_CATEGORIES.map((category) => [category, 0]),
-  ) as Record<SnsCategory, number>;
+  const counts = Object.fromEntries(categories.map((c) => [c, 0])) as Record<string, number>;
 
   counts.All = baseMatches.length;
 
   for (const video of baseMatches) {
-    for (const category of SNS_CATEGORIES) {
+    for (const category of categories) {
       if (
         category !== "All" &&
         (video.category === category || video.tags.includes(category))
