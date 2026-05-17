@@ -1,14 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { cn } from "@/lib/cn";
 import { useI18n } from "@/lib/i18n/use-i18n";
 import {
-  formatNotificationKeywords,
   getBrowserNotificationPermission,
   hasPushSupport,
-  parseNotificationKeywords,
   removePushSubscription,
   requestBrowserNotificationPermission,
   sendTestPushNotification,
@@ -96,10 +94,12 @@ export function NotificationSettings({
   const { t: copy } = useI18n(preferences.language);
   const statusCopy = getNotificationStatusCopy(preferences.language);
   const [user, setUser] = useState<User | null>(null);
+  const preferencesRef = useRef(preferences);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isSendingTest, setIsSendingTest] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [statusTone, setStatusTone] = useState<StatusTone>("default");
+  const [keywordInput, setKeywordInput] = useState("");
   const [focusedKeyword, setFocusedKeyword] = useState(
     preferences.notificationKeywords[0] ?? "",
   );
@@ -134,18 +134,31 @@ export function NotificationSettings({
   }, [supabase]);
 
   useEffect(() => {
-    if (!pushSupported || !user || !preferences.notificationsEnabled) {
+    preferencesRef.current = preferences;
+  }, [preferences]);
+
+  const notifSyncKey = [
+    preferences.notificationsEnabled,
+    preferences.notificationPermission,
+    preferences.notificationKeywords.join("\x00"),
+    preferences.language,
+  ].join("|");
+
+  useEffect(() => {
+    const prefs = preferencesRef.current;
+
+    if (!pushSupported || !user || !prefs.notificationsEnabled) {
       return;
     }
 
-    if (preferences.notificationPermission !== "granted" || !hasPushPublicKey) {
+    if (prefs.notificationPermission !== "granted" || !hasPushPublicKey) {
       return;
     }
 
     let ignore = false;
 
     async function syncCurrentPreferences() {
-      const result = await syncPushSubscription(preferences);
+      const result = await syncPushSubscription(preferencesRef.current);
 
       if (ignore) {
         return;
@@ -162,13 +175,7 @@ export function NotificationSettings({
     return () => {
       ignore = true;
     };
-  }, [
-    hasPushPublicKey,
-    preferences,
-    pushSupported,
-    statusCopy.syncFailed,
-    user,
-  ]);
+  }, [hasPushPublicKey, notifSyncKey, pushSupported, statusCopy.syncFailed, user]);
 
   async function toggleNotifications() {
     const nextEnabled = !preferences.notificationsEnabled;
@@ -273,23 +280,32 @@ export function NotificationSettings({
     setStatusMessage(
       sent
         ? keywordForTest
-          ? preferences.language === "ko"
-            ? `"${keywordForTest}" 키워드를 강조한 테스트 알림을 보냈습니다.`
-            : `Test notification sent with "${keywordForTest}" highlighted.`
+          ? `Test notification sent with "${keywordForTest}" highlighted.`
           : statusCopy.testSuccess
         : statusCopy.testFailed,
     );
   }
 
-  function updateKeywords(value: string) {
-    const nextKeywords = parseNotificationKeywords(value);
-    const changedKeyword =
-      nextKeywords.find((keyword) => !preferences.notificationKeywords.includes(keyword)) ??
-      nextKeywords.find((keyword, index) => keyword !== preferences.notificationKeywords[index]) ??
-      nextKeywords[0] ??
-      "";
+  function addKeyword() {
+    const trimmed = keywordInput.trim();
+    if (!trimmed || preferences.notificationKeywords.includes(trimmed)) {
+      setKeywordInput("");
+      return;
+    }
+    const nextKeywords = [...preferences.notificationKeywords, trimmed].slice(0, 20);
+    setFocusedKeyword(trimmed);
+    onChange({
+      ...preferences,
+      notificationKeywords: nextKeywords,
+    });
+    setKeywordInput("");
+  }
 
-    setFocusedKeyword(changedKeyword);
+  function removeKeyword(keyword: string) {
+    const nextKeywords = preferences.notificationKeywords.filter((k) => k !== keyword);
+    if (keyword === focusedKeyword) {
+      setFocusedKeyword(nextKeywords[0] ?? "");
+    }
     onChange({
       ...preferences,
       notificationKeywords: nextKeywords,
@@ -312,7 +328,7 @@ export function NotificationSettings({
       : "Login required for background push";
 
   return (
-    <div className="mt-4 min-w-0 rounded-lg border border-white/10 bg-background/60 p-3 sm:p-4">
+    <div className="mt-4 min-w-0 rounded-lg border border-tint/10 bg-background/60 p-3 sm:p-4">
       <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
@@ -328,7 +344,7 @@ export function NotificationSettings({
             "flex min-h-8 w-14 shrink-0 items-center rounded-full border p-1 transition",
             preferences.notificationsEnabled
               ? "justify-end border-accent bg-accent"
-              : "justify-start border-white/10 bg-white/[0.03]",
+              : "justify-start border-tint/10 bg-tint/[0.03]",
           )}
           disabled={preferences.notificationPermission === "unsupported" || isSyncing}
           onClick={toggleNotifications}
@@ -339,7 +355,7 @@ export function NotificationSettings({
       </div>
 
       <div className="mt-4 grid min-w-0 gap-3 text-sm md:grid-cols-2">
-        <div className="min-w-0 rounded-md border border-white/10 bg-white/[0.03] p-3">
+        <div className="min-w-0 rounded-md border border-tint/10 bg-tint/[0.03] p-3">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
             {copy.notifications.enabledState}
           </p>
@@ -349,7 +365,7 @@ export function NotificationSettings({
               : copy.notifications.disabled}
           </p>
         </div>
-        <div className="min-w-0 rounded-md border border-white/10 bg-white/[0.03] p-3">
+        <div className="min-w-0 rounded-md border border-tint/10 bg-tint/[0.03] p-3">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
             {copy.notifications.permissionStatus}
           </p>
@@ -357,41 +373,61 @@ export function NotificationSettings({
         </div>
       </div>
 
-      <label className="mt-4 block min-w-0">
-        <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
+      <div className="mt-4 min-w-0">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
           {copy.notifications.keywords}
-        </span>
-        <textarea
-          className="mt-2 min-h-28 w-full rounded-md border border-white/10 bg-background px-4 py-3 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
-          onChange={(event) => updateKeywords(event.target.value)}
-          placeholder={"Bitcoin ETF\nSolana\nSEC\nEthereum\nFed"}
-          value={formatNotificationKeywords(preferences.notificationKeywords)}
-        />
-      </label>
-
-      {preferences.notificationKeywords.length > 0 ? (
-        <div className="mt-3 flex flex-wrap gap-2">
-          {preferences.notificationKeywords.map((keyword) => (
-            <span
-              className={cn(
-                "rounded-full border px-3 py-1 text-xs font-medium transition",
-                keyword === activeKeyword
-                  ? "border-accent/50 bg-accent/15 text-blue-100"
-                  : "border-white/10 bg-white/[0.03] text-muted",
-              )}
-              key={keyword}
-            >
-              {keyword}
-            </span>
-          ))}
-        </div>
-      ) : (
-        <p className="mt-3 break-words text-sm leading-6 text-muted-2">
-          {copy.notifications.emptyKeywords}
         </p>
-      )}
 
-      <div className="mt-4 grid gap-3 rounded-md border border-white/10 bg-white/[0.03] p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+        <div className="mt-2 flex gap-2">
+          <input
+            className="min-h-10 flex-1 rounded-md border border-tint/10 bg-background px-3 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
+            onChange={(e) => setKeywordInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && addKeyword()}
+            placeholder={preferences.language === "ko" ? "키워드 입력 후 Enter" : "Type a keyword, press Enter"}
+            value={keywordInput}
+          />
+          <button
+            className="shrink-0 rounded-md border border-accent/40 bg-accent/10 px-4 text-sm font-semibold text-accent-ink transition hover:bg-accent/20 disabled:opacity-40"
+            disabled={!keywordInput.trim()}
+            onClick={addKeyword}
+            type="button"
+          >
+            {preferences.language === "ko" ? "추가" : "Add"}
+          </button>
+        </div>
+
+        {preferences.notificationKeywords.length > 0 ? (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {preferences.notificationKeywords.map((keyword) => (
+              <span
+                className={cn(
+                  "flex items-center gap-1.5 rounded-full border pl-3 pr-2 py-1 text-xs font-medium transition",
+                  keyword === activeKeyword
+                    ? "border-accent/60 bg-accent/15 text-accent-ink"
+                    : "border-accent/30 bg-accent/10 text-accent-ink",
+                )}
+                key={keyword}
+              >
+                {keyword}
+                <button
+                  aria-label={`Remove ${keyword}`}
+                  className="flex h-4 w-4 items-center justify-center rounded-full text-accent-ink transition hover:bg-tint/10"
+                  onClick={() => removeKeyword(keyword)}
+                  type="button"
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-3 break-words text-sm leading-6 text-muted-2">
+            {copy.notifications.emptyKeywords}
+          </p>
+        )}
+      </div>
+
+      <div className="mt-4 grid gap-3 rounded-md border border-tint/10 bg-tint/[0.03] p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
         <div className="min-w-0">
           <p className="text-sm font-semibold text-ink">
             {accountLabel}
@@ -400,15 +436,13 @@ export function NotificationSettings({
             {statusCopy.saveHint}
           </p>
           {activeKeyword ? (
-            <p className="mt-1 break-words text-xs leading-5 text-blue-100">
-              {preferences.language === "ko"
-                ? `테스트 팝업은 "${activeKeyword}" 키워드를 강조합니다.`
-                : `The test popup will highlight "${activeKeyword}".`}
+            <p className="mt-1 break-words text-xs leading-5 text-accent-ink">
+              {`The test popup will highlight "${activeKeyword}".`}
             </p>
           ) : null}
         </div>
         <button
-          className="inline-flex min-h-9 items-center justify-center rounded-md border border-accent/30 bg-accent/10 px-3 text-xs font-semibold text-blue-100 transition hover:border-accent/50 hover:bg-accent/15 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex min-h-9 items-center justify-center rounded-md border border-accent/30 bg-accent/10 px-3 text-xs font-semibold text-accent-ink transition hover:border-accent/50 hover:bg-accent/15 disabled:cursor-not-allowed disabled:opacity-50"
           disabled={
             !preferences.notificationsEnabled ||
             preferences.notificationPermission !== "granted" ||
@@ -422,9 +456,7 @@ export function NotificationSettings({
           {isSendingTest
             ? statusCopy.testSending
             : activeKeyword
-              ? preferences.language === "ko"
-                ? `"${activeKeyword}" 테스트`
-                : `Test "${activeKeyword}"`
+              ? `Test "${activeKeyword}"`
               : statusCopy.testButton}
         </button>
       </div>
@@ -437,7 +469,7 @@ export function NotificationSettings({
               ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-100"
               : statusTone === "warning"
                 ? "border-amber-400/25 bg-amber-400/10 text-amber-100"
-                : "border-white/10 bg-white/[0.03] text-muted",
+                : "border-tint/10 bg-tint/[0.03] text-muted",
           )}
         >
           {statusMessage}

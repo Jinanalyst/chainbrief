@@ -13,6 +13,7 @@ import {
   STOCK_TYPES,
   type BriefPreferences,
 } from "@/lib/preferences";
+import { readCustomBriefSources } from "@/lib/custom-brief-sources";
 import {
   readCustomRssSources,
   type CustomRssSource,
@@ -43,23 +44,6 @@ type HomepageFeedProps = {
 const FEED_REFRESH_MS = 5 * 60 * 1000;
 const INITIAL_VISIBLE_ARTICLES = 12;
 const VISIBLE_ARTICLE_STEP = 12;
-const MARKET_REFRESH_MS = 60 * 1000;
-
-const MARKET_ASSETS = [
-  { id: "bitcoin", name: "BTC" },
-  { id: "ethereum", name: "ETH" },
-  { id: "solana", name: "SOL" },
-  { id: "binancecoin", name: "BNB" },
-  { id: "ripple", name: "XRP" },
-  { id: "cardano", name: "ADA" },
-] as const;
-
-type MarketAsset = {
-  id: string;
-  name: string;
-  price: number | null;
-  change24h: number | null;
-};
 
 export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
   const [articles, setArticles] = useState<Article[]>([]);
@@ -72,21 +56,19 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
   const [lastUpdatedAt, setLastUpdatedAt] = useState<string | null>(null);
   const [pendingArticles, setPendingArticles] = useState<Article[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [marketAssets, setMarketAssets] = useState<MarketAsset[]>(
-    MARKET_ASSETS.map((asset) => ({
-      ...asset,
-      price: null,
-      change24h: null,
-    })),
-  );
   const [visibleArticleCount, setVisibleArticleCount] = useState(
     INITIAL_VISIBLE_ARTICLES,
   );
   const articlesRef = useRef<Article[]>([]);
+  const preferencesRef = useRef<BriefPreferences>(preferences);
 
   useEffect(() => {
     articlesRef.current = articles;
   }, [articles]);
+
+  useEffect(() => {
+    preferencesRef.current = preferences;
+  }, [preferences]);
 
   useEffect(() => {
     function syncCustomSources() {
@@ -104,63 +86,6 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
         "chain-brief-custom-rss-sources-changed",
         syncCustomSources,
       );
-    };
-  }, []);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    async function loadMarketData() {
-      try {
-        const response = await fetch(
-          "/api/market",
-          { cache: "no-store" },
-        );
-
-        if (!response.ok) {
-          throw new Error("Market request failed");
-        }
-
-        const data = (await response.json()) as {
-          assets?: Array<{
-            id: string;
-            currentPrice?: number;
-            change24h?: number;
-          }>;
-        };
-
-        if (isMounted) {
-          setMarketAssets(
-            MARKET_ASSETS.map((asset) => {
-              const entry = data.assets?.find((item) => item.id === asset.id);
-
-              return {
-                ...asset,
-                price: entry?.currentPrice ?? null,
-                change24h: entry?.change24h ?? null,
-              };
-            }),
-          );
-        }
-      } catch {
-        if (isMounted) {
-          setMarketAssets(
-            MARKET_ASSETS.map((asset) => ({
-              ...asset,
-              price: null,
-              change24h: null,
-            })),
-          );
-        }
-      }
-    }
-
-    loadMarketData();
-    const refreshTimer = window.setInterval(loadMarketData, MARKET_REFRESH_MS);
-
-    return () => {
-      isMounted = false;
-      window.clearInterval(refreshTimer);
     };
   }, []);
 
@@ -202,10 +127,36 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
         }
 
         if (isMounted) {
-          const nextArticles = data.articles ?? [];
+          let nextArticles = data.articles ?? [];
+
+          const customSources = readCustomBriefSources().filter((s) => s.enabled);
+          if (customSources.length > 0) {
+            try {
+              const customRes = await fetch("/api/brief-sources", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ sources: customSources }),
+                cache: "no-store",
+              });
+              if (customRes.ok) {
+                const customData = (await customRes.json()) as BriefsResponse;
+                const combined = [...nextArticles, ...(customData.articles ?? [])];
+                combined.sort(
+                  (a, b) =>
+                    new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime(),
+                );
+                nextArticles = combined.slice(0, 120);
+              }
+            } catch {
+              // custom sources failing silently — main feed still shows
+            }
+          }
+
+          if (!isMounted) return;
 
           if (mode === "refresh" && hasNewArticles(articlesRef.current, nextArticles)) {
             setPendingArticles(nextArticles);
+            maybeShowInTabNotification(nextArticles, articlesRef.current, preferencesRef.current);
           } else {
             setArticles(nextArticles);
             setPendingArticles(null);
@@ -239,6 +190,17 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
     const sourceNames = articles.map((article) => article.sourceName);
     return Array.from(new Set([...ACTIVE_SOURCES, ...sourceNames]));
   }, [articles]);
+
+  const dynamicBriefCategories = useMemo(() => {
+    const custom = customSources
+      .filter((s) => s.enabled)
+      .map((s) => s.customCategory?.trim())
+      .filter((c): c is string => Boolean(c));
+    const unique = Array.from(new Set(custom));
+    const base = BRIEF_CATEGORIES.filter((c) => c !== "Web3");
+    return [...base, ...unique.filter((c) => !base.includes(c))];
+  }, [customSources]);
+
   const filteredArticles = useMemo(
     () => filterArticles(articles, preferences, availableSources),
     [articles, preferences, availableSources],
@@ -246,8 +208,8 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
   const visibleArticles = filteredArticles.slice(0, visibleArticleCount);
   const hasMoreArticles = visibleArticles.length < filteredArticles.length;
   const categoryCounts = useMemo(
-    () => getCategoryCounts(articles, preferences, availableSources),
-    [articles, preferences, availableSources],
+    () => getCategoryCounts(articles, preferences, availableSources, dynamicBriefCategories),
+    [articles, preferences, availableSources, dynamicBriefCategories],
   );
   const liveIssues = articles.slice(0, 5);
 
@@ -280,7 +242,7 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
 
   function quoteArticle(article: Article) {
     storeCommunityQuoteTarget(article);
-    window.location.assign("/community");
+    window.location.assign(`/community/write?articleSlug=${encodeURIComponent(article.slug)}`);
   }
 
   function toggleExpanded(articleId: string) {
@@ -298,9 +260,9 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
   }
 
   return (
-    <section className="border-t border-white/10 bg-background/72">
+    <section className="border-t border-tint/10 bg-background/72">
       <Container className="min-w-0 pb-10 pt-4 sm:pb-12 sm:pt-5 lg:pb-16">
-        <div className="mb-5 grid min-w-0 gap-4 border-b border-white/10 pb-5 sm:mb-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-end">
+        <div className="mb-5 grid min-w-0 gap-4 border-b border-tint/10 pb-5 sm:mb-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-end">
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">
               {showIntro ? copy.feed.briefsLabel : copy.feed.homeLabel}
@@ -317,11 +279,7 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
                 : copy.feed.lastUpdated(formatLastUpdated(lastUpdatedAt, language))}
             </p>
           </div>
-          <MarketPulsePanel
-            assets={marketAssets}
-            label={copy.feed.marketPulse}
-            language={preferences.language}
-          />
+          <MarketLinkCard language={preferences.language} />
         </div>
 
         <LiveIssueBar
@@ -333,11 +291,11 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
         <div className="mt-6 min-w-0">
           {pendingArticles ? (
             <div className="flex flex-wrap items-center gap-3 rounded-md border border-accent/30 bg-accent-soft/30 px-3 py-2">
-              <span className="text-xs font-semibold text-blue-100">
+              <span className="text-xs font-semibold text-accent-ink">
                 {copy.feed.newBriefsReady}
               </span>
               <button
-                className="text-xs font-bold text-accent transition hover:text-blue-200"
+                className="text-xs font-bold text-accent transition hover:text-accent-ink"
                 onClick={reloadPendingArticles}
                 type="button"
               >
@@ -349,12 +307,15 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
 
         <CategoryTabs
           activeCategory={preferences.category}
+          categories={dynamicBriefCategories}
           counts={categoryCounts}
           language={preferences.language}
           onChange={setCategory}
         />
 
-        <StockMarketFilters preferences={preferences} onChange={setPreferences} />
+        {preferences.category === "Stock Market" && (
+          <StockMarketFilters preferences={preferences} onChange={setPreferences} />
+        )}
 
         <div className="mt-5 grid min-w-0 gap-5 lg:grid-cols-[minmax(0,1fr)_18rem]">
           <div className="min-w-0">
@@ -373,8 +334,8 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
             ) : null}
 
             {!isLoading && !error && filteredArticles.length > 0 ? (
-              <div className="overflow-hidden rounded-lg border border-white/10 bg-surface/78">
-                <div className="flex min-w-0 items-center justify-between gap-3 border-b border-white/10 px-3 py-3 sm:px-4">
+              <div className="overflow-hidden rounded-lg border border-tint/10 bg-surface/78">
+                <div className="flex min-w-0 items-center justify-between gap-3 border-b border-tint/10 px-3 py-3 sm:px-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
                     {copy.feed.mainFeed}
                   </p>
@@ -382,7 +343,7 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
                     {copy.feed.briefCount(filteredArticles.length)}
                   </span>
                 </div>
-                <div className="divide-y divide-white/10">
+                <div className="divide-y divide-tint/10">
                   {visibleArticles.map((article) => (
                     <TimelineItem
                       article={article}
@@ -395,7 +356,7 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
                   ))}
                 </div>
                 {hasMoreArticles ? (
-                  <div className="border-t border-white/10 p-3 sm:p-4">
+                  <div className="border-t border-tint/10 p-3 sm:p-4">
                     <Button
                       className="w-full"
                       onClick={showMoreArticles}
@@ -439,7 +400,7 @@ function LiveIssueBar({
       <div className="grid min-w-0 gap-3 px-3 py-3 sm:px-4 lg:grid-cols-[8rem_minmax(0,1fr)] lg:items-center">
         <div className="flex shrink-0 items-center gap-2 whitespace-nowrap">
           <span className="h-2 w-2 rounded-full bg-accent shadow-[0_0_16px_rgba(47,123,255,0.9)]" />
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-100">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent-ink">
             {label}
           </p>
         </div>
@@ -449,7 +410,7 @@ function LiveIssueBar({
             <div className="flex gap-3">
               {[0, 1, 2].map((item) => (
                 <span
-                  className="h-7 min-w-64 animate-pulse rounded-full bg-white/10"
+                  className="h-7 min-w-64 animate-pulse rounded-full bg-tint/10"
                   key={item}
                 />
               ))}
@@ -458,13 +419,13 @@ function LiveIssueBar({
             <div className="live-issues-track flex gap-3 will-change-transform">
               {tickerArticles.map((article, index) => (
                 <a
-                className="flex min-w-[15rem] max-w-[85vw] items-center gap-2 rounded-full border border-white/10 bg-background/60 px-3 py-2 text-sm font-medium text-ink transition hover:border-accent/50 hover:text-blue-200 sm:min-w-[18rem] sm:max-w-sm"
+                className="flex min-w-[15rem] max-w-[85vw] items-center gap-2 rounded-full border border-tint/15 bg-surface px-3 py-2 text-sm font-medium text-ink transition hover:border-accent/50 hover:text-accent-ink sm:min-w-[18rem] sm:max-w-sm"
                   href={article.originalUrl}
                   key={`${article.id}-${index}`}
                   rel="noreferrer"
                   target="_blank"
                 >
-                  <span className="shrink-0 rounded-full bg-accent/20 px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-[0.12em] text-blue-200">
+                  <span className="shrink-0 rounded-full bg-accent/20 px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-[0.12em] text-accent-ink">
                     {article.sourceName}
                   </span>
                   <span className="truncate">{article.title}</span>
@@ -480,19 +441,21 @@ function LiveIssueBar({
 
 function CategoryTabs({
   activeCategory,
+  categories,
   counts,
   language,
   onChange,
 }: {
   activeCategory: string;
+  categories: string[];
   counts: Record<string, number>;
   language: BriefPreferences["language"];
   onChange: (category: string) => void;
 }) {
   return (
-    <div className="mt-5 max-w-full overflow-x-auto overscroll-x-contain border-b border-white/10 [-webkit-overflow-scrolling:touch]">
+    <div className="mt-5 max-w-full overflow-x-auto overscroll-x-contain border-b border-tint/10 [-webkit-overflow-scrolling:touch]">
       <div className="flex w-max min-w-full gap-1">
-        {BRIEF_CATEGORIES.filter((category) => category !== "Web3").map((category) => (
+        {categories.map((category) => (
           <button
             className={cn(
               "shrink-0 border-b-2 px-3 py-3 text-sm font-semibold transition",
@@ -542,7 +505,7 @@ function StockMarketFilters({
   }
 
   return (
-    <div className="mt-3 grid gap-3 rounded-lg border border-white/10 bg-surface/60 p-3 lg:grid-cols-2">
+    <div className="mt-3 grid gap-3 rounded-lg border border-tint/10 bg-surface/60 p-3 lg:grid-cols-2">
       <FilterButtonGroup
         activeItems={preferences.stockRegions}
         allItems={STOCK_REGIONS}
@@ -585,8 +548,8 @@ function FilterButtonGroup({
               className={cn(
                 "rounded-full border px-3 py-1.5 text-xs font-bold transition",
                 isActive
-                  ? "border-accent/60 bg-accent/20 text-blue-100"
-                  : "border-white/10 bg-white/[0.03] text-muted hover:border-accent/50 hover:text-ink",
+                  ? "border-accent/60 bg-accent/20 text-accent-ink"
+                  : "border-tint/10 bg-tint/[0.03] text-muted hover:border-accent/50 hover:text-ink",
               )}
               key={item}
               onClick={() => onToggle(item)}
@@ -678,7 +641,7 @@ function TimelineItem({
     : article.title;
 
   return (
-    <article className="group grid min-w-0 gap-3 px-3 py-3 transition hover:bg-white/[0.03] sm:grid-cols-[4.5rem_1fr] sm:px-4">
+    <article className="group grid min-w-0 gap-3 px-3 py-3 transition hover:bg-tint/[0.03] sm:grid-cols-[4.5rem_1fr] sm:px-4">
       <time
         className="text-xs font-semibold tabular-nums text-muted-2"
         dateTime={article.publishedAt}
@@ -688,7 +651,7 @@ function TimelineItem({
       </time>
       <div className="min-w-0">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <span className="rounded bg-accent/15 px-2 py-1 text-[0.68rem] font-bold uppercase tracking-[0.12em] text-blue-200">
+          <span className="rounded bg-accent/15 px-2 py-1 text-[0.68rem] font-bold uppercase tracking-[0.12em] text-accent-ink">
             {article.sourceName}
           </span>
           <Badge tone="muted">{getCategoryLabel(article.category, language)}</Badge>
@@ -702,7 +665,7 @@ function TimelineItem({
 
         <a href={article.originalUrl} rel="noreferrer" target="_blank">
           <h2
-            className="mt-2 break-words text-base font-semibold leading-snug text-ink transition group-hover:text-blue-100 sm:text-lg"
+            className="mt-2 break-words text-base font-semibold leading-snug text-ink transition group-hover:text-accent-ink sm:text-lg"
             key={showKo ? "ko" : "en"}
           >
             <span className={showKo ? "brief-fade-in" : undefined}>{displayTitle}</span>
@@ -711,7 +674,7 @@ function TimelineItem({
 
         <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
           <button
-            className="text-sm font-semibold text-accent transition hover:text-blue-300"
+            className="text-sm font-semibold text-accent transition hover:text-accent-ink"
             onClick={onToggle}
             type="button"
           >
@@ -727,7 +690,7 @@ function TimelineItem({
           </a>
           <button
             aria-label={copy.feed.quoteToCommunity}
-            className="inline-flex h-7 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] px-3 text-xs font-bold text-muted transition hover:border-accent/50 hover:text-ink"
+            className="inline-flex h-7 items-center justify-center rounded-full border border-tint/10 bg-tint/[0.03] px-3 text-xs font-bold text-muted transition hover:border-accent/50 hover:text-ink"
             onClick={onQuote}
             type="button"
             title={copy.feed.quoteToCommunity}
@@ -746,7 +709,7 @@ function TimelineItem({
         ) : null}
 
         {expanded ? (
-          <div className="mt-3 rounded-md border border-white/10 bg-background/70 p-3">
+          <div className="mt-3 rounded-md border border-tint/10 bg-background/70 p-3">
             {showKo && translation.translatedBody ? (
               <p key="body-ko" className="brief-fade-in break-words text-sm leading-6 text-ink">
                 {translation.translatedBody}
@@ -763,7 +726,7 @@ function TimelineItem({
               <div className="mt-3 flex flex-wrap gap-2">
                 {article.tags.map((tag) => (
                   <span
-                    className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-xs font-medium text-muted"
+                    className="rounded-full border border-tint/10 bg-tint/[0.03] px-2.5 py-1 text-xs font-medium text-muted"
                     key={tag}
                   >
                     {tag}
@@ -804,7 +767,7 @@ function TranslateButton({
 
   return (
     <button
-      className="inline-flex h-7 items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-3 text-xs font-bold text-muted transition hover:border-accent/50 hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
+      className="inline-flex h-7 items-center gap-1.5 rounded-full border border-tint/10 bg-tint/[0.03] px-3 text-xs font-bold text-muted transition hover:border-accent/50 hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
       disabled={isLoading}
       onClick={onClick}
       type="button"
@@ -837,70 +800,20 @@ function TranslateButton({
   );
 }
 
-function MarketPulsePanel({
-  assets,
-  label,
-  language,
-}: {
-  assets: MarketAsset[];
-  label: string;
-  language: BriefPreferences["language"];
-}) {
-  const { t: copy } = useI18n(language);
-  const hasData = assets.some((asset) => asset.price !== null);
-
+function MarketLinkCard({ language }: { language: BriefPreferences["language"] }) {
   return (
-    <Card className="min-w-0 p-3 sm:p-4">
-      <div className="flex min-w-0 items-center justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
-            {label}
-          </p>
-          <p className="mt-1 text-xs text-muted-2">{copy.feed.marketWatch}</p>
-        </div>
-        <span className="rounded-full border border-white/10 bg-white/[0.03] px-2 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-muted-2">
-          Coingecko
-        </span>
-      </div>
-      <div className="mt-3 grid grid-cols-2 gap-2">
-        {assets.map((asset) => (
-          <div
-            className={cn(
-              "min-w-0 rounded-md border px-3 py-2",
-              asset.change24h === null
-                ? "border-white/10 bg-white/[0.03]"
-                : asset.change24h >= 0
-                  ? "border-emerald-500/30 bg-emerald-500/10"
-                  : "border-rose-500/30 bg-rose-500/10",
-            )}
-            key={asset.id}
-          >
-            <div className="flex min-w-0 items-center justify-between gap-2">
-              <span className="text-[0.68rem] font-bold uppercase tracking-[0.12em] text-muted-2">
-                {asset.name}
-              </span>
-              <span
-                className={cn(
-                  "text-[0.68rem] font-semibold",
-                  asset.change24h === null
-                    ? "text-muted-2"
-                    : asset.change24h >= 0
-                      ? "text-emerald-300"
-                      : "text-rose-300",
-                )}
-              >
-                {asset.change24h === null ? "--" : formatChange(asset.change24h)}
-              </span>
-            </div>
-            <p className="mt-2 truncate text-sm font-semibold text-ink">
-              {asset.price === null ? copy.feed.marketUnavailable : formatPrice(asset.price)}
-            </p>
-          </div>
-        ))}
-      </div>
-      {!hasData ? (
-        <p className="mt-3 text-xs text-muted-2">{copy.feed.marketUnavailable}</p>
-      ) : null}
+    <Card className="min-w-0 p-4">
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+        {language === "ko" ? "시장 데이터" : "Market Data"}
+      </p>
+      <p className="mt-1 text-xs text-muted-2">
+        {language === "ko"
+          ? "Binance 실시간 크립토 히트맵"
+          : "Binance-powered live crypto heatmap"}
+      </p>
+      <Button className="mt-4 w-full" href="/market" variant="secondary">
+        {language === "ko" ? "히트맵 보기 →" : "View Heatmap →"}
+      </Button>
     </Card>
   );
 }
@@ -937,8 +850,8 @@ function FeedSidebar({
             className={cn(
               "rounded-full border px-3 py-1.5 text-xs font-bold transition",
               allSourcesSelected
-                ? "border-accent/60 bg-accent/20 text-blue-100"
-                : "border-white/10 bg-white/[0.03] text-muted hover:border-accent/50 hover:text-ink",
+                ? "border-accent/60 bg-accent/20 text-accent-ink"
+                : "border-tint/10 bg-tint/[0.03] text-muted hover:border-accent/50 hover:text-ink",
             )}
             onClick={() => onSourceChange("All")}
             type="button"
@@ -951,8 +864,8 @@ function FeedSidebar({
               className={cn(
                 "rounded-full border px-3 py-1.5 text-xs font-bold transition",
                 !allSourcesSelected && preferences.sources.includes(source)
-                  ? "border-accent/60 bg-accent/20 text-blue-100"
-                  : "border-white/10 bg-white/[0.03] text-muted hover:border-accent/50 hover:text-ink",
+                  ? "border-accent/60 bg-accent/20 text-accent-ink"
+                  : "border-tint/10 bg-tint/[0.03] text-muted hover:border-accent/50 hover:text-ink",
               )}
               key={source}
               onClick={() => onSourceChange(source)}
@@ -1025,19 +938,19 @@ function FeedSidebar({
 
 function LoadingState() {
   return (
-    <div className="overflow-hidden rounded-lg border border-white/10 bg-surface/78">
+    <div className="overflow-hidden rounded-lg border border-tint/10 bg-surface/78">
       {[0, 1, 2, 3, 4, 5].map((item) => (
         <div
-          className="grid animate-pulse gap-3 border-b border-white/10 px-4 py-4 last:border-b-0 sm:grid-cols-[4.5rem_1fr]"
+          className="grid animate-pulse gap-3 border-b border-tint/10 px-4 py-4 last:border-b-0 sm:grid-cols-[4.5rem_1fr]"
           key={item}
         >
-          <div className="h-4 w-12 rounded bg-white/10" />
+          <div className="h-4 w-12 rounded bg-tint/10" />
           <div>
             <div className="flex gap-2">
-              <div className="h-5 w-24 rounded bg-white/10" />
-              <div className="h-5 w-20 rounded bg-white/10" />
+              <div className="h-5 w-24 rounded bg-tint/10" />
+              <div className="h-5 w-20 rounded bg-tint/10" />
             </div>
-            <div className="mt-4 h-5 w-4/5 rounded bg-white/10" />
+            <div className="mt-4 h-5 w-4/5 rounded bg-tint/10" />
           </div>
         </div>
       ))}
@@ -1109,6 +1022,7 @@ function getCategoryCounts(
   articles: Article[],
   preferences: BriefPreferences,
   availableSources: string[],
+  categories: string[],
 ) {
   const baseMatches = filterArticlesWithOptions(
     articles,
@@ -1118,17 +1032,17 @@ function getCategoryCounts(
       includeCategory: false,
     },
   );
-  const counts = Object.fromEntries(
-    BRIEF_CATEGORIES.map((category) => [category, 0]),
-  ) as Record<string, number>;
+  const counts = Object.fromEntries(categories.map((c) => [c, 0])) as Record<string, number>;
 
   counts.All = baseMatches.length;
 
   for (const article of baseMatches) {
-    for (const category of BRIEF_CATEGORIES) {
+    for (const category of categories) {
       if (
         category !== "All" &&
-        (article.category === category || article.tags.includes(category))
+        (article.category === category ||
+          article.tags.includes(category) ||
+          article.customCategory === category)
       ) {
         counts[category] += 1;
       }
@@ -1169,12 +1083,14 @@ function filterArticlesWithOptions(
     const sourceMatches =
       allSourcesSelected ||
       baseSourcesSelected ||
-      preferences.sources.includes(article.sourceName);
+      preferences.sources.includes(article.sourceName) ||
+      article.sourceId.startsWith("custom-brief-");
     const categoryMatches =
       !options.includeCategory ||
       preferences.category === "All" ||
       article.category === preferences.category ||
-      article.tags.includes(preferences.category);
+      article.tags.includes(preferences.category) ||
+      article.customCategory === preferences.category;
     const stockRegionMatches =
       article.feedCategory !== "Stock Market" ||
       !article.region ||
@@ -1219,19 +1135,54 @@ function formatLastUpdated(
   return formatShortTime(value, language);
 }
 
-function formatPrice(value: number) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: value >= 1 ? 2 : 4,
-  }).format(value);
-}
-
-function formatChange(value: number) {
-  const prefix = value > 0 ? "+" : "";
-  return `${prefix}${value.toFixed(2)}%`;
-}
-
 function getWaitingLabel(language: BriefPreferences["language"]) {
   return language === "ko" ? "첫 새로고침 대기 중" : "Waiting for first refresh";
+}
+
+function maybeShowInTabNotification(
+  nextArticles: Article[],
+  currentArticles: Article[],
+  preferences: BriefPreferences,
+) {
+  if (
+    !preferences.notificationsEnabled ||
+    preferences.notificationPermission !== "granted" ||
+    preferences.notificationKeywords.length === 0
+  ) {
+    return;
+  }
+
+  if (typeof Notification === "undefined" || Notification.permission !== "granted") {
+    return;
+  }
+
+  const currentIds = new Set(currentArticles.map((a) => a.id));
+  const freshArticles = nextArticles.filter((a) => !currentIds.has(a.id));
+
+  const match = freshArticles.find((article) =>
+    articleMatchesKeywords(article, preferences.notificationKeywords),
+  );
+
+  if (!match) {
+    return;
+  }
+
+  try {
+    new Notification("Chain Brief", {
+      body: `${match.sourceName}: ${match.title}`,
+      tag: `chain-brief-${match.id}`,
+    });
+  } catch {
+    // Notification API unavailable in this environment
+  }
+}
+
+function articleMatchesKeywords(article: Article, keywords: string[]) {
+  const text = [article.title, article.briefSummary, article.excerpt, ...article.tags]
+    .join(" ")
+    .toLowerCase();
+  return keywords.some((kw) => {
+    const normalized = kw.trim().toLowerCase();
+    return normalized.length > 0 && text.includes(normalized);
+  });
 }

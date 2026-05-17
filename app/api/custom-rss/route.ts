@@ -4,7 +4,7 @@ import type {
   CustomRssCreatorCategory,
   CustomRssSource,
 } from "@/lib/custom-rss-sources";
-import type { SnsCategory, SnsVideo } from "@/lib/sns/types";
+import type { SnsVideo } from "@/lib/sns/types";
 
 type FeedItem = {
   title?: string;
@@ -132,7 +132,9 @@ function normalizeItem(item: FeedItem, source: CustomRssSource): SnsVideo | null
   );
   const sourceCategory = getCreatorCategory(source.category);
   const tags = createTags(title, description, sourceCategory);
-  const category = inferCategory(sourceCategory, title, description, tags);
+  const category = source.customCategory?.trim()
+    ? source.customCategory.trim()
+    : inferCategory(sourceCategory, title, description, tags);
 
   return {
     id: `custom-${source.id}-${createHash(`${url}-${title}`)}`,
@@ -213,7 +215,7 @@ function inferCategory(
   title: string,
   description: string,
   tags: string[],
-): Exclude<SnsCategory, "All"> {
+): string {
   const text = `${title} ${description} ${tags.join(" ")}`;
 
   if (/\b(security|hack|exploit|wallet|scam|audit)\b/i.test(text)) {

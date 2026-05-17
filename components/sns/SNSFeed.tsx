@@ -206,7 +206,7 @@ export function SNSFeed() {
 
   const dynamicCategories = useMemo(() => {
     const custom = enabledCustomSources
-      .map((s) => s.category?.trim())
+      .map((s) => s.customCategory?.trim())
       .filter((c): c is string => Boolean(c));
     const unique = Array.from(new Set(custom));
     const base = SNS_CATEGORIES as string[];

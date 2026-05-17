@@ -168,6 +168,8 @@ function normalizeItem(item: FeedItem, source: RssSource): Article | null {
   const excerpt = createExcerpt(rawContentSnippet);
   const tags = createTags(item.categories, title, source.defaultCategory);
 
+  const isStockSource = source.defaultCategory === "Stock Market";
+
   return {
     id: createArticleId(`${source.name}-${originalUrl}-${title}`),
     title,
@@ -177,11 +179,12 @@ function normalizeItem(item: FeedItem, source: RssSource): Article | null {
     originalUrl,
     publishedAt,
     excerpt,
-    category: inferCategory(source.defaultCategory, title, tags),
+    category: isStockSource ? "Stock Market" : inferCategory(source.defaultCategory, title, tags),
     tags,
     readingTime: estimateReadingTime(excerpt || title),
     briefSummary: createBriefSummary(title, rawContentSnippet),
     rawContentSnippet,
+    feedCategory: isStockSource ? "Stock Market" : undefined,
   };
 }
 
@@ -227,6 +230,7 @@ function normalizeCustomItem(
     briefSummary: createBriefSummary(title, rawContentSnippet),
     rawContentSnippet,
     feedCategory: source.category,
+    customCategory: source.customCategory || undefined,
     marketType: source.marketType,
     region: source.region,
     tickerSymbol: source.tickerSymbol,

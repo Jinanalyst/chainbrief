@@ -13,6 +13,7 @@ export type Article = {
   briefSummary: string;
   rawContentSnippet: string;
   feedCategory?: string;
+  customCategory?: string;
   marketType?: string;
   region?: string;
   tickerSymbol?: string;
