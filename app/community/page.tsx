@@ -763,8 +763,10 @@ function AnalystScoreCard({ compact = false }: { compact?: boolean }) {
 
 function RiskNotice() {
   return (
-    <div className="rounded-md border border-amber-400/20 bg-amber-400/10 px-3 py-2">
-      <p className="text-xs leading-5 text-amber-100">{INVESTMENT_NOTICE}</p>
+    <div className="rounded-lg border border-tint/10 bg-tint/[0.03] px-3 py-2.5">
+      <p className="border-l-2 border-amber-400/50 pl-3 text-xs leading-5 text-muted-2">
+        {INVESTMENT_NOTICE}
+      </p>
     </div>
   );
 }
@@ -1226,10 +1228,10 @@ function CommunityPostCard({
             {post.tags[0] ? <Badge tone="muted">{post.tags[0]}</Badge> : null}
           </div>
 
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="mt-4 flex flex-wrap items-center gap-2 border-y border-tint/10 py-3">
             <button
               className={cn(
-                "rounded-full border px-3 py-1.5 text-xs font-bold transition",
+                "inline-flex h-9 items-center gap-1.5 rounded-full border px-3 text-xs font-bold transition",
                 post.likedByUser
                   ? "border-accent/50 bg-accent/15 text-accent-ink"
                   : "border-tint/10 bg-tint/[0.03] text-muted hover:border-accent/40 hover:text-ink",
@@ -1237,15 +1239,57 @@ function CommunityPostCard({
               onClick={handleLike}
               type="button"
             >
-              Like
+              <span>{post.likedByUser ? "Liked" : "Like"}</span>
+              <span className="text-muted-2">{post.likes}</span>
             </button>
             <button
-              className="rounded-full border border-tint/10 bg-tint/[0.03] px-3 py-1.5 text-xs font-bold text-muted transition hover:border-accent/40 hover:text-ink"
+              className={cn(
+                "inline-flex h-9 items-center gap-1.5 rounded-full border px-3 text-xs font-bold transition",
+                replyOpen
+                  ? "border-accent/50 bg-accent/15 text-accent-ink"
+                  : "border-tint/10 bg-tint/[0.03] text-muted hover:border-accent/40 hover:text-ink",
+              )}
               onClick={() => setReplyOpen((open) => !open)}
               type="button"
             >
-              Reply
+              <span>Reply</span>
+              <span className="text-muted-2">{post.commentsCount}</span>
             </button>
+            <button
+              className="inline-flex h-9 items-center rounded-full border border-tint/10 bg-tint/[0.03] px-3 text-xs font-bold text-muted transition hover:border-accent/40 hover:text-ink"
+              onClick={() => sharePost(post)}
+              type="button"
+            >
+              Share
+            </button>
+            {canThread ? (
+              <>
+                <button
+                  className={cn(
+                    "inline-flex h-9 items-center rounded-full border px-3 text-xs font-bold transition",
+                    reposted
+                      ? "border-accent/50 bg-accent/15 text-accent-ink"
+                      : "border-tint/10 bg-tint/[0.03] text-muted hover:border-accent/40 hover:text-ink",
+                  )}
+                  onClick={handleRepost}
+                  type="button"
+                >
+                  {reposted ? "Reposted" : "Repost"}
+                </button>
+                <button
+                  className={cn(
+                    "inline-flex h-9 items-center rounded-full border px-3 text-xs font-bold transition",
+                    quoteOpen
+                      ? "border-accent/50 bg-accent/15 text-accent-ink"
+                      : "border-tint/10 bg-tint/[0.03] text-muted hover:border-accent/40 hover:text-ink",
+                  )}
+                  onClick={() => setQuoteOpen((open) => !open)}
+                  type="button"
+                >
+                  Quote
+                </button>
+              </>
+            ) : null}
           </div>
 
           {post.replies?.length ? (
@@ -1310,7 +1354,7 @@ function CommunityPostCard({
 
           {isAnalysisPost(post) ? <div className="mt-4"><RiskNotice /></div> : null}
 
-          <div className="mt-4 flex items-center gap-2">
+          <div className="hidden">
             <IconButton label={language === "ko" ? "북마크" : "Bookmark"} glyph="⌁" />
             <IconButton
               label={language === "ko" ? "공유" : "Share"}
