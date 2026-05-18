@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { RealtimeKeywordAlerts } from "@/components/realtime-keyword-alerts";
 import { THEME_INIT_SCRIPT } from "@/components/theme-toggle";
 import "./globals.css";
 
@@ -22,7 +23,10 @@ export default function RootLayout({
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
-      <body className="font-sans antialiased">{children}</body>
+      <body className="font-sans antialiased">
+        {children}
+        <RealtimeKeywordAlerts />
+      </body>
     </html>
   );
 }

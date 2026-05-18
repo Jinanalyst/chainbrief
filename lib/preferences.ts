@@ -25,6 +25,7 @@ export type BriefPreferences = {
   stockTypes: string[];
   language: "ko" | "en";
   notificationsEnabled: boolean;
+  notificationSoundEnabled: boolean;
   notificationKeywords: string[];
   notificationPermission: "default" | "granted" | "denied" | "unsupported";
 };
@@ -38,6 +39,7 @@ export const defaultPreferences: BriefPreferences = {
   stockTypes: STOCK_TYPES,
   language: "ko",
   notificationsEnabled: false,
+  notificationSoundEnabled: true,
   notificationKeywords: [],
   notificationPermission: "default",
 };
