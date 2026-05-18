@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import "./community.css";
 import {
+  addCommunityPostReply,
   addQuotePost,
   addThreadQuote,
   addThreadRepost,
@@ -17,6 +18,7 @@ import {
   COMMUNITY_QUOTE_CHANGED_EVENT,
   readCommunityPosts,
   readCommunityQuoteTarget,
+  toggleCommunityPostLike,
   type CommunityPost,
   type CommunityQuoteTarget,
   type CommunityStance,
@@ -1084,6 +1086,8 @@ function CommunityPostCard({
   const [quoteBody, setQuoteBody] = useState("");
   const [quoteStance, setQuoteStance] = useState<CommunityStance>("Neutral");
   const [reposted, setReposted] = useState(false);
+  const [replyOpen, setReplyOpen] = useState(false);
+  const [replyBody, setReplyBody] = useState("");
 
   const isRepost = post.kind === "thread_repost";
   const isThreadQuote = post.kind === "thread_quote";
@@ -1102,6 +1106,17 @@ function CommunityPostCard({
     setQuoteOpen(false);
     setQuoteBody("");
     setQuoteStance("Neutral");
+  }
+
+  function handleLike() {
+    toggleCommunityPostLike(post.id);
+  }
+
+  function handleReplySubmit() {
+    if (!replyBody.trim()) return;
+    addCommunityPostReply(post.id, replyBody, authorName);
+    setReplyBody("");
+    setReplyOpen(false);
   }
 
   return (
@@ -1210,6 +1225,74 @@ function CommunityPostCard({
             <span>{post.views} {copy.community.views}</span>
             {post.tags[0] ? <Badge tone="muted">{post.tags[0]}</Badge> : null}
           </div>
+
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              className={cn(
+                "rounded-full border px-3 py-1.5 text-xs font-bold transition",
+                post.likedByUser
+                  ? "border-accent/50 bg-accent/15 text-accent-ink"
+                  : "border-tint/10 bg-tint/[0.03] text-muted hover:border-accent/40 hover:text-ink",
+              )}
+              onClick={handleLike}
+              type="button"
+            >
+              Like
+            </button>
+            <button
+              className="rounded-full border border-tint/10 bg-tint/[0.03] px-3 py-1.5 text-xs font-bold text-muted transition hover:border-accent/40 hover:text-ink"
+              onClick={() => setReplyOpen((open) => !open)}
+              type="button"
+            >
+              Reply
+            </button>
+          </div>
+
+          {post.replies?.length ? (
+            <div className="mt-4 space-y-3 border-l border-tint/10 pl-3">
+              {post.replies.slice(-3).map((reply) => (
+                <div key={reply.id} className="rounded-lg border border-tint/10 bg-tint/[0.03] p-3">
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-muted-2">
+                    <span className="font-semibold text-ink">{reply.author}</span>
+                    <span>{formatRelativeTime(reply.createdAt, language)}</span>
+                  </div>
+                  <p className="mt-1 break-words text-sm leading-6 text-muted">{reply.body}</p>
+                </div>
+              ))}
+            </div>
+          ) : null}
+
+          {replyOpen ? (
+            <div className="mt-4 rounded-xl border border-tint/10 bg-background/70 p-3">
+              <textarea
+                autoFocus
+                className="min-h-20 w-full rounded-md border border-tint/10 bg-background px-3 py-2 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/25"
+                maxLength={240}
+                onChange={(event) => setReplyBody(event.target.value)}
+                placeholder="Reply with your market take"
+                value={replyBody}
+              />
+              <div className="mt-2 flex justify-end gap-2">
+                <button
+                  className="h-9 rounded-md border border-tint/10 px-3 text-xs font-bold text-muted transition hover:text-ink"
+                  onClick={() => {
+                    setReplyOpen(false);
+                    setReplyBody("");
+                  }}
+                  type="button"
+                >
+                  Cancel
+                </button>
+                <button
+                  className="h-9 rounded-md border border-accent/40 bg-accent/15 px-3 text-xs font-bold text-accent-ink transition hover:bg-accent/20"
+                  onClick={handleReplySubmit}
+                  type="button"
+                >
+                  Reply
+                </button>
+              </div>
+            </div>
+          ) : null}
 
           {post.analystTier ? (
             <div className="mt-4 rounded-xl border border-tint/10 bg-tint/[0.03] p-3">
