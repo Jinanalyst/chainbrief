@@ -986,15 +986,15 @@ export function CommunityWriteStudio({
                       {addMenuOpen && (
                         <>
                           <div className="fixed inset-0 z-10" onClick={() => setAddMenuOpen(false)} />
-                          <div className="absolute right-0 top-9 z-20 w-44 overflow-hidden rounded-xl border border-tint/10 bg-[#0f1420] shadow-2xl">
+                          <div className="absolute right-0 top-9 z-20 w-52 overflow-hidden rounded-xl border border-tint/10 bg-surface shadow-xl">
                             {blockMenuItems.map((item) => (
                               <button
                                 key={item.type}
                                 type="button"
                                 onClick={() => { addBlockAtEnd(item.type); setAddMenuOpen(false); }}
-                                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-ink transition hover:bg-tint/[0.06]"
+                                className="flex w-full items-center gap-3 px-3 py-2.5 text-sm font-medium text-ink transition hover:bg-tint/[0.07]"
                               >
-                                <span className="w-5 text-center text-xs text-muted">{item.icon}</span>
+                                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-tint/10 bg-tint/[0.04] text-xs text-muted">{item.icon}</span>
                                 {item.label}
                               </button>
                             ))}
