@@ -9,6 +9,7 @@ import { Header } from "@/components/header";
 import {
   addOpinionPost,
   clearCommunityQuoteTarget,
+  databaseInsertFromCommunityPost,
   readAuthorName,
   readCommunityQuoteTarget,
   writeAuthorName,
@@ -831,7 +832,7 @@ export function CommunityWriteStudio({
     setDragOver(null);
   }
 
-  function publishPost() {
+  async function publishPost() {
     const trimmedTitle = title.trim();
     const body = blocksToText(blocks);
 
@@ -842,7 +843,7 @@ export function CommunityWriteStudio({
     setError(null);
     setMessage(null);
 
-    addOpinionPost(body, topic, {
+    const localPost = addOpinionPost(body, topic, {
       title: trimmedTitle,
       author: authorName,
       stance,
@@ -866,6 +867,50 @@ export function CommunityWriteStudio({
       relatedArticleUrl: quoteTarget?.originalUrl,
       attachments: blocksToAttachments(blocks),
     });
+
+    if (supabase) {
+      const { data: authData } = await supabase.auth.getUser();
+      const user = authData.user;
+
+      if (user) {
+        const profileName =
+          authorName ||
+          (typeof user.user_metadata?.name === "string" ? user.user_metadata.name : "") ||
+          (typeof user.user_metadata?.full_name === "string" ? user.user_metadata.full_name : "") ||
+          user.email ||
+          "Chain Brief member";
+
+        const { data: existingProfile } = await supabase
+          .from("profiles")
+          .select("id")
+          .eq("id", user.id)
+          .maybeSingle();
+
+        if (!existingProfile) {
+          const { error: profileError } = await supabase.from("profiles").insert({
+            id: user.id,
+            username: profileName,
+          });
+
+          if (profileError) {
+            await supabase.from("profiles").insert({
+              id: user.id,
+              username: `${profileName}-${user.id.slice(0, 8)}`,
+            });
+          }
+        }
+
+        const { error: postError } = await supabase
+          .from("posts")
+          .insert(databaseInsertFromCommunityPost(localPost, user.id));
+
+        if (postError) {
+          setError("Saved locally, but could not sync to your Chain Brief account.");
+          setIsPublishing(false);
+          return;
+        }
+      }
+    }
 
     if (quoteTarget) {
       clearCommunityQuoteTarget();

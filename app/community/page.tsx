@@ -16,10 +16,13 @@ import {
   clearCommunityQuoteTarget,
   COMMUNITY_POSTS_CHANGED_EVENT,
   COMMUNITY_QUOTE_CHANGED_EVENT,
+  communityPostFromDatabase,
+  mergeCommunityPosts,
   readCommunityPosts,
   readCommunityQuoteTarget,
   toggleCommunityPostLike,
   type CommunityPost,
+  type DatabaseCommunityPostRow,
   type CommunityQuoteTarget,
   type CommunityStance,
   type QuotedCommunityPostSnapshot,
@@ -129,7 +132,8 @@ export default function CommunityPage() {
     return () => subscription.unsubscribe();
   }, [supabase]);
 
-  const [posts, setPosts] = useState<CommunityPost[]>([]);
+  const [localPosts, setLocalPosts] = useState<CommunityPost[]>([]);
+  const [remotePosts, setRemotePosts] = useState<CommunityPost[]>([]);
   const [quoteTarget, setQuoteTarget] = useState<CommunityQuoteTarget | null>(null);
   const [activeTab, setActiveTab] = useState<CommunityTab>("Latest");
   const [selectedArticleSlug] = useState<string | null>(() => {
@@ -140,9 +144,14 @@ export default function CommunityPage() {
     return new URLSearchParams(window.location.search).get("articleSlug")?.trim() || null;
   });
 
+  const posts = useMemo(
+    () => mergeCommunityPosts(remotePosts, localPosts),
+    [localPosts, remotePosts],
+  );
+
   useEffect(() => {
     function syncCommunityState() {
-      setPosts(readCommunityPosts());
+      setLocalPosts(readCommunityPosts());
       setQuoteTarget(readCommunityQuoteTarget());
     }
 
@@ -157,6 +166,45 @@ export default function CommunityPage() {
       window.removeEventListener(COMMUNITY_QUOTE_CHANGED_EVENT, syncCommunityState);
     };
   }, []);
+
+  useEffect(() => {
+    if (!supabase) {
+      setRemotePosts([]);
+      return;
+    }
+
+    const client = supabase;
+    let isMounted = true;
+
+    async function loadPublicPosts() {
+      const { data, error } = await client
+        .from("posts")
+        .select(
+          "id, author_id, title, body, category, post_type, coin_tags, linked_news_id, status, view_count, created_at, updated_at, profiles(username, avatar_url, role)",
+        )
+        .eq("status", "published")
+        .order("created_at", { ascending: false })
+        .limit(100);
+
+      if (!isMounted) return;
+
+      if (error) {
+        console.warn("Failed to load public community posts", error);
+        setRemotePosts([]);
+        return;
+      }
+
+      setRemotePosts(
+        ((data ?? []) as DatabaseCommunityPostRow[]).map(communityPostFromDatabase),
+      );
+    }
+
+    void loadPublicPosts();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [supabase]);
 
   const focusedTarget = useMemo(() => {
     if (!selectedArticleSlug) {

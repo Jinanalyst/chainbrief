@@ -117,6 +117,33 @@ export type CommunityPost = {
   likedByUser?: boolean;
 };
 
+export type DatabaseCommunityPostRow = {
+  id: string;
+  author_id?: string | null;
+  title: string;
+  body: string;
+  category: string;
+  post_type?: string | null;
+  coin_tags?: string[] | null;
+  linked_news_id?: string | null;
+  status?: string | null;
+  view_count?: number | null;
+  created_at: string;
+  updated_at?: string | null;
+  profiles?:
+    | {
+        username?: string | null;
+        avatar_url?: string | null;
+        role?: CommunityPost["analystTier"] | "admin" | null;
+      }
+    | Array<{
+        username?: string | null;
+        avatar_url?: string | null;
+        role?: CommunityPost["analystTier"] | "admin" | null;
+      }>
+    | null;
+};
+
 export type CommunityQuoteTarget = {
   id: string;
   slug: string;
@@ -313,6 +340,73 @@ export function reactToArticle(
   }
 
   return next;
+}
+
+export function communityPostFromDatabase(row: DatabaseCommunityPostRow): CommunityPost {
+  const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
+  const postType = normalizePostType(row.post_type);
+  const analystTier = normalizeAnalystTier(profile?.role);
+  const author = profile?.username?.trim() || "Chain Brief member";
+  const tags = Array.isArray(row.coin_tags)
+    ? row.coin_tags.filter((tag): tag is string => typeof tag === "string" && Boolean(tag.trim()))
+    : [];
+
+  return {
+    id: row.id,
+    slug: slugify(`${row.id}-${row.title}`),
+    title: row.title,
+    body: row.body,
+    preview: truncate(row.body.replace(/\s+/g, " ").trim(), 160),
+    author,
+    avatar: profile?.avatar_url || avatarFromName(author),
+    category: row.category || "All",
+    publishedAt: row.created_at,
+    likes: 0,
+    commentsCount: 0,
+    views: row.view_count ?? 0,
+    tags,
+    createdAt: row.created_at,
+    kind: "opinion",
+    postType,
+    analystTier,
+    topic: row.category,
+    stance: inferStance(row.title, row.body),
+    discussionType: row.linked_news_id ? "news_reaction" : postType === "chart_analysis" ? "analysis" : "opinion",
+    relatedArticleSlug: row.linked_news_id ?? undefined,
+  };
+}
+
+export function databaseInsertFromCommunityPost(post: CommunityPost, authorId: string) {
+  return {
+    author_id: authorId,
+    title: post.title,
+    body: post.body,
+    category: post.category,
+    post_type: post.postType ?? "general",
+    coin_tags: post.tags,
+    linked_news_id: post.relatedArticleSlug ?? null,
+    status: "published",
+  };
+}
+
+export function mergeCommunityPosts(
+  primaryPosts: CommunityPost[],
+  secondaryPosts: CommunityPost[],
+) {
+  const seen = new Set<string>();
+  return [...primaryPosts, ...secondaryPosts]
+    .filter((post) => {
+      const keys = [
+        post.id,
+        post.slug,
+        `${post.author}:${post.title}:${post.body.slice(0, 120)}`,
+      ].filter(Boolean);
+      if (keys.some((key) => seen.has(key))) return false;
+      keys.forEach((key) => seen.add(key));
+      return true;
+    })
+    .sort(sortPostsNewestFirst)
+    .slice(0, 120);
 }
 
 export function addOpinionPost(
@@ -722,6 +816,49 @@ function normalizeCommunityPost(value: unknown): CommunityPost | null {
     replies: normalizeReplies(post.replies),
     likedByUser: Boolean(post.likedByUser),
   };
+}
+
+function normalizePostType(value: unknown): CommunityPostType {
+  switch (value) {
+    case "news_interpretation":
+    case "chart_analysis":
+    case "trade_review":
+    case "loss_review":
+    case "risk_analysis":
+      return value;
+    default:
+      return "general";
+  }
+}
+
+function normalizeAnalystTier(value: unknown): CommunityPost["analystTier"] | undefined {
+  switch (value) {
+    case "rookie_analyst":
+    case "rising_analyst":
+    case "verified_analyst":
+    case "partner_expert":
+    case "user":
+      return value;
+    default:
+      return undefined;
+  }
+}
+
+function inferStance(title: string, body: string): CommunityStance {
+  const text = `${title} ${body}`.toLowerCase();
+  if (/\bbear|bearish|downside|risk|short\b/.test(text)) return "Bearish";
+  if (/\bbull|bullish|upside|long\b/.test(text)) return "Bullish";
+  if (/\?|\bquestion\b/.test(text)) return "Question";
+  return "Neutral";
+}
+
+function avatarFromName(name: string) {
+  return name
+    .split(/\s+/)
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase() || "CB";
 }
 
 function normalizeArticleSentiment(slug: string, value: unknown): ArticleSentiment | null {
