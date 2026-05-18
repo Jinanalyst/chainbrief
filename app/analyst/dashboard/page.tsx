@@ -58,9 +58,14 @@ export default async function AnalystDashboardPage() {
         <Container className="section-space">
           <div className="mx-auto grid max-w-7xl gap-6">
             <Card className="min-w-0 p-6">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">
-                Analyst Dashboard
-              </p>
+              <div className="flex items-start justify-between gap-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">
+                  Analyst Dashboard
+                </p>
+                <div className="shrink-0 rounded-md border border-success/30 bg-success/10 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-success">
+                  Verified Analyst
+                </div>
+              </div>
               <h1 className="mt-3 text-3xl font-semibold tracking-tight text-ink">
                 Manage your analyst membership and revenue.
               </h1>

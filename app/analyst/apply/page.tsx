@@ -103,15 +103,14 @@ export default async function AnalystApplyPage() {
             {/* ── Application form card ── */}
             <Card className="min-w-0 p-5 sm:p-6">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">
-                Verified Analyst Application
+                Apply as Analyst
               </p>
               <h1 className="mt-3 text-3xl font-semibold tracking-tight text-ink">
-                Apply to grow from reader to analyst.
+                Become a Verified Analyst instantly.
               </h1>
               <p className="mt-3 text-sm leading-6 text-muted">
-                Share your background, analysis style, and sample work. Chain
-                Brief reviews the application quality, risk awareness, and
-                community value.
+                Share your background, analysis style, and sample work. Submit
+                the form and your Verified Analyst status activates right away.
               </p>
 
               {/* Rejected status notice */}
@@ -175,22 +174,17 @@ export default async function AnalystApplyPage() {
                 </p>
                 <div className="mt-3 grid gap-3 text-sm leading-6 text-muted">
                   <p>
-                    1. Your application is reviewed by the Chain Brief team,
-                    typically within 3–5 business days.
+                    1. Submit your application — approval is instant. No waiting
+                    period.
                   </p>
                   <p>
-                    2. You&apos;ll be notified via the status page. If approved, your
-                    analyst dashboard unlocks immediately.
+                    2. Your account is immediately upgraded to Verified Analyst
+                    and your dashboard unlocks.
                   </p>
                   <p>
-                    3. Once active, you can enable a membership, set your price,
-                    and start publishing premium content.
+                    3. Enable a membership, set your price, and start publishing
+                    premium content right away.
                   </p>
-                </div>
-                <div className="mt-4">
-                  <Button href="/analyst/status" variant="secondary">
-                    Check status
-                  </Button>
                 </div>
               </Card>
 
