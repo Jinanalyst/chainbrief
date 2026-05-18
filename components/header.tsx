@@ -25,7 +25,6 @@ export function Header() {
     { href: "/community", label: copy.nav.community },
     { href: "/market", label: copy.nav.market },
     { href: "/analyst", label: "Analyst" },
-    { href: "/dashboard", label: "Dashboard" },
     { href: "/sns", label: copy.nav.sns },
     { href: "/settings", label: copy.nav.settings },
   ];
