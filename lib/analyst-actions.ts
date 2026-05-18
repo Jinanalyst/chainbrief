@@ -204,10 +204,11 @@ export async function saveAnalystDashboardSettingsAction(formData: FormData) {
   } catch (err) {
     if (isRedirectError(err)) throw err;
     console.error("saveAnalystDashboardSettingsAction error:", err);
+    redirect("/analyst/dashboard?error=save");
   }
 
   revalidatePath("/analyst/dashboard");
-  redirect("/analyst/dashboard");
+  redirect("/analyst/dashboard?saved=1");
 }
 
 export async function approveAnalystApplicationAction(formData: FormData) {
