@@ -2,6 +2,7 @@ import webpush from "web-push";
 import { formatBriefSummary } from "@/lib/summary";
 import type { Article } from "@/lib/rss/types";
 import type { BriefPreferences } from "@/lib/preferences";
+import { findArticleKeywordMatch } from "@/lib/keyword-alerts";
 
 export type PushPermissionState = BriefPreferences["notificationPermission"];
 
@@ -53,18 +54,7 @@ export function articleMatchesNotificationKeywords(article: Article, keywords: s
 }
 
 export function findArticleNotificationKeyword(article: Article, keywords: string[]) {
-  const normalizedKeywords = keywords.map((keyword) => keyword.trim().toLowerCase()).filter(Boolean);
-  if (!normalizedKeywords.length) {
-    return null;
-  }
-
-  const searchableText = [article.title, article.briefSummary, article.excerpt, ...article.tags]
-    .join(" ")
-    .toLowerCase();
-
-  const matchedIndex = normalizedKeywords.findIndex((keyword) => searchableText.includes(keyword));
-
-  return matchedIndex >= 0 ? keywords[matchedIndex].trim() : null;
+  return findArticleKeywordMatch(article, keywords);
 }
 
 export async function sendArticlePushNotification(
@@ -105,7 +95,7 @@ function createNotificationBody(
   const shortBrief = brief.length > 140 ? `${brief.slice(0, 137).trim()}...` : brief;
   const keywordLine = matchedKeyword
     ? language === "ko"
-      ? `키워드: ${matchedKeyword}`
+      ? `키워드 감지: ${matchedKeyword}`
       : `Keyword match: ${matchedKeyword}`
     : null;
 

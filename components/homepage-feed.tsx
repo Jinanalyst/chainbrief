@@ -68,15 +68,10 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
     INITIAL_VISIBLE_ARTICLES,
   );
   const articlesRef = useRef<Article[]>([]);
-  const preferencesRef = useRef<BriefPreferences>(preferences);
 
   useEffect(() => {
     articlesRef.current = articles;
   }, [articles]);
-
-  useEffect(() => {
-    preferencesRef.current = preferences;
-  }, [preferences]);
 
   useEffect(() => {
     function syncCustomSources() {
@@ -164,7 +159,6 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
 
           if (mode === "refresh" && hasNewArticles(articlesRef.current, nextArticles)) {
             setPendingArticles(nextArticles);
-            maybeShowInTabNotification(nextArticles, articlesRef.current, preferencesRef.current);
           } else {
             setArticles(nextArticles);
             setPendingArticles(null);
@@ -1301,50 +1295,3 @@ function getWaitingLabel(language: BriefPreferences["language"]) {
   return language === "ko" ? "첫 새로고침 대기 중" : "Waiting for first refresh";
 }
 
-function maybeShowInTabNotification(
-  nextArticles: Article[],
-  currentArticles: Article[],
-  preferences: BriefPreferences,
-) {
-  if (
-    !preferences.notificationsEnabled ||
-    preferences.notificationPermission !== "granted" ||
-    preferences.notificationKeywords.length === 0
-  ) {
-    return;
-  }
-
-  if (typeof Notification === "undefined" || Notification.permission !== "granted") {
-    return;
-  }
-
-  const currentIds = new Set(currentArticles.map((a) => a.id));
-  const freshArticles = nextArticles.filter((a) => !currentIds.has(a.id));
-
-  const match = freshArticles.find((article) =>
-    articleMatchesKeywords(article, preferences.notificationKeywords),
-  );
-
-  if (!match) {
-    return;
-  }
-
-  try {
-    new Notification("Chain Brief", {
-      body: `${match.sourceName}: ${match.title}`,
-      tag: `chain-brief-${match.id}`,
-    });
-  } catch {
-    // Notification API unavailable in this environment
-  }
-}
-
-function articleMatchesKeywords(article: Article, keywords: string[]) {
-  const text = [article.title, article.briefSummary, article.excerpt, ...article.tags]
-    .join(" ")
-    .toLowerCase();
-  return keywords.some((kw) => {
-    const normalized = kw.trim().toLowerCase();
-    return normalized.length > 0 && text.includes(normalized);
-  });
-}

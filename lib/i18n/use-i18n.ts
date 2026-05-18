@@ -94,6 +94,10 @@ export function normalizeStoredPreferences(value: unknown): BriefPreferences {
     stockTypes: stockTypes.length > 0 ? stockTypes : defaultPreferences.stockTypes,
     language,
     notificationsEnabled: Boolean(parsed.notificationsEnabled),
+    notificationSoundEnabled:
+      typeof parsed.notificationSoundEnabled === "boolean"
+        ? parsed.notificationSoundEnabled
+        : defaultPreferences.notificationSoundEnabled,
     notificationKeywords,
     notificationPermission,
   };

@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { cn } from "@/lib/cn";
-import { useI18n } from "@/lib/i18n/use-i18n";
 import {
   getBrowserNotificationPermission,
   hasPushSupport,
@@ -23,76 +22,86 @@ type NotificationSettingsProps = {
 
 type StatusTone = "default" | "success" | "warning";
 
-type NotificationStatusCopy = {
-  copyAddress: string;
-  copied: string;
-  backgroundReady: string;
-  browserUnsupported: string;
-  loginRequired: string;
-  missingConfig: string;
-  permissionNeeded: string;
-  saveHint: string;
-  syncing: string;
-  syncFailed: string;
-  testButton: string;
-  testFailed: string;
-  testSending: string;
-  testSuccess: string;
-};
-
-function getNotificationStatusCopy(
-  language: BriefPreferences["language"],
-): NotificationStatusCopy {
-  if (language === "ko") {
-    return {
-      copyAddress: "주소 복사",
-      copied: "복사됨!",
-      backgroundReady: "브라우저가 닫혀 있어도 새 브리프를 백그라운드 푸시로 받을 준비가 됐어요.",
-      browserUnsupported: "이 브라우저는 푸시 알림을 지원하지 않아요.",
-      loginRequired: "백그라운드 브라우저 알림은 로그인한 계정에 연결돼요. 먼저 로그인해 주세요.",
-      missingConfig: "푸시 알림 서버 설정이 아직 연결되지 않았어요. VAPID 환경변수를 먼저 넣어야 합니다.",
-      permissionNeeded: "브라우저 알림 권한을 허용해야 푸시 구독을 만들 수 있어요.",
-      saveHint: "키워드를 바꾸면 현재 기기 구독에도 바로 반영됩니다.",
-      syncing: "현재 기기를 푸시 알림용으로 연결하는 중이에요...",
-      syncFailed: "푸시 구독 저장에 실패했어요. 로그인 상태와 서버 설정을 다시 확인해 주세요.",
-      testButton: "테스트 알림 보내기",
-      testFailed: "테스트 알림을 보내지 못했어요. 구독 상태나 서버 로그를 확인해 주세요.",
-      testSending: "테스트 알림을 보내는 중이에요...",
-      testSuccess: "테스트 알림을 보냈어요. 몇 초 안에 브라우저에 표시되는지 확인해 주세요.",
-    };
-  }
-
-  return {
-    copyAddress: "Copy Address",
-    copied: "Copied!",
-    backgroundReady:
-      "This device is ready for background browser push notifications, even when the feed tab is closed.",
+const copy = {
+  ko: {
+    title: "브라우저 알림",
+    description:
+      "뉴스 브리프, 속보, 커뮤니티 글의 제목과 내용에서 키워드가 감지되면 Chrome 푸시 알림과 앱 팝업으로 알려드립니다.",
+    enabledState: "상태",
+    enabled: "활성화",
+    disabled: "비활성화",
+    permissionStatus: "권한 상태",
+    permissionLabels: {
+      default: "요청 전",
+      denied: "거부됨",
+      granted: "허용됨",
+      unsupported: "지원 안 됨",
+    },
+    keywords: "알림 키워드",
+    placeholder: "키워드 입력 후 Enter",
+    add: "추가",
+    emptyKeywords: "키워드를 줄바꿈 또는 쉼표로 추가하세요.",
+    sound: "소리 알림",
+    soundOn: "켜짐",
+    soundOff: "꺼짐",
+    accountFallback: "로그인하면 백그라운드 푸시 알림을 받을 수 있습니다.",
+    saveHint: "키워드와 알림 설정은 현재 기기와 로그인 계정에 바로 반영됩니다.",
+    backgroundReady: "이 기기에서 백그라운드 브라우저 푸시 알림을 받을 준비가 됐습니다.",
+    browserUnsupported: "이 브라우저는 푸시 알림을 지원하지 않습니다.",
+    loginRequired: "백그라운드 브라우저 푸시는 로그인한 계정에 연결됩니다. 먼저 로그인해주세요.",
+    missingConfig: "푸시 서버 설정이 아직 연결되지 않았습니다. VAPID 환경 변수를 확인해주세요.",
+    permissionNeeded: "브라우저 알림 권한을 허용해야 푸시 구독을 만들 수 있습니다.",
+    syncing: "현재 기기를 푸시 알림에 연결하는 중입니다...",
+    syncFailed: "푸시 구독 저장에 실패했습니다. 로그인 상태와 서버 설정을 확인해주세요.",
+    testButton: "테스트 알림 보내기",
+    testSending: "테스트 알림을 보내는 중입니다...",
+    testSuccess: "테스트 알림을 보냈습니다. 몇 초 안에 브라우저 알림을 확인해주세요.",
+    testFailed: "테스트 알림을 보내지 못했습니다. 구독 상태와 서버 로그를 확인해주세요.",
+    blockedHelp: "브라우저에서 알림 권한이 차단되어 있으면 사이트 설정에서 다시 허용해주세요.",
+  },
+  en: {
+    title: "Browser Notifications",
+    description:
+      "Get Chrome push notifications and in-app popups when keywords appear in news briefs, breaking items, and community posts.",
+    enabledState: "State",
+    enabled: "Enabled",
+    disabled: "Disabled",
+    permissionStatus: "Permission",
+    permissionLabels: {
+      default: "Not requested",
+      denied: "Denied",
+      granted: "Granted",
+      unsupported: "Unsupported",
+    },
+    keywords: "Alert Keywords",
+    placeholder: "Type a keyword, press Enter",
+    add: "Add",
+    emptyKeywords: "Add keywords separated by new lines or commas.",
+    sound: "Sound",
+    soundOn: "On",
+    soundOff: "Off",
+    accountFallback: "Log in to receive background push notifications.",
+    saveHint: "Keyword and notification settings sync to this device and your account immediately.",
+    backgroundReady: "This device is ready for background browser push notifications.",
     browserUnsupported: "This browser does not support push notifications.",
-    loginRequired:
-      "Background browser notifications are tied to a signed-in account. Please log in first.",
-    missingConfig:
-      "Push delivery is not fully configured yet. Add the VAPID environment variables first.",
-    permissionNeeded:
-      "Allow browser notification permission before creating a push subscription.",
-    saveHint: "Keyword changes are synced to this device subscription automatically.",
+    loginRequired: "Background browser push is tied to a signed-in account. Please log in first.",
+    missingConfig: "Push delivery is not configured yet. Check the VAPID environment variables.",
+    permissionNeeded: "Allow browser notification permission before creating a push subscription.",
     syncing: "Connecting this device for push notifications...",
-    syncFailed:
-      "We could not save the push subscription. Please check login state and server configuration.",
+    syncFailed: "We could not save the push subscription. Check login state and server configuration.",
     testButton: "Send Test Notification",
-    testFailed:
-      "The test notification could not be sent. Please check the subscription state and server logs.",
     testSending: "Sending a test notification...",
-    testSuccess:
-      "Test notification sent. Check whether your browser shows it within a few seconds.",
-  };
-}
+    testSuccess: "Test notification sent. Check whether your browser shows it within a few seconds.",
+    testFailed: "The test notification could not be sent. Check the subscription state and server logs.",
+    blockedHelp: "If notifications are blocked in the browser, re-enable permission from the site settings.",
+  },
+} as const;
 
 export function NotificationSettings({
   preferences,
   onChange,
 }: NotificationSettingsProps) {
-  const { t: copy } = useI18n(preferences.language);
-  const statusCopy = getNotificationStatusCopy(preferences.language);
+  const text = copy[preferences.language];
   const [user, setUser] = useState<User | null>(null);
   const preferencesRef = useRef(preferences);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -100,9 +109,6 @@ export function NotificationSettings({
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [statusTone, setStatusTone] = useState<StatusTone>("default");
   const [keywordInput, setKeywordInput] = useState("");
-  const [focusedKeyword, setFocusedKeyword] = useState(
-    preferences.notificationKeywords[0] ?? "",
-  );
   const supabase = useMemo(() => (hasSupabaseConfig ? createClient() : null), []);
   const pushSupported = hasPushSupport();
   const hasPushPublicKey = Boolean(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY);
@@ -116,14 +122,9 @@ export function NotificationSettings({
   }, [onChange, preferences]);
 
   useEffect(() => {
-    if (!supabase) {
-      return;
-    }
+    if (!supabase) return;
 
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user);
-    });
-
+    supabase.auth.getUser().then(({ data }) => setUser(data.user));
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -137,7 +138,7 @@ export function NotificationSettings({
     preferencesRef.current = preferences;
   }, [preferences]);
 
-  const notifSyncKey = [
+  const syncKey = [
     preferences.notificationsEnabled,
     preferences.notificationPermission,
     preferences.notificationKeywords.join("\x00"),
@@ -147,26 +148,16 @@ export function NotificationSettings({
   useEffect(() => {
     const prefs = preferencesRef.current;
 
-    if (!pushSupported || !user || !prefs.notificationsEnabled) {
-      return;
-    }
-
-    if (prefs.notificationPermission !== "granted" || !hasPushPublicKey) {
-      return;
-    }
+    if (!pushSupported || !user || !prefs.notificationsEnabled) return;
+    if (prefs.notificationPermission !== "granted" || !hasPushPublicKey) return;
 
     let ignore = false;
 
     async function syncCurrentPreferences() {
       const result = await syncPushSubscription(preferencesRef.current);
-
-      if (ignore) {
-        return;
-      }
-
-      if (!result.ok && result.reason === "server_error") {
+      if (!ignore && !result.ok && result.reason === "server_error") {
         setStatusTone("warning");
-        setStatusMessage(statusCopy.syncFailed);
+        setStatusMessage(text.syncFailed);
       }
     }
 
@@ -175,7 +166,7 @@ export function NotificationSettings({
     return () => {
       ignore = true;
     };
-  }, [hasPushPublicKey, notifSyncKey, pushSupported, statusCopy.syncFailed, user]);
+  }, [hasPushPublicKey, pushSupported, syncKey, text.syncFailed, user]);
 
   async function toggleNotifications() {
     const nextEnabled = !preferences.notificationsEnabled;
@@ -185,35 +176,23 @@ export function NotificationSettings({
     setStatusTone("default");
 
     if (!pushSupported) {
-      onChange({
-        ...preferences,
-        notificationsEnabled: false,
-        notificationPermission: "unsupported",
-      });
+      onChange({ ...preferences, notificationsEnabled: false, notificationPermission: "unsupported" });
       setStatusTone("warning");
-      setStatusMessage(statusCopy.browserUnsupported);
+      setStatusMessage(text.browserUnsupported);
       return;
     }
 
     if (nextEnabled && !user) {
-      onChange({
-        ...preferences,
-        notificationsEnabled: false,
-        notificationPermission: permission,
-      });
+      onChange({ ...preferences, notificationsEnabled: false, notificationPermission: permission });
       setStatusTone("warning");
-      setStatusMessage(statusCopy.loginRequired);
+      setStatusMessage(text.loginRequired);
       return;
     }
 
     if (nextEnabled && !hasPushPublicKey) {
-      onChange({
-        ...preferences,
-        notificationsEnabled: false,
-        notificationPermission: permission,
-      });
+      onChange({ ...preferences, notificationsEnabled: false, notificationPermission: permission });
       setStatusTone("warning");
-      setStatusMessage(statusCopy.missingConfig);
+      setStatusMessage(text.missingConfig);
       return;
     }
 
@@ -238,152 +217,138 @@ export function NotificationSettings({
 
     if (permission !== "granted") {
       setStatusTone("warning");
-      setStatusMessage(statusCopy.permissionNeeded);
+      setStatusMessage(text.permissionNeeded);
       return;
     }
 
     setIsSyncing(true);
-    setStatusTone("default");
-    setStatusMessage(statusCopy.syncing);
-
+    setStatusMessage(text.syncing);
     const result = await syncPushSubscription(nextPreferences);
-
     setIsSyncing(false);
 
     if (!result.ok) {
       setStatusTone("warning");
       setStatusMessage(
         result.reason === "missing_public_key"
-          ? statusCopy.missingConfig
+          ? text.missingConfig
           : result.reason === "permission"
-            ? statusCopy.permissionNeeded
-            : statusCopy.syncFailed,
+            ? text.permissionNeeded
+            : text.syncFailed,
       );
       return;
     }
 
     setStatusTone("success");
-    setStatusMessage(statusCopy.backgroundReady);
+    setStatusMessage(text.backgroundReady);
   }
 
   async function handleSendTest() {
-    const keywordForTest = activeKeyword;
+    const keywordForTest = preferences.notificationKeywords[0] ?? "";
 
     setIsSendingTest(true);
     setStatusTone("default");
-    setStatusMessage(statusCopy.testSending);
+    setStatusMessage(text.testSending);
 
     const sent = await sendTestPushNotification(keywordForTest);
 
     setIsSendingTest(false);
     setStatusTone(sent ? "success" : "warning");
-    setStatusMessage(
-      sent
-        ? keywordForTest
-          ? `Test notification sent with "${keywordForTest}" highlighted.`
-          : statusCopy.testSuccess
-        : statusCopy.testFailed,
-    );
+    setStatusMessage(sent ? text.testSuccess : text.testFailed);
   }
 
   function addKeyword() {
-    const trimmed = keywordInput.trim();
-    if (!trimmed || preferences.notificationKeywords.includes(trimmed)) {
+    const nextKeywords = keywordInput
+      .split(/[,\n]/)
+      .map((keyword) => keyword.trim())
+      .filter(Boolean)
+      .filter((keyword) => !preferences.notificationKeywords.includes(keyword));
+
+    if (!nextKeywords.length) {
       setKeywordInput("");
       return;
     }
-    const nextKeywords = [...preferences.notificationKeywords, trimmed].slice(0, 20);
-    setFocusedKeyword(trimmed);
+
     onChange({
       ...preferences,
-      notificationKeywords: nextKeywords,
+      notificationKeywords: [...preferences.notificationKeywords, ...nextKeywords].slice(0, 20),
     });
     setKeywordInput("");
   }
 
   function removeKeyword(keyword: string) {
-    const nextKeywords = preferences.notificationKeywords.filter((k) => k !== keyword);
-    if (keyword === focusedKeyword) {
-      setFocusedKeyword(nextKeywords[0] ?? "");
-    }
     onChange({
       ...preferences,
-      notificationKeywords: nextKeywords,
+      notificationKeywords: preferences.notificationKeywords.filter((item) => item !== keyword),
     });
   }
 
-  const permissionStatus =
-    copy.notifications.permissionLabels[preferences.notificationPermission];
-  const activeKeyword =
-    focusedKeyword && preferences.notificationKeywords.includes(focusedKeyword)
-      ? focusedKeyword
-      : preferences.notificationKeywords[0] ?? "";
+  function toggleSound() {
+    onChange({
+      ...preferences,
+      notificationSoundEnabled: !preferences.notificationSoundEnabled,
+    });
+  }
+
+  const permissionStatus = text.permissionLabels[preferences.notificationPermission];
   const isBlocked =
     preferences.notificationPermission === "denied" ||
     preferences.notificationPermission === "unsupported";
-  const accountLabel = user
-    ? user.email ?? (preferences.language === "ko" ? "로그인됨" : "Signed in")
-    : preferences.language === "ko"
-      ? "로그인 후 백그라운드 푸시 사용 가능"
-      : "Login required for background push";
+  const accountLabel = user?.email ?? text.accountFallback;
 
   return (
     <div className="mt-4 min-w-0 rounded-lg border border-tint/10 bg-background/60 p-3 sm:p-4">
       <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
-            {copy.notifications.title}
+            {text.title}
           </p>
           <p className="mt-2 break-words text-sm leading-6 text-muted">
-            {copy.notifications.description}
+            {text.description}
           </p>
         </div>
-        <button
-          aria-pressed={preferences.notificationsEnabled}
-          className={cn(
-            "flex min-h-8 w-14 shrink-0 items-center rounded-full border p-1 transition",
-            preferences.notificationsEnabled
-              ? "justify-end border-accent bg-accent"
-              : "justify-start border-tint/10 bg-tint/[0.03]",
-          )}
+        <SwitchButton
+          checked={preferences.notificationsEnabled}
           disabled={preferences.notificationPermission === "unsupported" || isSyncing}
+          label={text.title}
           onClick={toggleNotifications}
-          type="button"
-        >
-          <span className="h-5 w-5 rounded-full bg-white shadow-sm" />
-        </button>
+        />
       </div>
 
-      <div className="mt-4 grid min-w-0 gap-3 text-sm md:grid-cols-2">
+      <div className="mt-4 grid min-w-0 gap-3 text-sm md:grid-cols-3">
+        <StatusBox label={text.enabledState} value={preferences.notificationsEnabled ? text.enabled : text.disabled} />
+        <StatusBox label={text.permissionStatus} value={permissionStatus} />
         <div className="min-w-0 rounded-md border border-tint/10 bg-tint/[0.03] p-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
-            {copy.notifications.enabledState}
-          </p>
-          <p className="mt-2 break-words font-semibold text-ink">
-            {preferences.notificationsEnabled
-              ? copy.notifications.enabled
-              : copy.notifications.disabled}
-          </p>
-        </div>
-        <div className="min-w-0 rounded-md border border-tint/10 bg-tint/[0.03] p-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
-            {copy.notifications.permissionStatus}
-          </p>
-          <p className="mt-2 break-words font-semibold text-ink">{permissionStatus}</p>
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
+                {text.sound}
+              </p>
+              <p className="mt-2 break-words font-semibold text-ink">
+                {preferences.notificationSoundEnabled ? text.soundOn : text.soundOff}
+              </p>
+            </div>
+            <SwitchButton
+              checked={preferences.notificationSoundEnabled}
+              label={text.sound}
+              onClick={toggleSound}
+              compact
+            />
+          </div>
         </div>
       </div>
 
       <div className="mt-4 min-w-0">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
-          {copy.notifications.keywords}
+          {text.keywords}
         </p>
-
         <div className="mt-2 flex gap-2">
           <input
             className="min-h-10 flex-1 rounded-md border border-tint/10 bg-background px-3 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
-            onChange={(e) => setKeywordInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && addKeyword()}
-            placeholder={preferences.language === "ko" ? "키워드 입력 후 Enter" : "Type a keyword, press Enter"}
+            onChange={(event) => setKeywordInput(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") addKeyword();
+            }}
+            placeholder={text.placeholder}
             value={keywordInput}
           />
           <button
@@ -392,7 +357,7 @@ export function NotificationSettings({
             onClick={addKeyword}
             type="button"
           >
-            {preferences.language === "ko" ? "추가" : "Add"}
+            {text.add}
           </button>
         </div>
 
@@ -400,12 +365,7 @@ export function NotificationSettings({
           <div className="mt-3 flex flex-wrap gap-2">
             {preferences.notificationKeywords.map((keyword) => (
               <span
-                className={cn(
-                  "flex items-center gap-1.5 rounded-full border pl-3 pr-2 py-1 text-xs font-medium transition",
-                  keyword === activeKeyword
-                    ? "border-accent/60 bg-accent/15 text-accent-ink"
-                    : "border-accent/30 bg-accent/10 text-accent-ink",
-                )}
+                className="flex items-center gap-1.5 rounded-full border border-accent/30 bg-accent/10 py-1 pl-3 pr-2 text-xs font-medium text-accent-ink"
                 key={keyword}
               >
                 {keyword}
@@ -415,31 +375,24 @@ export function NotificationSettings({
                   onClick={() => removeKeyword(keyword)}
                   type="button"
                 >
-                  ×
+                  x
                 </button>
               </span>
             ))}
           </div>
         ) : (
           <p className="mt-3 break-words text-sm leading-6 text-muted-2">
-            {copy.notifications.emptyKeywords}
+            {text.emptyKeywords}
           </p>
         )}
       </div>
 
       <div className="mt-4 grid gap-3 rounded-md border border-tint/10 bg-tint/[0.03] p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-ink">
-            {accountLabel}
-          </p>
+          <p className="text-sm font-semibold text-ink">{accountLabel}</p>
           <p className="mt-1 break-words text-xs leading-5 text-muted-2">
-            {statusCopy.saveHint}
+            {text.saveHint}
           </p>
-          {activeKeyword ? (
-            <p className="mt-1 break-words text-xs leading-5 text-accent-ink">
-              {`The test popup will highlight "${activeKeyword}".`}
-            </p>
-          ) : null}
         </div>
         <button
           className="inline-flex min-h-9 items-center justify-center rounded-md border border-accent/30 bg-accent/10 px-3 text-xs font-semibold text-accent-ink transition hover:border-accent/50 hover:bg-accent/15 disabled:cursor-not-allowed disabled:opacity-50"
@@ -453,11 +406,7 @@ export function NotificationSettings({
           onClick={handleSendTest}
           type="button"
         >
-          {isSendingTest
-            ? statusCopy.testSending
-            : activeKeyword
-              ? `Test "${activeKeyword}"`
-              : statusCopy.testButton}
+          {isSendingTest ? text.testSending : text.testButton}
         </button>
       </div>
 
@@ -478,9 +427,54 @@ export function NotificationSettings({
 
       {isBlocked ? (
         <p className="mt-3 break-words text-sm leading-6 text-muted-2">
-          {copy.notifications.blockedHelp}
+          {text.blockedHelp}
         </p>
       ) : null}
     </div>
+  );
+}
+
+function StatusBox({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0 rounded-md border border-tint/10 bg-tint/[0.03] p-3">
+      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
+        {label}
+      </p>
+      <p className="mt-2 break-words font-semibold text-ink">{value}</p>
+    </div>
+  );
+}
+
+function SwitchButton({
+  checked,
+  compact,
+  disabled,
+  label,
+  onClick,
+}: {
+  checked: boolean;
+  compact?: boolean;
+  disabled?: boolean;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      aria-label={label}
+      aria-pressed={checked}
+      className={cn(
+        "flex shrink-0 items-center rounded-full border p-1 transition",
+        compact ? "min-h-7 w-12" : "min-h-8 w-14",
+        checked
+          ? "justify-end border-accent bg-accent"
+          : "justify-start border-tint/10 bg-tint/[0.03]",
+        disabled && "cursor-not-allowed opacity-50",
+      )}
+      disabled={disabled}
+      onClick={onClick}
+      type="button"
+    >
+      <span className={cn("rounded-full bg-white shadow-sm", compact ? "h-4 w-4" : "h-5 w-5")} />
+    </button>
   );
 }
