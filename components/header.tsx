@@ -105,8 +105,8 @@ export function Header() {
           </div>
           {user ? (
             <div className="hidden items-center gap-2 sm:flex">
-              <Button className="max-w-36 truncate px-3" href="/profile" variant="secondary">
-                Profile
+              <Button className="max-w-36 truncate px-3" href="/dashboard" variant="secondary">
+                Dashboard
               </Button>
               <Button className="max-w-32 truncate px-3" onClick={signOut} type="button" variant="secondary">
                 Sign out
@@ -169,8 +169,8 @@ export function Header() {
               ))}
               {user ? (
                 <div className="mt-1 grid gap-2">
-                  <Button className="w-full" href="/profile" onClick={closeMenu} variant="secondary">
-                    Profile
+                  <Button className="w-full" href="/dashboard" onClick={closeMenu} variant="secondary">
+                    Dashboard
                   </Button>
                   <Button className="w-full" onClick={signOut} type="button" variant="secondary">
                     Sign out
