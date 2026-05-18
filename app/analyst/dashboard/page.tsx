@@ -52,6 +52,7 @@ export default async function AnalystDashboardPage() {
       revenueBars: [],
       memberships: [],
       profile: null,
+      tronAddress: null,
     };
   }
 

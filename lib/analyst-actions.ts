@@ -196,10 +196,18 @@ export async function saveAnalystDashboardSettingsAction(formData: FormData) {
       redirect("/analyst/dashboard?error=price");
     }
 
+    // Derive slug from display name so the webhook can map slug → UUID
+    const displayName =
+      getString(user.user_metadata?.chainBriefProfile?.displayName) ??
+      getString(user.user_metadata?.full_name) ??
+      "";
+    const slug = slugifyForAnalyst(displayName) || user.id;
+
     await upsertAnalystSettings(user.id, {
       membershipEnabled,
       membershipPriceUsd,
       membershipDescription,
+      slug,
     });
   } catch (err) {
     if (isRedirectError(err)) throw err;
@@ -312,10 +320,44 @@ export async function rejectAnalystApplicationAction(formData: FormData) {
   redirect("/admin/analyst-applications");
 }
 
+export async function saveWithdrawAddressAction(formData: FormData) {
+  try {
+    const { user } = await getCurrentUserContext();
+    if (!user) redirect("/login");
+
+    const snapshot = await getApprovedAnalystProfile(user.id);
+    if (!snapshot) redirect("/analyst/apply");
+
+    const tronAddress = optionalString(formData.get("tron_usdt_address")).slice(0, 200);
+
+    await upsertAnalystSettings(user.id, {
+      membershipEnabled: snapshot.settings?.membership_enabled ?? false,
+      membershipPriceUsd: snapshot.settings?.membership_price_usd ?? 1,
+      membershipDescription: snapshot.settings?.membership_description ?? "",
+      tronUsdtAddress: tronAddress,
+    });
+  } catch (err) {
+    if (isRedirectError(err)) throw err;
+    console.error("saveWithdrawAddressAction error:", err);
+    redirect("/analyst/dashboard?error=withdraw");
+  }
+
+  revalidatePath("/analyst/dashboard");
+  redirect("/analyst/dashboard?saved=1");
+}
+
 // ── helpers ────────────────────────────────────────────────────────────────────
 
 function optionalString(value: FormDataEntryValue | null) {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function slugifyForAnalyst(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9가-힣]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
 }
 
 function getString(value: unknown) {

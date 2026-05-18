@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useI18n, usePreferences } from "@/lib/i18n/use-i18n";
-import { saveAnalystDashboardSettingsAction } from "@/lib/analyst-actions";
+import { saveAnalystDashboardSettingsAction, saveWithdrawAddressAction } from "@/lib/analyst-actions";
 
 // ── Types (mirrored from analyst-data so this stays a pure client file) ────────
 
@@ -14,6 +14,8 @@ export type AnalystProfileRow = {
   membership_enabled: boolean;
   membership_price_usd: number;
   membership_description: string;
+  slug?: string | null;
+  tron_usdt_address?: string | null;
   updated_at: string;
 } | null;
 
@@ -36,6 +38,7 @@ export type DashboardSnapshot = {
   revenueBars: RevenueBar[];
   memberships: MembershipRow[];
   profile: AnalystProfileRow;
+  tronAddress: string | null;
 };
 
 // ── Main view ──────────────────────────────────────────────────────────────────
@@ -128,34 +131,20 @@ export function AnalystDashboardView({ snapshot }: { snapshot: DashboardSnapshot
                 </div>
               </label>
 
-              <div className="grid gap-4 sm:grid-cols-[12rem_minmax(0,1fr)]">
-                <label className="block">
-                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
-                    {d.monthlyPrice}
-                  </span>
-                  <input
-                    className="mt-2 min-h-11 w-full rounded-md border border-tint/10 bg-background px-4 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
-                    defaultValue={snapshot.profile?.membership_price_usd ?? 1}
-                    min={1}
-                    max={50}
-                    name="membership_price_usd"
-                    step="1"
-                    type="number"
-                  />
-                </label>
+              {/* Keep the current price without an editable field */}
+              <input type="hidden" name="membership_price_usd" value={snapshot.profile?.membership_price_usd ?? 1} />
 
-                <label className="block">
-                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
-                    {d.membershipDescription}
-                  </span>
-                  <textarea
-                    className="mt-2 min-h-28 w-full rounded-md border border-tint/10 bg-background px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
-                    defaultValue={snapshot.profile?.membership_description ?? ""}
-                    name="membership_description"
-                    placeholder={d.membershipDescriptionPlaceholder}
-                  />
-                </label>
-              </div>
+              <label className="block">
+                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
+                  {d.membershipDescription}
+                </span>
+                <textarea
+                  className="mt-2 min-h-28 w-full rounded-md border border-tint/10 bg-background px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
+                  defaultValue={snapshot.profile?.membership_description ?? ""}
+                  name="membership_description"
+                  placeholder={d.membershipDescriptionPlaceholder}
+                />
+              </label>
 
               <Button type="submit">{d.saveSettings}</Button>
             </form>
@@ -241,10 +230,6 @@ export function AnalystDashboardView({ snapshot }: { snapshot: DashboardSnapshot
                 value={snapshot.profile?.membership_enabled ? d.membershipEnabled : d.membershipDisabled}
               />
               <StatRow
-                label={d.monthlyPriceLabel}
-                value={formatCurrency(snapshot.profile?.membership_price_usd ?? 1)}
-              />
-              <StatRow
                 label={d.descriptionLabel}
                 value={snapshot.profile?.membership_description || d.notSet}
               />
@@ -260,6 +245,33 @@ export function AnalystDashboardView({ snapshot }: { snapshot: DashboardSnapshot
               <Button href="/community/write">{d.writeNow}</Button>
               <Button href="/analyst/status" variant="secondary">{d.status}</Button>
             </div>
+          </Card>
+
+          <Card className="p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+              {d.withdrawSection}
+            </p>
+            <div className="mt-3 rounded-xl border border-tint/10 bg-tint/[0.03] px-3 py-2.5">
+              <p className="text-xs text-muted">{d.withdrawBalance}</p>
+              <p className="mt-1 text-xl font-semibold text-ink">
+                {formatCurrency(snapshot.thisMonthRevenue)}
+              </p>
+            </div>
+            <form className="mt-3 grid gap-3" action={saveWithdrawAddressAction}>
+              <label className="block">
+                <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                  {d.tronAddress}
+                </span>
+                <input
+                  className="mt-2 min-h-10 w-full rounded-md border border-tint/10 bg-background px-3 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
+                  defaultValue={snapshot.tronAddress ?? ""}
+                  name="tron_usdt_address"
+                  placeholder={d.tronAddressPlaceholder}
+                />
+              </label>
+              <Button type="submit" variant="secondary">{d.requestWithdraw}</Button>
+            </form>
+            <p className="mt-3 text-xs leading-5 text-muted">{d.withdrawNote}</p>
           </Card>
         </aside>
       </div>

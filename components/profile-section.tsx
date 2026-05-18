@@ -334,13 +334,18 @@ export function ProfileSection() {
       data: { ...user.user_metadata, avatar_url: publicUrl },
     });
 
-    setIsUploadingAvatar(false);
-
     if (updateError) {
+      setIsUploadingAvatar(false);
       setAvatarError(updateError.message);
       return;
     }
 
+    await supabase
+      .from("profiles")
+      .update({ avatar_url: publicUrl })
+      .eq("id", user.id);
+
+    setIsUploadingAvatar(false);
     setUser(data.user);
   }
 
