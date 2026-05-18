@@ -24,7 +24,7 @@ export function Header() {
     { href: "/briefs", label: copy.nav.briefs },
     { href: "/community", label: copy.nav.community },
     { href: "/market", label: copy.nav.market },
-    { href: "/analyst", label: "Analyst" },
+    { href: "/analyst", label: copy.nav.analyst },
     { href: "/sns", label: copy.nav.sns },
     { href: "/settings", label: copy.nav.settings },
   ];
@@ -105,10 +105,10 @@ export function Header() {
           {user ? (
             <div className="hidden items-center gap-2 sm:flex">
               <Button className="max-w-36 truncate px-3" href="/dashboard" variant="secondary">
-                Dashboard
+                {copy.nav.dashboard}
               </Button>
               <Button className="max-w-32 truncate px-3" onClick={signOut} type="button" variant="secondary">
-                Sign out
+                {copy.nav.signOut}
               </Button>
             </div>
           ) : (
@@ -169,10 +169,10 @@ export function Header() {
               {user ? (
                 <div className="mt-1 grid gap-2">
                   <Button className="w-full" href="/dashboard" onClick={closeMenu} variant="secondary">
-                    Dashboard
+                    {copy.nav.dashboard}
                   </Button>
                   <Button className="w-full" onClick={signOut} type="button" variant="secondary">
-                    Sign out
+                    {copy.nav.signOut}
                   </Button>
                 </div>
               ) : (
