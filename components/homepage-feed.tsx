@@ -1137,8 +1137,6 @@ function FeedSidebar({
   preferences: BriefPreferences;
   sources: string[];
 }) {
-  const hasIncludeKeywords = preferences.includeKeywords.trim().length > 0;
-  const hasExcludeKeywords = preferences.excludeKeywords.trim().length > 0;
   const { t: copy } = useI18n(preferences.language);
   const allSourcesSelected = sources.every((source) =>
     preferences.sources.includes(source),
@@ -1210,18 +1208,6 @@ function FeedSidebar({
             <dt className="text-muted">{copy.feed.lastUpdatedShort}</dt>
             <dd className="mt-1 break-words text-ink">
               {formatLastUpdated(lastUpdatedAt, preferences.language)}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-muted">{copy.feed.include}</dt>
-            <dd className="mt-1 break-words text-ink">
-              {hasIncludeKeywords ? preferences.includeKeywords : copy.feed.none}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-muted">{copy.feed.exclude}</dt>
-            <dd className="mt-1 text-ink">
-              {hasExcludeKeywords ? preferences.excludeKeywords : copy.feed.none}
             </dd>
           </div>
         </dl>

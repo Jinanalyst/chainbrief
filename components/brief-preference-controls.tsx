@@ -106,35 +106,6 @@ export function BriefPreferenceControls({
         </div>
       </div>
 
-      <div className="mt-4 grid gap-3 md:grid-cols-2">
-        <label className="block min-w-0">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
-            {copy.preferences.includeKeywords}
-          </span>
-          <input
-            className="mt-2 min-h-11 w-full rounded-md border border-tint/10 bg-background px-4 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
-            onChange={(event) =>
-              onChange({ ...preferences, includeKeywords: event.target.value })
-            }
-            placeholder="btc, etf, solana"
-            value={preferences.includeKeywords}
-          />
-        </label>
-        <label className="block min-w-0">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
-            {copy.preferences.excludeKeywords}
-          </span>
-          <input
-            className="mt-2 min-h-11 w-full rounded-md border border-tint/10 bg-background px-4 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
-            onChange={(event) =>
-              onChange({ ...preferences, excludeKeywords: event.target.value })
-            }
-            placeholder="nft, meme"
-            value={preferences.excludeKeywords}
-          />
-        </label>
-      </div>
-
       <div className="mt-4 min-w-0 rounded-lg border border-tint/10 bg-background/60 p-3 sm:p-4">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
           {copy.feed.language}
