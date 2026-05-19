@@ -89,6 +89,7 @@ export type CommunityPost = {
   body: string;
   preview: string;
   author: string;
+  authorId?: string;
   avatar?: string;
   category: string;
   publishedAt: string;
@@ -502,6 +503,7 @@ export function communityPostFromDatabase(row: DatabaseCommunityPostRow): Commun
     body: row.body,
     preview: truncate(row.body.replace(/\s+/g, " ").trim(), 160),
     author,
+    authorId: row.author_id ?? undefined,
     avatar,
     category: row.category || "All",
     publishedAt: row.created_at,

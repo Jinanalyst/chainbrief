@@ -34,6 +34,7 @@ import { MediaCarousel, type MediaItem } from "@/components/post/media-carousel"
 import { StanceBar } from "@/components/post/stance-bar";
 import { ReactionStrip } from "@/components/post/reaction-strip";
 import { EngagementBar } from "@/components/post/engagement-bar";
+import { FollowButton } from "@/components/post/follow-button";
 
 type CommunityTab =
   | "Latest"
@@ -114,12 +115,12 @@ const SEARCH_NAV_ITEMS = [
 ];
 
 const LIBRARY_NAV_ITEMS = [
-  { label: "Saved posts", href: "/sns" },
-  { label: "Liked posts", href: "/sns" },
-  { label: "Rebriefed posts", href: "/sns" },
-  { label: "Comment history", href: "/sns" },
-  { label: "Reading history", href: "/briefs" },
-  { label: "Followed analysts", href: "/analysts" },
+  { label: "Saved posts", href: "/library?tab=saved" },
+  { label: "Liked posts", href: "/library?tab=liked" },
+  { label: "Rebriefed posts", href: "/library?tab=rebriefed" },
+  { label: "Comment history", href: "/library?tab=comments" },
+  { label: "Reading history", href: "/library?tab=reading" },
+  { label: "Followed analysts", href: "/library?tab=following" },
 ];
 
 export default function CommunityPage() {
@@ -1405,6 +1406,9 @@ function CommunityPostCard({
             <p className="text-sm font-semibold text-ink">
               {isRepost && post.quotedCommunityPost ? post.quotedCommunityPost.author : post.author}
             </p>
+            {!isRepost && post.authorId ? (
+              <FollowButton language={language} targetId={post.authorId} />
+            ) : null}
             <span className="text-xs text-muted-2">
               {formatRelativeTime(post.publishedAt, language)}
             </span>
