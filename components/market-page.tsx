@@ -5,13 +5,15 @@ import { cn } from "@/lib/cn";
 import { Container } from "@/components/ui/container";
 import { CryptoHeatmap } from "@/components/crypto-heatmap";
 import { StockHeatmap } from "@/components/stock-heatmap";
+import { TradingViewAdvancedChart } from "@/components/tradingview-advanced-chart";
 import { usePreferences } from "@/lib/i18n/use-i18n";
 
-type Tab = "stocks" | "crypto";
+type Tab = "stocks" | "crypto" | "chart";
 
 const TABS: { id: Tab; label: string; labelKo: string }[] = [
   { id: "stocks", label: "Stocks", labelKo: "\uC8FC\uC2DD" },
   { id: "crypto", label: "Crypto", labelKo: "\uD06C\uB9BD\uD1A0" },
+  { id: "chart", label: "Chart", labelKo: "\uCC28\uD2B8" },
 ];
 
 export function MarketPage() {
@@ -46,7 +48,7 @@ export function MarketPage() {
                   >
                     <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
                   </svg>
-                ) : (
+                ) : item.id === "crypto" ? (
                   <svg
                     className="h-3.5 w-3.5 shrink-0"
                     fill="none"
@@ -58,6 +60,17 @@ export function MarketPage() {
                     <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
                     <line x1="12" x2="12.01" y1="17" y2="17" />
                   </svg>
+                ) : (
+                  <svg
+                    className="h-3.5 w-3.5 shrink-0"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={2.2}
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M3 3v18h18" />
+                    <path d="M7 15l4-4 3 3 5-6" />
+                  </svg>
                 )}
                 {language === "ko" ? item.labelKo : item.label}
               </button>
@@ -68,8 +81,10 @@ export function MarketPage() {
 
       {tab === "stocks" ? (
         <StockHeatmap language={language} />
-      ) : (
+      ) : tab === "crypto" ? (
         <CryptoHeatmap key="crypto" language={language} />
+      ) : (
+        <TradingViewAdvancedChart key="chart" language={language} />
       )}
     </>
   );
