@@ -469,12 +469,31 @@ function CategoryTabs({
             onClick={() => onChange(category)}
             type="button"
           >
-            {getCategoryLabel(category, language)} ({counts[category] ?? 0})
+            {getBriefCategoryLabel(category, language)} ({counts[category] ?? 0})
           </button>
         ))}
       </div>
     </div>
   );
+}
+
+function getBriefCategoryLabel(category: string, language: BriefPreferences["language"]) {
+  const koLabels: Record<string, string> = {
+    All: "전체",
+    "국내증시": "국내증시",
+    Macro: "매크로",
+    "부동산": "부동산",
+    "가상자산": "가상자산",
+  };
+  const enLabels: Record<string, string> = {
+    All: "All",
+    "국내증시": "Korean Stocks",
+    Macro: "Macro",
+    "부동산": "Real Estate",
+    "가상자산": "Crypto",
+  };
+
+  return (language === "ko" ? koLabels : enLabels)[category] ?? getCategoryLabel(category, language);
 }
 
 function StockMarketFilters({
@@ -582,6 +601,15 @@ const INITIAL_TRANSLATION: TranslationState = {
   isShowingTranslation: false,
 };
 
+function readMergedArticleSentiment(article: Article): ArticleSentiment {
+  const local = readArticleSentiment(article.slug);
+  return {
+    ...local,
+    bull: Math.max(local.bull, article.bullCount ?? 0),
+    bear: Math.max(local.bear, article.bearCount ?? 0),
+  };
+}
+
 function TimelineItem({
   article,
   expanded,
@@ -598,7 +626,7 @@ function TimelineItem({
   const { t: copy } = useI18n(language);
   const [translation, setTranslation] = useState<TranslationState>(INITIAL_TRANSLATION);
   const [sentiment, setSentiment] = useState<ArticleSentiment>(() =>
-    readArticleSentiment(article.slug),
+    readMergedArticleSentiment(article),
   );
   const [opinionOpen, setOpinionOpen] = useState(false);
   const [selectedReaction, setSelectedReaction] = useState<ArticleReaction | null>(null);
@@ -606,7 +634,7 @@ function TimelineItem({
 
   useEffect(() => {
     function syncSentiment() {
-      setSentiment(readArticleSentiment(article.slug));
+      setSentiment(readMergedArticleSentiment(article));
     }
 
     syncSentiment();
@@ -617,7 +645,7 @@ function TimelineItem({
       window.removeEventListener("storage", syncSentiment);
       window.removeEventListener(ARTICLE_SENTIMENT_CHANGED_EVENT, syncSentiment);
     };
-  }, [article.slug]);
+  }, [article]);
 
   async function handleTranslate() {
     if (translation.status === "loading") return;
@@ -662,6 +690,7 @@ function TimelineItem({
     const nextSentiment = reactToArticle(article, reaction, {
       author: readAuthorName() || "You",
     });
+    void persistArticleReaction(article.id, reaction);
     setSentiment(nextSentiment);
     setSelectedReaction(reaction);
     setOpinionOpen(true);
@@ -702,6 +731,9 @@ function TimelineItem({
             {article.sourceName}
           </span>
           <Badge tone="muted">{getCategoryLabel(article.category, language)}</Badge>
+          <span className={cn("rounded px-2 py-1 text-[0.68rem] font-bold uppercase tracking-[0.12em]", getMarketImpactClass(article.marketImpact))}>
+            {article.marketImpact ?? "Neutral"}
+          </span>
           <span className="text-xs font-medium text-muted-2">
             {formatShortDate(article.publishedAt, language)}
           </span>
@@ -718,6 +750,33 @@ function TimelineItem({
             <span className={showKo ? "brief-fade-in" : undefined}>{displayTitle}</span>
           </h2>
         </a>
+
+        <div className="mt-3 grid gap-3 sm:grid-cols-[minmax(0,1fr)_8.5rem]">
+          <div className="rounded-md border border-accent/25 bg-accent-soft/25 p-3">
+            <p className="text-[0.68rem] font-bold uppercase tracking-[0.16em] text-accent-ink">
+              AI Brief
+            </p>
+            <p className="mt-1 whitespace-pre-line break-words text-sm leading-6 text-ink">
+              {article.briefSummary}
+            </p>
+          </div>
+          {article.imageUrl ? (
+            <a
+              className="block overflow-hidden rounded-md border border-tint/10 bg-tint/[0.03]"
+              href={article.originalUrl}
+              rel="noreferrer"
+              target="_blank"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                alt=""
+                className="h-28 w-full object-cover transition group-hover:scale-[1.02]"
+                loading="lazy"
+                src={article.imageUrl}
+              />
+            </a>
+          ) : null}
+        </div>
 
         <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
           <button
@@ -815,7 +874,7 @@ function TimelineItem({
             ) : (
               <>
                 <p className="break-words text-sm leading-6 text-ink">
-                  {formatBriefSummary(article, language)}
+                  {article.briefSummary || formatBriefSummary(article, language)}
                 </p>
                 <p className="mt-2 break-words text-sm leading-6 text-muted">{article.excerpt}</p>
               </>
@@ -895,6 +954,53 @@ function ArticleSentimentBar({
       </div>
     </div>
   );
+}
+
+function getMarketImpactClass(impact: Article["marketImpact"]) {
+  if (impact === "Bullish") {
+    return "bg-emerald-400/12 text-emerald-200";
+  }
+
+  if (impact === "Bearish") {
+    return "bg-rose-400/12 text-rose-200";
+  }
+
+  return "bg-tint/[0.06] text-muted";
+}
+
+function getBriefVisitorId() {
+  if (typeof window === "undefined") {
+    return "server";
+  }
+
+  const key = "chain-brief-visitor-id";
+  const existing = window.localStorage.getItem(key);
+  if (existing) {
+    return existing;
+  }
+
+  const next =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `visitor-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  window.localStorage.setItem(key, next);
+  return next;
+}
+
+async function persistArticleReaction(articleId: string, reaction: ArticleReaction) {
+  try {
+    await fetch("/api/briefs/reactions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        articleId,
+        reaction: reaction === "Bearish" ? "bear" : "bull",
+        visitorId: getBriefVisitorId(),
+      }),
+    });
+  } catch {
+    // Local reaction state still gives instant feedback if persistence is unavailable.
+  }
 }
 
 function TranslateButton({

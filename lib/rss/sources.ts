@@ -5,19 +5,93 @@ export type RssSource = {
   description: string;
   enabledByDefault: boolean;
   defaultCategory: string;
+  kind?: "rss" | "html";
 };
 
-export const RSS_REFRESH_SECONDS = 20 * 60;
+export const RSS_REFRESH_SECONDS = 5 * 60;
 
 export const rssSources: RssSource[] = [
-  // ── Crypto ──────────────────────────────────────────────────────────────────
+  {
+    id: "mk-finance",
+    name: "매일경제",
+    url: "https://www.mk.co.kr/rss/50200011/",
+    description: "국내 증시와 금융 뉴스.",
+    enabledByDefault: true,
+    defaultCategory: "국내증시",
+  },
+  {
+    id: "hankyung-finance",
+    name: "한국경제",
+    url: "https://www.hankyung.com/feed/finance",
+    description: "국내 금융 및 증권 뉴스.",
+    enabledByDefault: true,
+    defaultCategory: "국내증시",
+  },
+  {
+    id: "etoday-news",
+    name: "이투데이",
+    url: "https://www.etoday.co.kr/rss/news.xml",
+    description: "국내 금융, 산업, 정책 속보.",
+    enabledByDefault: true,
+    defaultCategory: "국내증시",
+  },
+  {
+    id: "mk-economy",
+    name: "매일경제",
+    url: "https://www.mk.co.kr/rss/30100041/",
+    description: "국내 경제와 매크로 뉴스.",
+    enabledByDefault: true,
+    defaultCategory: "매크로",
+  },
+  {
+    id: "hankyung-economy",
+    name: "한국경제",
+    url: "https://www.hankyung.com/feed/economy",
+    description: "경제 정책, 물가, 금리, 거시 뉴스.",
+    enabledByDefault: true,
+    defaultCategory: "매크로",
+  },
+  {
+    id: "bok-press",
+    name: "한국은행",
+    url: "https://www.bok.or.kr/portal/bbs/B0000559/list.do?menuNo=200690",
+    description: "한국은행 보도자료.",
+    enabledByDefault: true,
+    defaultCategory: "매크로",
+    kind: "html",
+  },
+  {
+    id: "mk-realestate",
+    name: "매일경제",
+    url: "https://www.mk.co.kr/rss/50300009/",
+    description: "부동산 시장 뉴스.",
+    enabledByDefault: true,
+    defaultCategory: "부동산",
+  },
+  {
+    id: "hankyung-realestate",
+    name: "한국경제",
+    url: "https://www.hankyung.com/feed/realestate",
+    description: "주택, 분양, 정책, 부동산 금융 뉴스.",
+    enabledByDefault: true,
+    defaultCategory: "부동산",
+  },
+  {
+    id: "molit-press",
+    name: "국토교통부",
+    url: "https://www.molit.go.kr/",
+    description: "국토교통부 정책 및 보도자료.",
+    enabledByDefault: true,
+    defaultCategory: "부동산",
+    kind: "html",
+  },
   {
     id: "coindesk",
     name: "CoinDesk",
-    url: "https://www.coindesk.com/arc/outboundfeeds/rss/?outputType=xml",
+    url: "https://www.coindesk.com/arc/outboundfeeds/rss/",
     description: "Crypto markets, policy, and institutional digital asset news.",
     enabledByDefault: true,
-    defaultCategory: "Markets",
+    defaultCategory: "가상자산",
   },
   {
     id: "cointelegraph",
@@ -25,7 +99,7 @@ export const rssSources: RssSource[] = [
     url: "https://cointelegraph.com/rss",
     description: "Broad crypto, blockchain, Web3, and market headlines.",
     enabledByDefault: true,
-    defaultCategory: "Crypto",
+    defaultCategory: "가상자산",
   },
   {
     id: "decrypt",
@@ -33,40 +107,14 @@ export const rssSources: RssSource[] = [
     url: "https://decrypt.co/feed",
     description: "Web3, crypto culture, business, and digital asset news.",
     enabledByDefault: true,
-    defaultCategory: "Web3",
+    defaultCategory: "가상자산",
   },
   {
-    id: "blockworks",
-    name: "Blockworks",
-    url: "https://blockworks.co/feed",
-    description: "Crypto markets, DeFi, policy, and institutional coverage.",
+    id: "blockmedia",
+    name: "블록미디어",
+    url: "https://www.blockmedia.co.kr/feed",
+    description: "한국어 가상자산 시장 뉴스.",
     enabledByDefault: true,
-    defaultCategory: "Markets",
-  },
-
-  // ── Stock Market ─────────────────────────────────────────────────────────────
-  {
-    id: "marketwatch",
-    name: "MarketWatch",
-    url: "https://feeds.content.dowjones.io/public/rss/mw_topstories",
-    description: "Top financial markets, equities, and business news from MarketWatch.",
-    enabledByDefault: true,
-    defaultCategory: "Stock Market",
-  },
-  {
-    id: "cnbc-markets",
-    name: "CNBC Markets",
-    url: "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000664",
-    description: "U.S. and global equity market news and analysis from CNBC.",
-    enabledByDefault: true,
-    defaultCategory: "Stock Market",
-  },
-  {
-    id: "reuters-business",
-    name: "Reuters Business",
-    url: "https://feeds.reuters.com/reuters/businessNews",
-    description: "Global business, corporate, and financial market news from Reuters.",
-    enabledByDefault: true,
-    defaultCategory: "Stock Market",
+    defaultCategory: "가상자산",
   },
 ];

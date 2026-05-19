@@ -12,6 +12,10 @@ export type Article = {
   readingTime: string;
   briefSummary: string;
   rawContentSnippet: string;
+  imageUrl?: string;
+  marketImpact?: "Bullish" | "Bearish" | "Neutral";
+  bullCount?: number;
+  bearCount?: number;
   feedCategory?: string;
   customCategory?: string;
   marketType?: string;

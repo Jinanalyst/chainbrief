@@ -6,7 +6,9 @@ import {
   fetchFeeds,
   fetchPersonalizedFeeds,
 } from "@/lib/rss/fetchFeeds";
+import { fetchStoredBriefArticles } from "@/lib/rss/database";
 import { RSS_REFRESH_SECONDS } from "@/lib/rss/sources";
+import { createAdminClient, hasSupabaseAdminConfig } from "@/lib/supabase/admin";
 import {
   normalizeCustomRssSources,
   type CustomRssSource,
@@ -20,7 +22,12 @@ const getCachedFeeds = unstable_cache(fetchFeeds, ["chain-brief-rss-feeds"], {
 
 export async function GET() {
   try {
-    const articles = await getCachedFeeds();
+    const articles = hasSupabaseAdminConfig()
+      ? await fetchStoredBriefArticles(createAdminClient()).then(
+          (stored) => (stored.length > 0 ? stored : getCachedFeeds()),
+          () => getCachedFeeds(),
+        )
+      : await getCachedFeeds();
 
     return NextResponse.json(
       {

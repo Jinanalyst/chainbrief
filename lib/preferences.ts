@@ -1,19 +1,23 @@
-export const ACTIVE_SOURCES = ["CoinDesk", "Cointelegraph", "Decrypt", "Blockworks"];
+export const ACTIVE_SOURCES = [
+  "매일경제",
+  "한국경제",
+  "이투데이",
+  "한국은행",
+  "국토교통부",
+  "CoinDesk",
+  "Cointelegraph",
+  "Decrypt",
+  "블록미디어",
+];
 export const STOCK_REGIONS = ["US", "Korea", "Global"];
 export const STOCK_TYPES = ["Stocks", "ETFs", "Earnings", "Macro", "Economy", "Indices"];
 
 export const BRIEF_CATEGORIES = [
   "All",
-  "Stock Market",
-  "Bitcoin",
-  "Ethereum",
-  "Solana",
-  "DeFi",
+  "국내증시",
   "Macro",
-  "Regulation",
-  "Stablecoins",
-  "AI & Crypto",
-  "Web3",
+  "부동산",
+  "가상자산",
 ];
 
 export type BriefPreferences = {
