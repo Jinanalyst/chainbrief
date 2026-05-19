@@ -6,6 +6,7 @@ import { Header } from "@/components/header";
 import { Card } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
 import { AnalystDashboardView } from "@/components/analyst-dashboard-view";
+import { AnalystScorePanel } from "@/components/post/analyst-score-panel";
 import type { DashboardSnapshot } from "@/components/analyst-dashboard-view";
 import { hasSupabaseConfig } from "@/lib/supabase/config";
 import {
@@ -76,6 +77,9 @@ export default async function AnalystDashboardPage() {
       <Header />
       <section className="border-t border-tint/10 bg-background/72">
         <Container className="section-space">
+          <div className="mb-5">
+            <AnalystScorePanel title="Live Analyst Score" />
+          </div>
           <Suspense>
             <AnalystDashboardView snapshot={snapshot} />
           </Suspense>

@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { formatBriefSummary } from "@/lib/summary";
 import { formatRelativeTime, getCategoryLabel } from "@/lib/i18n";
 import { useI18n, usePreferences } from "@/lib/i18n/use-i18n";
+import { BriefEngagement } from "@/components/post/brief-engagement";
 
 type BriefingCardProps = {
   article: Article;
@@ -85,6 +86,8 @@ export function BriefingCard({ article, featured = false }: BriefingCardProps) {
           {copy.feed.originalLink}
         </Button>
       </div>
+
+      <BriefEngagement briefId={article.id} />
     </Card>
   );
 }

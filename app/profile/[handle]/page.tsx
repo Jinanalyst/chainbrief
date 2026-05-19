@@ -6,6 +6,7 @@ import { Header } from "@/components/header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
+import { AnalystScorePanel } from "@/components/post/analyst-score-panel";
 import { cn } from "@/lib/cn";
 import {
   addOpinionPost,
@@ -259,6 +260,9 @@ export default function MembershipPage() {
                   ))}
                 </div>
               </Card>
+              <div className="mt-4">
+                <AnalystScorePanel compact />
+              </div>
             </aside>
 
             <div className="min-w-0">

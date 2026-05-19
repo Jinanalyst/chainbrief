@@ -30,6 +30,10 @@ import { formatLocalDateTime, formatRelativeTime, getCategoryLabel } from "@/lib
 import { useI18n, usePreferences } from "@/lib/i18n/use-i18n";
 import { createClient } from "@/lib/supabase/client";
 import { hasSupabaseConfig } from "@/lib/supabase/config";
+import { MediaCarousel, type MediaItem } from "@/components/post/media-carousel";
+import { StanceBar } from "@/components/post/stance-bar";
+import { ReactionStrip } from "@/components/post/reaction-strip";
+import { EngagementBar } from "@/components/post/engagement-bar";
 
 type CommunityTab =
   | "Latest"
@@ -897,25 +901,76 @@ function AnalystPathSection() {
   );
 }
 
-function AnalystScoreCard({ compact = false }: { compact?: boolean }) {
-  const scores = [
-    ["근거 충실도", 72],
-    ["리스크 설명", 68],
-    ["독자 반응", 81],
-    ["꾸준함", 64],
-    ["신뢰도", 76],
-  ] as const;
+type LiveAnalystScore = {
+  engagement_score: number;
+  consistency_score: number;
+  risk_score: number;
+  invalidation_score: number;
+  trust_score: number;
+  total_score: number;
+  tier: "rookie_analyst" | "rising_analyst" | "verified_analyst";
+};
+
+function AnalystScoreCard({ compact = false, userId }: { compact?: boolean; userId?: string | null }) {
+  const [score, setScore] = useState<LiveAnalystScore | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const url = userId
+      ? `/api/analyst/score?userId=${encodeURIComponent(userId)}`
+      : `/api/analyst/score`;
+    fetch(url, { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (cancelled || !data?.score) return;
+        setScore(data.score as LiveAnalystScore);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
+
+  const rows: Array<readonly [string, number]> = score
+    ? [
+        ["Engagement", score.engagement_score],
+        ["Reasoning", score.consistency_score],
+        ["Risk-aware", score.risk_score],
+        ["Invalidation", score.invalidation_score],
+        ["Community trust", score.trust_score],
+      ]
+    : [
+        ["Engagement", 0],
+        ["Reasoning", 0],
+        ["Risk-aware", 0],
+        ["Invalidation", 0],
+        ["Community trust", 0],
+      ];
+
+  const tierLabel = score?.tier
+    ? score.tier === "verified_analyst"
+      ? "Verified Analyst"
+      : score.tier === "rising_analyst"
+        ? "Rising Analyst"
+        : "Rookie Analyst"
+    : "Rookie Analyst";
 
   return (
     <div className={compact ? "grid gap-2" : "grid gap-3"}>
-      {scores.map(([label, value]) => (
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-2">{tierLabel}</span>
+        <span className="rounded-full bg-accent/15 px-2 py-0.5 text-xs font-semibold text-accent-ink">
+          {score?.total_score ?? 0}
+        </span>
+      </div>
+      {rows.map(([label, value]) => (
         <div key={label}>
           <div className="flex justify-between gap-3 text-xs">
             <span className="text-muted">{label}</span>
             <span className="font-semibold text-accent-ink">{value}</span>
           </div>
           <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-tint/10">
-            <span className="block h-full rounded-full bg-accent" style={{ width: `${value}%` }} />
+            <span className="block h-full rounded-full bg-accent" style={{ width: `${Math.min(100, value)}%` }} />
           </div>
         </div>
       ))}
@@ -1390,28 +1445,15 @@ function CommunityPostCard({
           ) : null}
 
           {post.attachments?.length ? (
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              {post.attachments.map((attachment) => (
-                <figure
-                  key={attachment.id}
-                  className="overflow-hidden rounded-xl border border-tint/10 bg-tint/[0.03]"
-                >
-                  {attachment.kind === "image" ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      alt={attachment.name}
-                      className="aspect-video w-full object-cover"
-                      src={attachment.dataUrl}
-                    />
-                  ) : (
-                    <video className="aspect-video w-full bg-black object-cover" controls src={attachment.dataUrl} />
-                  )}
-                  <figcaption className="flex items-center justify-between gap-3 px-3 py-2 text-xs text-muted-2">
-                    <span className="truncate">{attachment.name}</span>
-                    <span>{attachment.kind === "image" ? "Image" : "Video"}</span>
-                  </figcaption>
-                </figure>
-              ))}
+            <div className="mt-4">
+              <MediaCarousel
+                items={post.attachments.map<MediaItem>((a) => ({
+                  id: a.id,
+                  kind: a.kind,
+                  src: a.dataUrl,
+                  alt: a.name,
+                }))}
+              />
             </div>
           ) : null}
 
@@ -1419,12 +1461,15 @@ function CommunityPostCard({
             <QuotedPostEmbed language={language} snapshot={post.quotedCommunityPost!} />
           ) : null}
 
-          <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-muted-2">
-            <span>{post.likes} {language === "ko" ? "좋아요" : "likes"}</span>
-            <span>{post.commentsCount} {copy.community.comments}</span>
-            <span>{post.views} {copy.community.views}</span>
-            {post.tags[0] ? <Badge tone="muted">{post.tags[0]}</Badge> : null}
-          </div>
+          <CommunityPostLiveFooter
+            postId={post.id}
+            initial={{
+              views: post.views,
+              likes: post.likes,
+              comments: post.commentsCount,
+            }}
+            tag={post.tags[0]}
+          />
 
           <div className="mt-3 grid gap-2 rounded-xl border border-tint/10 bg-tint/[0.025] p-3">
             <div className="flex flex-wrap items-center gap-3 text-xs text-muted-2">
@@ -2050,6 +2095,129 @@ function sortPostsForTab(posts: CommunityPost[], tab: CommunityTab) {
 
 function engagementScore(post: CommunityPost) {
   return post.likes * 2 + post.commentsCount * 3 + post.views * 0.1;
+}
+
+// LinkedIn-style live engagement footer: Bull/Bear% bar + reaction strip + engagement bar.
+// Pulls live counts from Supabase; the localStorage post's counts seed the UI.
+function CommunityPostLiveFooter({
+  postId,
+  initial,
+  tag,
+}: {
+  postId: string;
+  initial: { views: number; likes: number; comments: number };
+  tag?: string;
+}) {
+  type Aggregate = {
+    percentages: { bullish: number; bearish: number; neutral: number; need_more_data: number };
+    totalReactions: number;
+    views: number;
+    likes: number;
+    comments: number;
+    saves: number;
+    reposts: number;
+    shares: number;
+    myReaction: { reaction: import("@/components/post/reaction-strip").ReactionKind; reasoning?: string | null } | null;
+    topBull: { reasoning: string; user_id?: string }[];
+    topBear: { reasoning: string; user_id?: string }[];
+  };
+
+  const [agg, setAgg] = useState<Aggregate>({
+    percentages: { bullish: 0, bearish: 0, neutral: 0, need_more_data: 0 },
+    totalReactions: 0,
+    views: initial.views,
+    likes: initial.likes,
+    comments: initial.comments,
+    saves: 0,
+    reposts: 0,
+    shares: 0,
+    myReaction: null,
+    topBull: [],
+    topBear: [],
+  });
+
+  const refresh = useMemo(
+    () => async () => {
+      try {
+        const res = await fetch(`/api/posts/${encodeURIComponent(postId)}/aggregate`, { cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json();
+        setAgg((prev) => ({
+          ...prev,
+          percentages: data.percentages,
+          totalReactions: data.totalReactions,
+          views: Math.max(prev.views, data.views ?? 0),
+          likes: data.likes ?? prev.likes,
+          comments: Array.isArray(data.comments) ? data.comments.length : prev.comments,
+          saves: data.saves ?? 0,
+          reposts: data.reposts ?? 0,
+          shares: data.shares ?? 0,
+          myReaction: data.myReaction,
+          topBull: data.topBull ?? [],
+          topBear: data.topBear ?? [],
+        }));
+      } catch {
+        /* ignore */
+      }
+    },
+    [postId],
+  );
+
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
+
+  return (
+    <div className="mt-4 space-y-3 border-t border-tint/10 pt-3">
+      <StanceBar
+        bullish={agg.percentages.bullish}
+        bearish={agg.percentages.bearish}
+        neutral={agg.percentages.neutral}
+        needMore={agg.percentages.need_more_data}
+        total={agg.totalReactions}
+        compact
+      />
+      {(agg.topBull[0] || agg.topBear[0]) ? (
+        <div className="grid gap-2 sm:grid-cols-2">
+          {agg.topBull[0] ? (
+            <div className="rounded-md border border-emerald-400/20 bg-emerald-400/[0.06] p-2.5">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-300">Top bull</p>
+              <p className="mt-1 text-xs text-ink">{agg.topBull[0].reasoning}</p>
+            </div>
+          ) : null}
+          {agg.topBear[0] ? (
+            <div className="rounded-md border border-rose-400/20 bg-rose-400/[0.06] p-2.5">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-rose-300">Top bear</p>
+              <p className="mt-1 text-xs text-ink">{agg.topBear[0].reasoning}</p>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+      <ReactionStrip
+        targetId={postId}
+        endpoint={`/api/briefs/${encodeURIComponent(postId)}/reaction`}
+        initial={agg.myReaction}
+        onSubmitted={() => refresh()}
+      />
+      <EngagementBar
+        targetId={postId}
+        endpoint={`/api/posts/${encodeURIComponent(postId)}/action`}
+        initial={{
+          views: agg.views,
+          likes: agg.likes,
+          comments: agg.comments,
+          saves: agg.saves,
+          reposts: agg.reposts,
+          shares: agg.shares,
+        }}
+      />
+      {tag ? (
+        <div className="pt-1">
+          <Badge tone="muted">{tag}</Badge>
+        </div>
+      ) : null}
+    </div>
+  );
 }
 
 function postToQuoteTarget(post: CommunityPost): CommunityQuoteTarget {
