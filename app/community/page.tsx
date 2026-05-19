@@ -1471,148 +1471,15 @@ function CommunityPostCard({
             tag={post.tags[0]}
           />
 
-          <div className="mt-3 grid gap-2 rounded-xl border border-tint/10 bg-tint/[0.025] p-3">
-            <div className="flex flex-wrap items-center gap-3 text-xs text-muted-2">
-              <span>{formatViewCount(views)} views</span>
-              <span>{likes} likes</span>
-              <span>{comments} comments</span>
-              <span>{saves} saves</span>
-              <span>{sentimentTotal ? `${bullShare}% Bull` : "No Bull/Bear votes"}</span>
-              <span>{rebriefCount} rebriefs/quotes</span>
-            </div>
-            <div className="h-1.5 overflow-hidden rounded-full bg-rose-400/25">
-              <div className="h-full rounded-full bg-emerald-400" style={{ width: `${bullShare}%` }} />
-            </div>
-          </div>
-
-          <div className="mt-4 flex flex-wrap items-center gap-2 border-y border-tint/10 py-3">
-            <button
-              className={cn(
-                "inline-flex h-9 items-center gap-1.5 rounded-full border px-3 text-xs font-bold transition",
-                metrics?.likedByUser || post.likedByUser
-                  ? "border-accent/50 bg-accent/15 text-accent-ink"
-                  : "border-tint/10 bg-tint/[0.03] text-muted hover:border-accent/40 hover:text-ink",
-              )}
-              onClick={handleLike}
-              type="button"
-            >
-              <span>{metrics?.likedByUser || post.likedByUser ? "Liked" : "Like"}</span>
-              <span className="text-muted-2">{likes}</span>
-            </button>
-            <button
-              className={cn(
-                "inline-flex h-9 items-center gap-1.5 rounded-full border px-3 text-xs font-bold transition",
-                replyOpen
-                  ? "border-accent/50 bg-accent/15 text-accent-ink"
-                  : "border-tint/10 bg-tint/[0.03] text-muted hover:border-accent/40 hover:text-ink",
-              )}
-              onClick={() => setReplyOpen((open) => !open)}
-              type="button"
-            >
-              <span>Reply</span>
-              <span className="text-muted-2">{comments}</span>
-            </button>
-            <button
-              className="inline-flex h-9 items-center rounded-full border border-tint/10 bg-tint/[0.03] px-3 text-xs font-bold text-muted transition hover:border-accent/40 hover:text-ink"
-              onClick={handleSave}
-              type="button"
-            >
-              {metrics?.savedByUser ? "Saved" : "Save"} {saves}
-            </button>
-            <button
-              className={cn(
-                "inline-flex h-9 items-center rounded-full border px-3 text-xs font-bold transition",
-                metrics?.userReaction === "bull"
-                  ? "border-emerald-400/50 bg-emerald-400/15 text-emerald-300"
-                  : "border-tint/10 bg-tint/[0.03] text-muted hover:border-emerald-400/40 hover:text-ink",
-              )}
-              onClick={() => handleReaction("bull")}
-              type="button"
-            >
-              Bull {bull}
-            </button>
-            <button
-              className={cn(
-                "inline-flex h-9 items-center rounded-full border px-3 text-xs font-bold transition",
-                metrics?.userReaction === "bear"
-                  ? "border-rose-400/50 bg-rose-400/15 text-rose-300"
-                  : "border-tint/10 bg-tint/[0.03] text-muted hover:border-rose-400/40 hover:text-ink",
-              )}
-              onClick={() => handleReaction("bear")}
-              type="button"
-            >
-              Bear {bear}
-            </button>
-            {canThread ? (
-              <>
-                <button
-                  className={cn(
-                    "inline-flex h-9 items-center rounded-full border px-3 text-xs font-bold transition",
-                    reposted
-                      ? "border-accent/50 bg-accent/15 text-accent-ink"
-                      : "border-tint/10 bg-tint/[0.03] text-muted hover:border-accent/40 hover:text-ink",
-                  )}
-                  onClick={handleRepost}
-                  type="button"
-                >
-                  {reposted ? "Rebriefed" : "Rebrief"} {metrics?.rebriefs ?? 0}
-                </button>
-                <button
-                  className={cn(
-                    "inline-flex h-9 items-center rounded-full border px-3 text-xs font-bold transition",
-                    quoteOpen
-                      ? "border-accent/50 bg-accent/15 text-accent-ink"
-                      : "border-tint/10 bg-tint/[0.03] text-muted hover:border-accent/40 hover:text-ink",
-                  )}
-                  onClick={() => setQuoteOpen((open) => !open)}
-                  type="button"
-                >
-                  Quote Analysis {metrics?.quoteAnalyses ?? 0}
-                </button>
-              </>
-            ) : null}
+          {/* Detail link kept for accessibility; primary engagement lives in CommunityPostLiveFooter above. */}
+          <div className="mt-2">
             <Link
-              className="inline-flex h-9 items-center rounded-full border border-tint/10 bg-tint/[0.03] px-3 text-xs font-bold text-muted transition hover:border-accent/40 hover:text-ink"
+              className="inline-flex h-8 items-center rounded-full border border-tint/10 bg-tint/[0.03] px-3 text-[11px] font-semibold text-muted transition hover:border-accent/40 hover:text-ink"
               href={`/community/${post.id}`}
             >
               Details
             </Link>
           </div>
-
-          {rebriefOpen ? (
-            <div className="mt-4 rounded-xl border border-accent/20 bg-accent/[0.06] p-3">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-accent">
-                Rebrief with a short market take
-              </p>
-              <textarea
-                autoFocus
-                className="min-h-20 w-full rounded-md border border-tint/10 bg-background px-3 py-2 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/25"
-                maxLength={280}
-                onChange={(event) => setRebriefBody(event.target.value)}
-                placeholder="Add the catalyst, risk, or trade angle you want others to notice"
-                value={rebriefBody}
-              />
-              <div className="mt-2 flex justify-end gap-2">
-                <button
-                  className="h-9 rounded-md border border-tint/10 px-3 text-xs font-bold text-muted transition hover:text-ink"
-                  onClick={() => {
-                    setRebriefOpen(false);
-                    setRebriefBody("");
-                  }}
-                  type="button"
-                >
-                  Cancel
-                </button>
-                <button
-                  className="h-9 rounded-md border border-accent/40 bg-accent/15 px-3 text-xs font-bold text-accent-ink transition hover:bg-accent/20"
-                  onClick={handleRebriefSubmit}
-                  type="button"
-                >
-                  Rebrief
-                </button>
-              </div>
-            </div>
-          ) : null}
 
           {post.replies?.length ? (
             <div className="mt-4 space-y-3 border-l border-tint/10 pl-3">
