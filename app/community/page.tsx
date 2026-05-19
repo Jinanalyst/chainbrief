@@ -471,7 +471,7 @@ function CommunityLeftNav({
       <CbMenuLink href="/briefs" label={language === "ko" ? "브리프" : "Briefs"} icon={<BoltIcon />} />
       <CbMenuLink href="/market" label={language === "ko" ? "마켓" : "Market"} icon={<PulseIcon />} />
       <CbMenuCluster href="/analysts" label="Search" icon={<SearchIcon />} items={SEARCH_NAV_ITEMS} />
-      <CbMenuCluster href="/sns" label="Library" icon={<BookmarkIcon />} items={LIBRARY_NAV_ITEMS} />
+      <CbMenuCluster href="/library" label="Library" icon={<BookmarkIcon />} items={LIBRARY_NAV_ITEMS} />
 
       <CbDivider />
       <CbSectionLabel>{language === "ko" ? "커뮤니티" : "Community"}</CbSectionLabel>
