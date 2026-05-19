@@ -1471,16 +1471,6 @@ function CommunityPostCard({
             tag={post.tags[0]}
           />
 
-          {/* Detail link kept for accessibility; primary engagement lives in CommunityPostLiveFooter above. */}
-          <div className="mt-2">
-            <Link
-              className="inline-flex h-8 items-center rounded-full border border-tint/10 bg-tint/[0.03] px-3 text-[11px] font-semibold text-muted transition hover:border-accent/40 hover:text-ink"
-              href={`/community/${post.id}`}
-            >
-              Details
-            </Link>
-          </div>
-
           {post.replies?.length ? (
             <div className="mt-4 space-y-3 border-l border-tint/10 pl-3">
               {post.replies.slice(-3).map((reply) => (
