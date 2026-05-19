@@ -153,6 +153,50 @@ create table if not exists public.analyst_posts (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.post_views (
+  id uuid primary key default gen_random_uuid(),
+  post_id uuid not null references public.posts(id) on delete cascade,
+  viewer_id uuid references auth.users(id) on delete set null,
+  session_id text,
+  viewed_at timestamptz not null default now(),
+  check (viewer_id is not null or session_id is not null)
+);
+
+create table if not exists public.post_likes (
+  id uuid primary key default gen_random_uuid(),
+  post_id uuid not null references public.posts(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  unique (post_id, user_id)
+);
+
+create table if not exists public.post_bookmarks (
+  id uuid primary key default gen_random_uuid(),
+  post_id uuid not null references public.posts(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  unique (post_id, user_id)
+);
+
+create table if not exists public.post_comments (
+  id uuid primary key default gen_random_uuid(),
+  post_id uuid not null references public.posts(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  body text not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.post_reactions (
+  id uuid primary key default gen_random_uuid(),
+  post_id uuid not null references public.posts(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  reaction text not null check (reaction in ('bull', 'bear')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (post_id, user_id)
+);
+
 create table if not exists public.notification_subscriptions (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -211,6 +255,11 @@ alter table public.revenue_events enable row level security;
 alter table public.analyst_scores enable row level security;
 alter table public.analyst_profiles enable row level security;
 alter table public.analyst_posts enable row level security;
+alter table public.post_views enable row level security;
+alter table public.post_likes enable row level security;
+alter table public.post_bookmarks enable row level security;
+alter table public.post_comments enable row level security;
+alter table public.post_reactions enable row level security;
 alter table public.notification_subscriptions enable row level security;
 alter table public.notification_deliveries enable row level security;
 
@@ -308,6 +357,101 @@ create policy "analysts can manage own analyst posts"
   using (auth.uid() = analyst_id)
   with check (auth.uid() = analyst_id);
 
+create policy "authors can read post views"
+  on public.post_views for select
+  using (
+    exists (
+      select 1 from public.posts posts
+      where posts.id = post_id and posts.author_id = auth.uid()
+    )
+    or viewer_id = auth.uid()
+  );
+
+create policy "users can record post views"
+  on public.post_views for insert
+  with check (viewer_id = auth.uid() or viewer_id is null);
+
+create policy "authors and users can read post likes"
+  on public.post_likes for select
+  using (
+    user_id = auth.uid()
+    or exists (
+      select 1 from public.posts posts
+      where posts.id = post_id and posts.author_id = auth.uid()
+    )
+  );
+
+create policy "users can like posts"
+  on public.post_likes for insert
+  with check (user_id = auth.uid());
+
+create policy "users can remove own likes"
+  on public.post_likes for delete
+  using (user_id = auth.uid());
+
+create policy "authors and users can read post bookmarks"
+  on public.post_bookmarks for select
+  using (
+    user_id = auth.uid()
+    or exists (
+      select 1 from public.posts posts
+      where posts.id = post_id and posts.author_id = auth.uid()
+    )
+  );
+
+create policy "users can bookmark posts"
+  on public.post_bookmarks for insert
+  with check (user_id = auth.uid());
+
+create policy "users can remove own bookmarks"
+  on public.post_bookmarks for delete
+  using (user_id = auth.uid());
+
+create policy "published post comments are readable"
+  on public.post_comments for select
+  using (
+    exists (
+      select 1 from public.posts posts
+      where posts.id = post_id and posts.status = 'published'
+    )
+  );
+
+create policy "users can comment on posts"
+  on public.post_comments for insert
+  with check (user_id = auth.uid());
+
+create policy "users can update own comments"
+  on public.post_comments for update
+  using (user_id = auth.uid())
+  with check (user_id = auth.uid());
+
+create policy "users can delete own comments"
+  on public.post_comments for delete
+  using (user_id = auth.uid());
+
+create policy "authors and users can read post reactions"
+  on public.post_reactions for select
+  using (
+    user_id = auth.uid()
+    or exists (
+      select 1 from public.posts posts
+      where posts.id = post_id and posts.author_id = auth.uid()
+    )
+  );
+
+create policy "users can react to posts"
+  on public.post_reactions for insert
+  with check (user_id = auth.uid());
+
+create policy "users can update own reactions"
+  on public.post_reactions for update
+  using (user_id = auth.uid())
+  with check (user_id = auth.uid());
+
+create policy "users can remove own reactions"
+  on public.post_reactions for delete
+  using (user_id = auth.uid());
+
 create policy "analyst profiles readable by everyone"
   on public.analyst_profiles for select
   using (true);
@@ -354,15 +498,20 @@ create policy "users can read own notification deliveries"
 
 grant usage on schema public to anon, authenticated;
 grant select on public.profiles, public.posts, public.analyst_scores, public.analyst_profiles, public.analyst_posts to anon, authenticated;
-grant insert on public.profiles, public.posts, public.analyst_applications, public.analyst_profiles, public.analyst_posts, public.revenue_events to authenticated;
-grant select on public.analyst_applications, public.analyst_memberships, public.revenue_events, public.notification_subscriptions, public.notification_deliveries to authenticated;
+grant insert on public.profiles, public.posts, public.analyst_applications, public.analyst_profiles, public.analyst_posts, public.revenue_events, public.post_views, public.post_likes, public.post_bookmarks, public.post_comments, public.post_reactions to authenticated;
+grant select on public.analyst_applications, public.analyst_memberships, public.revenue_events, public.post_views, public.post_likes, public.post_bookmarks, public.post_comments, public.post_reactions, public.notification_subscriptions, public.notification_deliveries to authenticated;
 grant insert on public.notification_subscriptions to authenticated;
-grant update on public.profiles, public.posts, public.analyst_applications, public.analyst_memberships, public.analyst_profiles, public.analyst_posts, public.notification_subscriptions to authenticated;
-grant delete on public.posts, public.notification_subscriptions to authenticated;
+grant update on public.profiles, public.posts, public.analyst_applications, public.analyst_memberships, public.analyst_profiles, public.analyst_posts, public.post_comments, public.post_reactions, public.notification_subscriptions to authenticated;
+grant delete on public.posts, public.post_likes, public.post_bookmarks, public.post_comments, public.post_reactions, public.notification_subscriptions to authenticated;
 
 revoke all on public.analyst_applications from anon;
 revoke all on public.analyst_memberships from anon;
 revoke all on public.revenue_events from anon;
+revoke all on public.post_views from anon;
+revoke all on public.post_likes from anon;
+revoke all on public.post_bookmarks from anon;
+revoke all on public.post_comments from anon;
+revoke all on public.post_reactions from anon;
 revoke insert, update, delete on public.profiles from anon;
 revoke insert, update, delete on public.posts from anon;
 revoke insert, update, delete on public.analyst_scores from anon;

@@ -58,11 +58,41 @@ export type RevenueEventRow = {
   created_at: string;
 };
 
+export type AnalystDashboardMetricBar = {
+  label: string;
+  views: number;
+  comments: number;
+  likes: number;
+};
+
+export type AnalystDashboardTopPost = {
+  id: string;
+  title: string;
+  views: number;
+  comments: number;
+  likes: number;
+  bookmarks: number;
+  score: number;
+};
+
 export type AnalystDashboardSnapshot = {
   thisMonthRevenue: number;
   totalSubscribers: number;
   postsPublished: number;
+  totalViews: number;
+  uniqueViewers: number;
+  totalComments: number;
+  totalLikes: number;
+  bullReactions: number;
+  bearReactions: number;
+  totalBookmarks: number;
+  followerGrowth: number;
+  analystScore: number;
+  rankingPosition: number | null;
+  revenueEstimate: number;
   revenueBars: Array<{ label: string; amount: number }>;
+  engagementBars: AnalystDashboardMetricBar[];
+  topPosts: AnalystDashboardTopPost[];
   memberships: AnalystMembershipRow[];
   profile: AnalystProfileRow | null;
   tronAddress: string | null;
@@ -289,7 +319,7 @@ export async function getApprovedAnalystProfile(userId: string) {
 
 export async function getAnalystDashboardSnapshot(userId: string): Promise<AnalystDashboardSnapshot> {
   const supabase = await getSupabase();
-  const [settings, membershipsResult, revenueResult, postsCountResult] = await Promise.all([
+  const [settings, membershipsResult, revenueResult, postsResult, scoreResult, rankingsResult] = await Promise.all([
     getAnalystSettings(userId),
     supabase
       .from("analyst_memberships")
@@ -303,16 +333,55 @@ export async function getAnalystDashboardSnapshot(userId: string): Promise<Analy
       .order("created_at", { ascending: false }),
     supabase
       .from("posts")
-      .select("id", { count: "exact", head: true })
+      .select("id, title, view_count, created_at")
       .eq("author_id", userId)
       .eq("status", "published"),
+    supabase
+      .from("analyst_scores")
+      .select("total_score")
+      .eq("user_id", userId)
+      .maybeSingle(),
+    supabase
+      .from("analyst_scores")
+      .select("user_id, total_score")
+      .order("total_score", { ascending: false }),
   ]);
 
   const memberships = (membershipsResult.data ?? []) as AnalystMembershipRow[];
   const revenueEvents = (revenueResult.data ?? []) as RevenueEventRow[];
+  const posts = ((postsResult.data ?? []) as Array<{
+    id: string;
+    title: string;
+    view_count: number | null;
+    created_at: string;
+  }>).map((post) => ({
+    ...post,
+    view_count: Number(post.view_count ?? 0),
+  }));
+  const postIds = posts.map((post) => post.id);
+  const engagement = await getDashboardEngagement(postIds);
   const supabaseSubscriberCount = new Set(memberships.map((item) => item.subscriber_user_id)).size;
   const thisMonthRevenue = sumRevenueForCurrentMonth(revenueEvents);
   const revenueBars = buildRevenueBars(revenueEvents);
+  const totalViews = Math.max(
+    posts.reduce((sum, post) => sum + post.view_count, 0),
+    engagement.views.length,
+  );
+  const activeSubscriberCount = memberships.filter((item) => item.status === "active").length;
+  const analystScore =
+    Number((scoreResult.data as { total_score?: number } | null)?.total_score) ||
+    deriveAnalystScore({
+      postsPublished: posts.length,
+      totalViews,
+      totalComments: engagement.comments.length,
+      totalLikes: engagement.likes.length,
+      totalBookmarks: engagement.bookmarks.length,
+    });
+  const rankingPosition = getRankingPosition(
+    userId,
+    analystScore,
+    (rankingsResult.data ?? []) as Array<{ user_id: string; total_score: number }>,
+  );
 
   // Count newsletter subscribers (slug-based system) via admin client if available
   let newsletterSubscriberCount = 0;
@@ -328,6 +397,12 @@ export async function getAnalystDashboardSnapshot(userId: string): Promise<Analy
     } catch { /* admin client unavailable */ }
   }
 
+  const totalSubscribers = Math.max(supabaseSubscriberCount, newsletterSubscriberCount);
+  const revenueEstimate = estimateMonthlyRevenue({
+    revenueEvents,
+    activeSubscriberCount: totalSubscribers,
+    membershipPriceUsd: Number(settings?.membership_price_usd ?? 0),
+  });
   const subscriberProfiles = await listSubscriberProfiles(
     memberships.map((item) => item.subscriber_user_id),
   );
@@ -339,12 +414,69 @@ export async function getAnalystDashboardSnapshot(userId: string): Promise<Analy
 
   return {
     thisMonthRevenue,
-    totalSubscribers: Math.max(supabaseSubscriberCount, newsletterSubscriberCount),
-    postsPublished: postsCountResult.count ?? 0,
+    totalSubscribers,
+    postsPublished: posts.length,
+    totalViews,
+    uniqueViewers: countUniqueViewers(engagement.views),
+    totalComments: engagement.comments.length,
+    totalLikes: engagement.likes.length,
+    bullReactions: engagement.reactions.filter((item) => item.reaction === "bull").length,
+    bearReactions: engagement.reactions.filter((item) => item.reaction === "bear").length,
+    totalBookmarks: engagement.bookmarks.length,
+    followerGrowth: calculateFollowerGrowth(memberships),
+    analystScore,
+    rankingPosition,
+    revenueEstimate,
     revenueBars,
+    engagementBars: buildEngagementBars(posts, engagement),
+    topPosts: buildTopPosts(posts, engagement),
     memberships: nextMemberships,
     profile: settings,
     tronAddress: settings?.tron_usdt_address ?? null,
+  };
+}
+
+async function getDashboardEngagement(postIds: string[]) {
+  if (!postIds.length) {
+    return {
+      views: [] as Array<{ post_id: string; viewer_id: string | null; session_id: string | null; viewed_at: string }>,
+      likes: [] as Array<{ post_id: string; created_at: string }>,
+      bookmarks: [] as Array<{ post_id: string; created_at: string }>,
+      comments: [] as Array<{ post_id: string; created_at: string }>,
+      reactions: [] as Array<{ post_id: string; reaction: "bull" | "bear"; created_at: string }>,
+    };
+  }
+
+  const supabase = await getSupabase();
+  const [viewsResult, likesResult, bookmarksResult, commentsResult, reactionsResult] = await Promise.all([
+    supabase
+      .from("post_views")
+      .select("post_id, viewer_id, session_id, viewed_at")
+      .in("post_id", postIds),
+    supabase
+      .from("post_likes")
+      .select("post_id, created_at")
+      .in("post_id", postIds),
+    supabase
+      .from("post_bookmarks")
+      .select("post_id, created_at")
+      .in("post_id", postIds),
+    supabase
+      .from("post_comments")
+      .select("post_id, created_at")
+      .in("post_id", postIds),
+    supabase
+      .from("post_reactions")
+      .select("post_id, reaction, created_at")
+      .in("post_id", postIds),
+  ]);
+
+  return {
+    views: (viewsResult.data ?? []) as Array<{ post_id: string; viewer_id: string | null; session_id: string | null; viewed_at: string }>,
+    likes: (likesResult.data ?? []) as Array<{ post_id: string; created_at: string }>,
+    bookmarks: (bookmarksResult.data ?? []) as Array<{ post_id: string; created_at: string }>,
+    comments: (commentsResult.data ?? []) as Array<{ post_id: string; created_at: string }>,
+    reactions: (reactionsResult.data ?? []) as Array<{ post_id: string; reaction: "bull" | "bear"; created_at: string }>,
   };
 }
 
@@ -406,6 +538,155 @@ function buildRevenueBars(events: RevenueEventRow[]) {
       amount,
     };
   });
+}
+
+function buildEngagementBars(
+  posts: Array<{ id: string; view_count: number; created_at: string }>,
+  engagement: Awaited<ReturnType<typeof getDashboardEngagement>>,
+) {
+  const buckets = createMonthBuckets<AnalystDashboardMetricBar>(() => ({
+    label: "",
+    views: 0,
+    comments: 0,
+    likes: 0,
+  }));
+
+  for (const post of posts) {
+    const bucket = buckets.get(monthKey(post.created_at));
+    if (bucket) bucket.views += post.view_count;
+  }
+
+  for (const view of engagement.views) {
+    const bucket = buckets.get(monthKey(view.viewed_at));
+    if (bucket) bucket.views += 1;
+  }
+
+  for (const comment of engagement.comments) {
+    const bucket = buckets.get(monthKey(comment.created_at));
+    if (bucket) bucket.comments += 1;
+  }
+
+  for (const like of engagement.likes) {
+    const bucket = buckets.get(monthKey(like.created_at));
+    if (bucket) bucket.likes += 1;
+  }
+
+  return Array.from(buckets.entries()).map(([key, value]) => ({
+    ...value,
+    label: monthLabel(key),
+  }));
+}
+
+function buildTopPosts(
+  posts: Array<{ id: string; title: string; view_count: number }>,
+  engagement: Awaited<ReturnType<typeof getDashboardEngagement>>,
+) {
+  return posts
+    .map((post) => {
+      const views = Math.max(
+        post.view_count,
+        engagement.views.filter((item) => item.post_id === post.id).length,
+      );
+      const comments = engagement.comments.filter((item) => item.post_id === post.id).length;
+      const likes = engagement.likes.filter((item) => item.post_id === post.id).length;
+      const bookmarks = engagement.bookmarks.filter((item) => item.post_id === post.id).length;
+      const score = Math.round(views * 0.1 + comments * 3 + likes * 2 + bookmarks * 4);
+      return { id: post.id, title: post.title, views, comments, likes, bookmarks, score };
+    })
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5);
+}
+
+function createMonthBuckets<T extends { label: string }>(factory: () => T) {
+  const buckets = new Map<string, T>();
+  const now = new Date();
+  for (let i = 5; i >= 0; i -= 1) {
+    const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
+    buckets.set(`${date.getUTCFullYear()}-${date.getUTCMonth()}`, factory());
+  }
+  return buckets;
+}
+
+function monthKey(value: string) {
+  const date = new Date(value);
+  return `${date.getUTCFullYear()}-${date.getUTCMonth()}`;
+}
+
+function monthLabel(key: string) {
+  const [year, month] = key.split("-").map(Number);
+  return new Date(Date.UTC(year, month, 1)).toLocaleDateString("en-US", { month: "short" });
+}
+
+function countUniqueViewers(
+  views: Array<{ viewer_id: string | null; session_id: string | null; post_id: string }>,
+) {
+  const keys = new Set<string>();
+  for (const view of views) {
+    const viewerKey = view.viewer_id ? `user:${view.viewer_id}` : view.session_id ? `session:${view.session_id}` : null;
+    if (viewerKey) keys.add(viewerKey);
+  }
+  return keys.size;
+}
+
+function calculateFollowerGrowth(memberships: AnalystMembershipRow[]) {
+  const now = new Date();
+  const currentStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  const previousStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
+  const current = memberships.filter((item) => new Date(item.started_at) >= currentStart).length;
+  const previous = memberships.filter((item) => {
+    const startedAt = new Date(item.started_at);
+    return startedAt >= previousStart && startedAt < currentStart;
+  }).length;
+
+  if (!previous) return current > 0 ? 100 : 0;
+  return Math.round(((current - previous) / previous) * 100);
+}
+
+function deriveAnalystScore(input: {
+  postsPublished: number;
+  totalViews: number;
+  totalComments: number;
+  totalLikes: number;
+  totalBookmarks: number;
+}) {
+  return Math.min(
+    100,
+    Math.round(
+      input.postsPublished * 4 +
+      input.totalViews * 0.04 +
+      input.totalComments * 2 +
+      input.totalLikes * 1.5 +
+      input.totalBookmarks * 2,
+    ),
+  );
+}
+
+function getRankingPosition(
+  userId: string,
+  analystScore: number,
+  rankings: Array<{ user_id: string; total_score: number }>,
+) {
+  const normalized = rankings.length
+    ? rankings.map((item) => ({
+        user_id: item.user_id,
+        total_score: Number(item.total_score) || 0,
+      }))
+    : [{ user_id: userId, total_score: analystScore }];
+  if (!normalized.some((item) => item.user_id === userId)) {
+    normalized.push({ user_id: userId, total_score: analystScore });
+  }
+  normalized.sort((a, b) => b.total_score - a.total_score);
+  const index = normalized.findIndex((item) => item.user_id === userId);
+  return index >= 0 ? index + 1 : null;
+}
+
+function estimateMonthlyRevenue(input: {
+  revenueEvents: RevenueEventRow[];
+  activeSubscriberCount: number;
+  membershipPriceUsd: number;
+}) {
+  const subscriptionEstimate = input.activeSubscriberCount * input.membershipPriceUsd * 0.7;
+  return Math.max(subscriptionEstimate, sumRevenueForCurrentMonth(input.revenueEvents));
 }
 
 function getString(value: unknown) {

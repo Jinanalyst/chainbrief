@@ -6,6 +6,7 @@ import { Container } from "@/components/ui/container";
 import { cn } from "@/lib/cn";
 import { ProfileTab } from "./_components/ProfileTab";
 import { MembershipTab } from "./_components/MembershipTab";
+import { AnalyticsTab } from "./_components/AnalyticsTab";
 
 // ── Toast ────────────────────────────────────────────────────────────────────
 
@@ -71,11 +72,7 @@ export default function DashboardPage() {
         {/* Tab content */}
         {activeTab === "profile"    && <ProfileTab    showToast={showToast} />}
         {activeTab === "membership" && <MembershipTab showToast={showToast} />}
-        {activeTab === "analytics"  && (
-          <div className="flex items-center justify-center rounded-xl border border-dashed border-tint/20 py-32 text-sm text-muted-2">
-            Analytics — coming soon
-          </div>
-        )}
+        {activeTab === "analytics"  && <AnalyticsTab />}
       </Container>
 
       <Toast visible={toast.visible} message={toast.message} />
