@@ -17,33 +17,41 @@ function getWidgetHeight() {
   return 720;
 }
 
-function buildSettings(language: "en" | "ko", height: number) {
+function buildSettings(_language: "en" | "ko", height: number) {
   return JSON.stringify({
     allow_symbol_change: true,
     calendar: false,
-    details: false,
+    details: true,
     hide_side_toolbar: false,
-    hide_top_toolbar: true,
-    hide_legend: true,
+    hide_top_toolbar: false,
+    hide_legend: false,
     hide_volume: false,
-    hotlist: false,
+    hotlist: true,
     interval: "D",
-    locale: language === "ko" ? "kr" : "en",
+    locale: "en",
     save_image: true,
     style: "1",
     symbol: "INDEX:BTCUSD",
     theme: "light",
-    timezone: "Asia/Seoul",
+    timezone: "Etc/UTC",
     backgroundColor: "#ffffff",
     gridColor: "rgba(46, 46, 46, 0.06)",
-    watchlist: [],
+    watchlist: [
+      "BINANCE:ETHUSDT",
+      "BINANCE:SOLUSDT",
+      "BINANCE:DOGEUSDT",
+      "BINANCE:BNBUSDT",
+      "CRYPTOCAP:BTC.D",
+      "CRYPTOCAP:TOTAL",
+      "BINANCE:PEPEUSDT",
+    ],
     withdateranges: true,
-    range: "YTD",
+    range: "1D",
     compareSymbols: [],
     show_popup_button: true,
     popup_height: "650",
     popup_width: "1000",
-    studies: ["STD;Ichimoku%1Cloud"],
+    studies: [],
     autosize: true,
     width: "100%",
     height,
@@ -130,16 +138,13 @@ function TradingViewAdvancedChartComponent({
             <div className="tradingview-widget-copyright px-3 pb-2 text-center text-[0.68rem] text-slate-500">
               <a
                 className="text-blue-600 transition hover:text-blue-700"
-                href="https://kr.tradingview.com/symbols/BTCUSD/?exchange=INDEX"
+                href="https://www.tradingview.com/symbols/BTCUSD/?exchange=INDEX"
                 rel="noopener nofollow"
                 target="_blank"
               >
-                <span className="blue-text">
-                  {language === "ko"
-                    ? "TradingView에서 모든 시장을 추적하세요"
-                    : "Track all markets on TradingView"}
-                </span>
+                <span className="blue-text">Bitcoin price</span>
               </a>
+              <span className="trademark"> by TradingView</span>
             </div>
           </div>
         </div>
