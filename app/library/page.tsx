@@ -225,36 +225,43 @@ async function fetchPostIdsForTab(
   tab: LibraryTab,
   userId: string,
 ): Promise<string[]> {
+  // Engagement on community posts is written by /api/posts/[id]/action, which
+  // stores rows in cb_brief_* tables keyed by brief_id = community post id.
+  // The Library reads from the same tables so the user sees what they did.
   if (tab === "saved" || tab === "liked") {
-    const table = tab === "liked" ? "post_likes" : "post_bookmarks";
+    const table = tab === "liked" ? "cb_brief_likes" : "cb_brief_saves";
     const { data } = await client
       .from(table)
-      .select("post_id, created_at")
+      .select("brief_id, created_at")
       .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(200);
-    return ((data ?? []) as Array<{ post_id: string }>).map((r) => r.post_id);
-  }
-
-  if (tab === "rebriefed") {
-    // Posts the current user rebriefed: their own posts that quote another post
-    // with quote_kind = 'rebrief'. We surface the quoted_post_id (the original
-    // post that got rebriefed), de-duplicated, newest first.
-    const { data } = await client
-      .from("posts")
-      .select("quoted_post_id, created_at")
-      .eq("author_id", userId)
-      .eq("quote_kind", "rebrief")
-      .not("quoted_post_id", "is", null)
       .order("created_at", { ascending: false })
       .limit(200);
     const seen = new Set<string>();
     const ids: string[] = [];
-    for (const row of (data ?? []) as Array<{ quoted_post_id: string | null }>) {
-      const id = row.quoted_post_id;
-      if (id && !seen.has(id)) {
-        seen.add(id);
-        ids.push(id);
+    for (const row of (data ?? []) as Array<{ brief_id: string }>) {
+      if (row.brief_id && !seen.has(row.brief_id)) {
+        seen.add(row.brief_id);
+        ids.push(row.brief_id);
+      }
+    }
+    return ids;
+  }
+
+  if (tab === "rebriefed") {
+    // Posts the current user reposted via the engagement bar
+    // (/api/posts/[id]/action with action: 'repost' writes here).
+    const { data } = await client
+      .from("cb_post_reposts")
+      .select("post_id, created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(200);
+    const seen = new Set<string>();
+    const ids: string[] = [];
+    for (const row of (data ?? []) as Array<{ post_id: string }>) {
+      if (row.post_id && !seen.has(row.post_id)) {
+        seen.add(row.post_id);
+        ids.push(row.post_id);
       }
     }
     return ids;
@@ -262,17 +269,17 @@ async function fetchPostIdsForTab(
 
   if (tab === "comments") {
     const { data } = await client
-      .from("post_comments")
-      .select("post_id, created_at")
+      .from("cb_brief_comments")
+      .select("brief_id, created_at")
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
       .limit(400);
     const seen = new Set<string>();
     const ids: string[] = [];
-    for (const row of (data ?? []) as Array<{ post_id: string }>) {
-      if (!seen.has(row.post_id)) {
-        seen.add(row.post_id);
-        ids.push(row.post_id);
+    for (const row of (data ?? []) as Array<{ brief_id: string }>) {
+      if (row.brief_id && !seen.has(row.brief_id)) {
+        seen.add(row.brief_id);
+        ids.push(row.brief_id);
       }
     }
     return ids;
@@ -280,17 +287,17 @@ async function fetchPostIdsForTab(
 
   if (tab === "reading") {
     const { data } = await client
-      .from("post_views")
-      .select("post_id, viewed_at")
-      .eq("viewer_id", userId)
+      .from("cb_brief_views")
+      .select("brief_id, viewed_at")
+      .eq("user_id", userId)
       .order("viewed_at", { ascending: false })
       .limit(400);
     const seen = new Set<string>();
     const ids: string[] = [];
-    for (const row of (data ?? []) as Array<{ post_id: string }>) {
-      if (!seen.has(row.post_id)) {
-        seen.add(row.post_id);
-        ids.push(row.post_id);
+    for (const row of (data ?? []) as Array<{ brief_id: string }>) {
+      if (row.brief_id && !seen.has(row.brief_id)) {
+        seen.add(row.brief_id);
+        ids.push(row.brief_id);
       }
     }
     return ids;
