@@ -1990,6 +1990,15 @@ function CommunityPostLiveFooter({
   initial: { views: number; likes: number; comments: number };
   tag?: string;
 }) {
+  type CommentItem = {
+    id: string;
+    user_id: string;
+    body: string;
+    parent_id: string | null;
+    created_at: string;
+    author: string | null;
+    avatar_url: string | null;
+  };
   type Aggregate = {
     percentages: { bullish: number; bearish: number; neutral: number; need_more_data: number };
     totalReactions: number;
@@ -2002,6 +2011,7 @@ function CommunityPostLiveFooter({
     myReaction: { reaction: import("@/components/post/reaction-strip").ReactionKind; reasoning?: string | null } | null;
     topBull: { reasoning: string; user_id?: string }[];
     topBear: { reasoning: string; user_id?: string }[];
+    commentList: CommentItem[];
   };
 
   const [agg, setAgg] = useState<Aggregate>({
@@ -2016,7 +2026,11 @@ function CommunityPostLiveFooter({
     myReaction: null,
     topBull: [],
     topBear: [],
+    commentList: [],
   });
+  const [commentsOpen, setCommentsOpen] = useState(false);
+  const [commentDraft, setCommentDraft] = useState("");
+  const [commentSubmitting, setCommentSubmitting] = useState(false);
 
   const refresh = useMemo(
     () => async () => {
@@ -2024,13 +2038,15 @@ function CommunityPostLiveFooter({
         const res = await fetch(`/api/posts/${encodeURIComponent(postId)}/aggregate`, { cache: "no-store" });
         if (!res.ok) return;
         const data = await res.json();
+        const list: CommentItem[] = Array.isArray(data.comments) ? data.comments : [];
         setAgg((prev) => ({
           ...prev,
           percentages: data.percentages,
           totalReactions: data.totalReactions,
           views: Math.max(prev.views, data.views ?? 0),
           likes: data.likes ?? prev.likes,
-          comments: Array.isArray(data.comments) ? data.comments.length : prev.comments,
+          comments: list.length,
+          commentList: list,
           saves: data.saves ?? 0,
           reposts: data.reposts ?? 0,
           shares: data.shares ?? 0,
@@ -2048,6 +2064,26 @@ function CommunityPostLiveFooter({
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  async function submitComment() {
+    const text = commentDraft.trim();
+    if (!text || commentSubmitting) return;
+    setCommentSubmitting(true);
+    try {
+      const res = await fetch(`/api/posts/${encodeURIComponent(postId)}/action`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "comment", body: text }),
+        credentials: "same-origin",
+      });
+      if (res.ok) {
+        setCommentDraft("");
+        await refresh();
+      }
+    } finally {
+      setCommentSubmitting(false);
+    }
+  }
 
   return (
     <div className="mt-4 space-y-3 border-t border-tint/10 pt-3">
@@ -2092,7 +2128,77 @@ function CommunityPostLiveFooter({
           reposts: agg.reposts,
           shares: agg.shares,
         }}
+        onCommentClick={() => setCommentsOpen((open) => !open)}
       />
+      {commentsOpen ? (
+        <div className="mt-2 rounded-xl border border-tint/10 bg-tint/[0.03] p-3">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
+              💬 {agg.comments} comment{agg.comments === 1 ? "" : "s"}
+            </p>
+            <button
+              className="text-xs font-bold text-muted-2 transition hover:text-ink"
+              onClick={() => setCommentsOpen(false)}
+              type="button"
+            >
+              Hide ▴
+            </button>
+          </div>
+
+          {agg.commentList.length === 0 ? (
+            <p className="text-xs text-muted-2">
+              No comments yet. Be the first to share your take.
+            </p>
+          ) : (
+            <ul className="max-h-72 space-y-2 overflow-y-auto pr-1">
+              {agg.commentList
+                .slice()
+                .reverse()
+                .map((comment) => (
+                  <li
+                    className="rounded-md border border-tint/10 bg-background/60 p-2.5"
+                    key={comment.id}
+                  >
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-2">
+                      <span className="font-semibold text-ink">
+                        {comment.author?.trim() || "Chain Brief member"}
+                      </span>
+                      <span>{formatRelativeTime(comment.created_at, "en")}</span>
+                    </div>
+                    <p className="mt-1 break-words text-sm leading-6 text-ink">
+                      {comment.body}
+                    </p>
+                  </li>
+                ))}
+            </ul>
+          )}
+
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+            <textarea
+              className="min-h-11 w-full resize-none rounded-md border border-tint/10 bg-background px-3 py-2 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/25"
+              maxLength={1000}
+              onChange={(event) => setCommentDraft(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
+                  event.preventDefault();
+                  void submitComment();
+                }
+              }}
+              placeholder="Write a comment…"
+              rows={2}
+              value={commentDraft}
+            />
+            <button
+              className="shrink-0 rounded-md border border-accent/40 bg-accent/15 px-4 text-xs font-bold text-accent-ink transition hover:bg-accent/25 disabled:opacity-50"
+              disabled={commentSubmitting || !commentDraft.trim()}
+              onClick={() => void submitComment()}
+              type="button"
+            >
+              {commentSubmitting ? "Posting…" : "Post"}
+            </button>
+          </div>
+        </div>
+      ) : null}
       {tag ? (
         <div className="pt-1">
           <Badge tone="muted">{tag}</Badge>

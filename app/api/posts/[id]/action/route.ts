@@ -1,7 +1,17 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
-const ACTIONS = ["like", "unlike", "save", "unsave", "repost", "unrepost", "share", "view"] as const;
+const ACTIONS = [
+  "like",
+  "unlike",
+  "save",
+  "unsave",
+  "repost",
+  "unrepost",
+  "share",
+  "view",
+  "comment",
+] as const;
 type Action = (typeof ACTIONS)[number];
 
 // Toggle/record engagement on a community post. Mirrors brief tables (post id stored as brief_id).
@@ -11,7 +21,7 @@ export async function POST(
 ) {
   const { id: postId } = await params;
   const body = (await req.json().catch(() => null)) as
-    | { action?: string; channel?: string }
+    | { action?: string; channel?: string; body?: string }
     | null;
   const action = body?.action as Action | undefined;
   if (!action || !ACTIONS.includes(action)) {
@@ -37,6 +47,22 @@ export async function POST(
 
   if (!user) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+
+  if (action === "comment") {
+    const text = body?.body?.trim();
+    if (!text) {
+      return NextResponse.json({ error: "Missing comment body" }, { status: 400 });
+    }
+    const { data: inserted, error } = await supabase
+      .from("cb_brief_comments")
+      .insert({ brief_id: postId, user_id: user.id, body: text.slice(0, 1000) })
+      .select("id, user_id, body, parent_id, created_at")
+      .single();
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    return NextResponse.json({ ok: true, comment: inserted });
   }
 
   switch (action) {

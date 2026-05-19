@@ -39,6 +39,29 @@ export async function GET(
   const me = userRes.data.user?.id ?? null;
   const myReaction = me ? rs.find((r) => r.user_id === me) ?? null : null;
 
+  const commentRows = comments.data ?? [];
+  const commentUserIds = Array.from(
+    new Set(commentRows.map((c) => c.user_id).filter(Boolean)),
+  ) as string[];
+  let profileMap = new Map<string, { username: string | null; avatar_url: string | null }>();
+  if (commentUserIds.length) {
+    const { data: profileRows } = await supabase
+      .from("profiles")
+      .select("id, username, avatar_url")
+      .in("id", commentUserIds);
+    for (const p of profileRows ?? []) {
+      profileMap.set(p.id as string, {
+        username: (p.username as string | null) ?? null,
+        avatar_url: (p.avatar_url as string | null) ?? null,
+      });
+    }
+  }
+  const enrichedComments = commentRows.map((c) => ({
+    ...c,
+    author: profileMap.get(c.user_id as string)?.username ?? null,
+    avatar_url: profileMap.get(c.user_id as string)?.avatar_url ?? null,
+  }));
+
   return NextResponse.json({
     postId,
     counts,
@@ -52,7 +75,7 @@ export async function GET(
     views: views.count ?? 0,
     likes: likes.count ?? 0,
     saves: saves.count ?? 0,
-    comments: comments.data ?? [],
+    comments: enrichedComments,
     reposts: reposts.count ?? 0,
     shares: shares.count ?? 0,
     topBull: rs.filter((r) => r.reaction === "bullish" && r.reasoning).slice(0, 3),
