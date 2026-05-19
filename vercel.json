@@ -2,11 +2,11 @@
   "crons": [
     {
       "path": "/api/briefs/ingest",
-      "schedule": "*/5 * * * *"
+      "schedule": "0 0 * * *"
     },
     {
       "path": "/api/notifications/dispatch",
-      "schedule": "0 0 * * *"
+      "schedule": "30 0 * * *"
     }
   ]
 }
