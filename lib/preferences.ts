@@ -2,6 +2,7 @@ export const ACTIVE_SOURCES = [
   "매일경제",
   "한국경제",
   "이투데이",
+  "연합뉴스",
   "한국은행",
   "국토교통부",
   "CoinDesk",
