@@ -213,7 +213,7 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
     () => getCategoryCounts(articles, preferences, availableSources, dynamicBriefCategories),
     [articles, preferences, availableSources, dynamicBriefCategories],
   );
-  const liveIssues = articles.slice(0, 5);
+  const liveIssues = getLiveIssueArticles(articles);
 
   function setCategory(category: string) {
     setPreferences({ ...preferences, category });
@@ -287,7 +287,7 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
         <LiveIssueBar
           articles={liveIssues}
           isLoading={isLoading}
-          label={copy.feed.liveIssues}
+          label={preferences.language === "ko" ? "실시간 금융 속보" : "Live Market News"}
         />
 
         <div className="mt-6 min-w-0">
@@ -439,6 +439,50 @@ function LiveIssueBar({
       </div>
     </div>
   );
+}
+
+const SLOW_OFFICIAL_SOURCE_IDS = new Set(["bok-press", "molit-press"]);
+const LIVE_MARKET_CATEGORIES = new Set(["국내증시", "Macro", "부동산", "가상자산"]);
+const LIVE_MARKET_TAGS = [
+  "BTC",
+  "ETH",
+  "NASDAQ",
+  "FED",
+  "NVIDIA",
+  "KOSPI",
+  "KOSDAQ",
+  "Real Estate",
+  "ETF",
+];
+
+function getLiveIssueArticles(articles: Article[]) {
+  const recentCutoff = Date.now() - 72 * 60 * 60 * 1000;
+  const liveCandidates = articles
+    .filter((article) => !SLOW_OFFICIAL_SOURCE_IDS.has(article.sourceId))
+    .filter((article) => {
+      const publishedAt = new Date(article.publishedAt).getTime();
+      return Number.isNaN(publishedAt) || publishedAt >= recentCutoff;
+    })
+    .filter((article) => {
+      const hasLiveCategory = LIVE_MARKET_CATEGORIES.has(article.category);
+      const hasMarketTag = article.tags.some((tag) => LIVE_MARKET_TAGS.includes(tag));
+      return hasLiveCategory || hasMarketTag || article.marketImpact !== "Neutral";
+    })
+    .sort((a, b) => {
+      const impactScore = getLiveImpactScore(b) - getLiveImpactScore(a);
+      if (impactScore !== 0) return impactScore;
+      return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
+    });
+
+  return (liveCandidates.length > 0 ? liveCandidates : articles).slice(0, 5);
+}
+
+function getLiveImpactScore(article: Article) {
+  if (article.marketImpact === "Bullish" || article.marketImpact === "Bearish") {
+    return 2;
+  }
+
+  return article.tags.some((tag) => LIVE_MARKET_TAGS.includes(tag)) ? 1 : 0;
 }
 
 function CategoryTabs({
