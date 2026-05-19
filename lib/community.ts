@@ -376,6 +376,27 @@ export function reactToArticle(
   return next;
 }
 
+// Fire-and-forget POST to the community API so the post lives in Supabase, not just localStorage.
+// Silently no-ops when called server-side, when the user isn't signed in, or when the request fails;
+// the localStorage copy already shows the post optimistically in the current browser.
+export function persistPostToSupabase(post: CommunityPost): void {
+  if (typeof window === "undefined") return;
+  const payload = {
+    title: post.title,
+    body: post.body,
+    category: post.category,
+    post_type: post.postType ?? "general",
+    coin_tags: post.tags ?? [],
+    linked_news_id: post.relatedArticleSlug ?? null,
+  };
+  void fetch("/api/community/posts", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+    credentials: "same-origin",
+  }).catch(() => undefined);
+}
+
 export function communityPostFromDatabase(row: DatabaseCommunityPostRow): CommunityPost {
   const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
   const postType = normalizePostType(row.post_type);
@@ -494,6 +515,7 @@ export function addOpinionPost(
 
   const nextPosts = [nextPost, ...readCommunityPosts()];
   writeCommunityPosts(nextPosts);
+  void persistPostToSupabase(nextPost);
   return nextPost;
 }
 
@@ -541,6 +563,7 @@ export function addQuotePost(
 
   const nextPosts = [nextPost, ...readCommunityPosts()];
   writeCommunityPosts(nextPosts);
+  void persistPostToSupabase(nextPost);
   return nextPost;
 }
 
@@ -580,6 +603,7 @@ export function addThreadRepost(originalPost: CommunityPost, options?: { author?
 
   const nextPosts = [nextPost, ...readCommunityPosts()];
   writeCommunityPosts(nextPosts);
+  void persistPostToSupabase(nextPost);
   return nextPost;
 }
 
@@ -624,6 +648,7 @@ export function addThreadQuote(
 
   const nextPosts = [nextPost, ...readCommunityPosts()];
   writeCommunityPosts(nextPosts);
+  void persistPostToSupabase(nextPost);
   return nextPost;
 }
 
@@ -663,6 +688,7 @@ export function repostArticleToCommunity(
 
   const nextPosts = [nextPost, ...readCommunityPosts()];
   writeCommunityPosts(nextPosts);
+  void persistPostToSupabase(nextPost);
   return nextPost;
 }
 
