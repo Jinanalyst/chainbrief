@@ -200,7 +200,7 @@ export default function CommunityPage() {
       const { data, error } = await client
         .from("posts")
         .select(
-          "id, author_id, title, body, category, post_type, coin_tags, linked_news_id, status, view_count, created_at, updated_at, profiles(username, avatar_url, role)",
+          "id, author_id, title, body, category, post_type, coin_tags, linked_news_id, quoted_post_id, quote_kind, metadata, status, view_count, created_at, updated_at, profiles(username, avatar_url, role), post_attachments(id, kind, name, mime_type, data_url, size, position)",
         )
         .eq("status", "published")
         .order("created_at", { ascending: false })

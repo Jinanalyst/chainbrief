@@ -160,6 +160,16 @@ export type DatabaseCommunityPostRow = {
         role?: CommunityPost["analystTier"] | "admin" | null;
       }>
     | null;
+  metadata?: Record<string, unknown> | null;
+  post_attachments?: Array<{
+    id: string;
+    kind: "image" | "video";
+    name?: string | null;
+    mime_type?: string | null;
+    data_url: string;
+    size?: number | null;
+    position?: number | null;
+  }> | null;
 };
 
 export type DatabaseCommunityCommentRow = {
@@ -381,6 +391,41 @@ export function reactToArticle(
 // the localStorage copy already shows the post optimistically in the current browser.
 export function persistPostToSupabase(post: CommunityPost): void {
   if (typeof window === "undefined") return;
+
+  // Everything that doesn't map to a dedicated public.posts column lives in the
+  // metadata jsonb so the post round-trips losslessly through Supabase.
+  const metadata: Record<string, unknown> = {
+    stance: post.stance,
+    discussionType: post.discussionType,
+    analystTier: post.analystTier,
+    kind: post.kind,
+    topic: post.topic,
+    author: post.author,
+    avatar: post.avatar,
+    relatedArticleSlug: post.relatedArticleSlug,
+    relatedArticleTitle: post.relatedArticleTitle,
+    relatedArticleSource: post.relatedArticleSource,
+    relatedArticleUrl: post.relatedArticleUrl,
+    quotedCommunityPost: post.quotedCommunityPost,
+  };
+  // Strip undefined so the jsonb stays compact
+  for (const key of Object.keys(metadata)) {
+    if (metadata[key] === undefined) delete metadata[key];
+  }
+
+  const attachments = (post.attachments ?? []).map((a) => ({
+    kind: a.kind,
+    name: a.name,
+    mime_type: a.mimeType,
+    data_url: a.dataUrl,
+    size: a.size,
+  }));
+
+  // Map our thread_* kinds to the codex quote_kind enum.
+  const quoteKind =
+    post.kind === "thread_repost" ? "rebrief" :
+    post.kind === "thread_quote" || post.kind === "quote" ? "quote_analysis" : null;
+
   const payload = {
     title: post.title,
     body: post.body,
@@ -388,7 +433,12 @@ export function persistPostToSupabase(post: CommunityPost): void {
     post_type: post.postType ?? "general",
     coin_tags: post.tags ?? [],
     linked_news_id: post.relatedArticleSlug ?? null,
+    metadata,
+    attachments,
+    quoted_post_id: post.quotedCommunityPost?.id ?? null,
+    quote_kind: quoteKind,
   };
+
   void fetch("/api/community/posts", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -400,11 +450,50 @@ export function persistPostToSupabase(post: CommunityPost): void {
 export function communityPostFromDatabase(row: DatabaseCommunityPostRow): CommunityPost {
   const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
   const postType = normalizePostType(row.post_type);
-  const analystTier = normalizeAnalystTier(profile?.role);
-  const author = profile?.username?.trim() || "Chain Brief member";
   const tags = Array.isArray(row.coin_tags)
     ? row.coin_tags.filter((tag): tag is string => typeof tag === "string" && Boolean(tag.trim()))
     : [];
+
+  const metadata = (row.metadata ?? {}) as Record<string, unknown>;
+  const str = (v: unknown) => (typeof v === "string" ? v : undefined);
+
+  const author = str(metadata.author) || profile?.username?.trim() || "Chain Brief member";
+  const avatar = str(metadata.avatar) || profile?.avatar_url || avatarFromName(author);
+
+  const stanceValue = str(metadata.stance) as CommunityStance | undefined;
+  const stance: CommunityStance =
+    stanceValue && (["Bullish", "Bearish", "Neutral", "Question"] as const).includes(stanceValue as CommunityStance)
+      ? (stanceValue as CommunityStance)
+      : inferStance(row.title, row.body);
+
+  const analystTier =
+    normalizeAnalystTier(str(metadata.analystTier) ?? null) ?? normalizeAnalystTier(profile?.role);
+
+  const kindValue = str(metadata.kind);
+  const kind: CommunityPostKind =
+    kindValue === "repost" || kindValue === "quote" || kindValue === "thread_quote" || kindValue === "thread_repost"
+      ? (kindValue as CommunityPostKind)
+      : "opinion";
+
+  const discussionType =
+    (str(metadata.discussionType) as CommunityPost["discussionType"] | undefined) ??
+    (row.linked_news_id ? "news_reaction" : postType === "chart_analysis" ? "analysis" : "opinion");
+
+  const attachments = Array.isArray(row.post_attachments)
+    ? row.post_attachments
+        .slice()
+        .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+        .map<CommunityAttachment>((a) => ({
+          id: a.id,
+          kind: a.kind === "video" ? "video" : "image",
+          name: a.name ?? "",
+          mimeType: a.mime_type ?? "",
+          dataUrl: a.data_url,
+          size: a.size ?? 0,
+        }))
+    : undefined;
+
+  const quotedSnapshot = metadata.quotedCommunityPost as QuotedCommunityPostSnapshot | undefined;
 
   return {
     id: row.id,
@@ -413,7 +502,7 @@ export function communityPostFromDatabase(row: DatabaseCommunityPostRow): Commun
     body: row.body,
     preview: truncate(row.body.replace(/\s+/g, " ").trim(), 160),
     author,
-    avatar: profile?.avatar_url || avatarFromName(author),
+    avatar,
     category: row.category || "All",
     publishedAt: row.created_at,
     likes: 0,
@@ -421,13 +510,18 @@ export function communityPostFromDatabase(row: DatabaseCommunityPostRow): Commun
     views: row.view_count ?? 0,
     tags,
     createdAt: row.created_at,
-    kind: "opinion",
+    kind,
     postType,
     analystTier,
-    topic: row.category,
-    stance: inferStance(row.title, row.body),
-    discussionType: row.linked_news_id ? "news_reaction" : postType === "chart_analysis" ? "analysis" : "opinion",
-    relatedArticleSlug: row.linked_news_id ?? undefined,
+    topic: str(metadata.topic) ?? row.category,
+    stance,
+    discussionType,
+    relatedArticleSlug: row.linked_news_id ?? str(metadata.relatedArticleSlug),
+    relatedArticleTitle: str(metadata.relatedArticleTitle),
+    relatedArticleSource: str(metadata.relatedArticleSource),
+    relatedArticleUrl: str(metadata.relatedArticleUrl),
+    attachments,
+    quotedCommunityPost: quotedSnapshot && typeof quotedSnapshot === "object" ? quotedSnapshot : undefined,
   };
 }
 
