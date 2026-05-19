@@ -5,7 +5,15 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
-import { storeCommunityQuoteTarget } from "@/lib/community";
+import {
+  ARTICLE_SENTIMENT_CHANGED_EVENT,
+  readArticleSentiment,
+  readAuthorName,
+  reactToArticle,
+  storeCommunityQuoteTarget,
+  type ArticleReaction,
+  type ArticleSentiment,
+} from "@/lib/community";
 import {
   ACTIVE_SOURCES,
   BRIEF_CATEGORIES,
@@ -589,6 +597,27 @@ function TimelineItem({
 }) {
   const { t: copy } = useI18n(language);
   const [translation, setTranslation] = useState<TranslationState>(INITIAL_TRANSLATION);
+  const [sentiment, setSentiment] = useState<ArticleSentiment>(() =>
+    readArticleSentiment(article.slug),
+  );
+  const [opinionOpen, setOpinionOpen] = useState(false);
+  const [selectedReaction, setSelectedReaction] = useState<ArticleReaction | null>(null);
+  const [opinion, setOpinion] = useState("");
+
+  useEffect(() => {
+    function syncSentiment() {
+      setSentiment(readArticleSentiment(article.slug));
+    }
+
+    syncSentiment();
+    window.addEventListener("storage", syncSentiment);
+    window.addEventListener(ARTICLE_SENTIMENT_CHANGED_EVENT, syncSentiment);
+
+    return () => {
+      window.removeEventListener("storage", syncSentiment);
+      window.removeEventListener(ARTICLE_SENTIMENT_CHANGED_EVENT, syncSentiment);
+    };
+  }, [article.slug]);
 
   async function handleTranslate() {
     if (translation.status === "loading") return;
@@ -627,6 +656,30 @@ function TimelineItem({
     } catch {
       setTranslation({ ...INITIAL_TRANSLATION, status: "error" });
     }
+  }
+
+  function handleReaction(reaction: ArticleReaction) {
+    const nextSentiment = reactToArticle(article, reaction, {
+      author: readAuthorName() || "You",
+    });
+    setSentiment(nextSentiment);
+    setSelectedReaction(reaction);
+    setOpinionOpen(true);
+  }
+
+  function submitOpinion() {
+    if (!selectedReaction || !opinion.trim()) {
+      setOpinionOpen(false);
+      return;
+    }
+
+    const nextSentiment = reactToArticle(article, selectedReaction, {
+      author: readAuthorName() || "You",
+      opinion,
+    });
+    setSentiment(nextSentiment);
+    setOpinion("");
+    setOpinionOpen(false);
   }
 
   const showKo = translation.status === "success" && translation.isShowingTranslation;
@@ -694,6 +747,57 @@ function TimelineItem({
           <TranslateButton language={language} state={translation} onClick={handleTranslate} />
         </div>
 
+        <ArticleSentimentBar
+          language={language}
+          onReact={handleReaction}
+          sentiment={sentiment}
+        />
+
+        {opinionOpen ? (
+          <div className="mt-3 rounded-lg border border-tint/10 bg-tint/[0.03] p-3">
+            <label className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-2">
+              {language === "ko" ? "Short opinion" : "Short opinion"}
+            </label>
+            <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+              <input
+                className="min-h-10 flex-1 rounded-md border border-tint/10 bg-background px-3 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/25"
+                maxLength={180}
+                onChange={(event) => setOpinion(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    submitOpinion();
+                  }
+                }}
+                placeholder={
+                  selectedReaction === "Bearish"
+                    ? "Why is this bearish?"
+                    : "Why is this bullish?"
+                }
+                value={opinion}
+              />
+              <div className="grid grid-cols-2 gap-2 sm:flex">
+                <button
+                  className="h-10 rounded-md border border-accent/40 bg-accent/15 px-3 text-xs font-bold text-accent-ink transition hover:bg-accent/20"
+                  onClick={submitOpinion}
+                  type="button"
+                >
+                  Post
+                </button>
+                <button
+                  className="h-10 rounded-md border border-tint/10 px-3 text-xs font-bold text-muted transition hover:text-ink"
+                  onClick={() => {
+                    setOpinionOpen(false);
+                    setOpinion("");
+                  }}
+                  type="button"
+                >
+                  Skip
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
         {translation.status === "error" ? (
           <p className="mt-1.5 text-xs text-rose-300">
             {language === "ko"
@@ -732,6 +836,64 @@ function TimelineItem({
         ) : null}
       </div>
     </article>
+  );
+}
+
+function ArticleSentimentBar({
+  sentiment,
+  language,
+  onReact,
+}: {
+  sentiment: ArticleSentiment;
+  language: BriefPreferences["language"];
+  onReact: (reaction: ArticleReaction) => void;
+}) {
+  const total = sentiment.bull + sentiment.bear;
+  const bullShare = total > 0 ? Math.round((sentiment.bull / total) * 100) : 50;
+  const bearShare = total > 0 ? 100 - bullShare : 50;
+
+  return (
+    <div className="mt-3 rounded-lg border border-tint/10 bg-background/55 p-2.5">
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          aria-pressed={sentiment.userReaction === "Bullish"}
+          className={cn(
+            "min-h-10 rounded-md border px-3 text-left transition",
+            sentiment.userReaction === "Bullish"
+              ? "border-emerald-400/50 bg-emerald-400/12 text-emerald-200"
+              : "border-tint/10 bg-tint/[0.03] text-muted hover:border-emerald-400/40 hover:text-emerald-200",
+          )}
+          onClick={() => onReact("Bullish")}
+          type="button"
+        >
+          <span className="block text-sm font-bold">{language === "ko" ? "Bull" : "Bull"}</span>
+          <span className="text-xs">{sentiment.bull} votes</span>
+        </button>
+        <button
+          aria-pressed={sentiment.userReaction === "Bearish"}
+          className={cn(
+            "min-h-10 rounded-md border px-3 text-left transition",
+            sentiment.userReaction === "Bearish"
+              ? "border-rose-400/50 bg-rose-400/12 text-rose-200"
+              : "border-tint/10 bg-tint/[0.03] text-muted hover:border-rose-400/40 hover:text-rose-200",
+          )}
+          onClick={() => onReact("Bearish")}
+          type="button"
+        >
+          <span className="block text-sm font-bold">{language === "ko" ? "Bear" : "Bear"}</span>
+          <span className="text-xs">{sentiment.bear} votes</span>
+        </button>
+      </div>
+      <div className="mt-2 flex h-1.5 overflow-hidden rounded-full bg-tint/10">
+        <span className="bg-emerald-400/80" style={{ width: `${bullShare}%` }} />
+        <span className="bg-rose-400/80" style={{ width: `${bearShare}%` }} />
+      </div>
+      <div className="mt-1.5 flex items-center justify-between text-[0.7rem] font-semibold text-muted-2">
+        <span>Bull {sentiment.bull}</span>
+        <span>{total} reactions</span>
+        <span>Bear {sentiment.bear}</span>
+      </div>
+    </div>
   );
 }
 

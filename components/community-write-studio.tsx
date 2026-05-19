@@ -9,6 +9,7 @@ import { Header } from "@/components/header";
 import {
   addOpinionPost,
   clearCommunityQuoteTarget,
+  databaseInsertFromCommunityPost,
   readAuthorName,
   readCommunityQuoteTarget,
   writeAuthorName,
@@ -20,6 +21,7 @@ import {
 import { cn } from "@/lib/cn";
 import { createClient } from "@/lib/supabase/client";
 import { hasSupabaseConfig } from "@/lib/supabase/config";
+import { useI18n, usePreferences } from "@/lib/i18n/use-i18n";
 
 // ─── Block types ──────────────────────────────────────────────────────────────
 
@@ -679,6 +681,38 @@ export function CommunityWriteStudio({
   initialPostType?: CommunityPostType;
 }) {
   const router = useRouter();
+  const [preferences] = usePreferences();
+  const { t: copy } = useI18n(preferences.language);
+  const w = copy.write;
+
+  const stanceLabels: Record<CommunityStance, string> = {
+    Bullish: w.stanceBullish,
+    Bearish: w.stanceBearish,
+    Neutral: w.stanceNeutral,
+    Question: w.stanceQuestion,
+  };
+
+  const blockMenuItems: Array<{ type: Block["type"]; label: string; icon: string }> = [
+    { type: "text",      label: w.blockText,      icon: "¶" },
+    { type: "heading",   label: w.blockHeading,   icon: "H" },
+    { type: "quote",     label: w.blockQuote,     icon: "❝" },
+    { type: "image",     label: w.blockImage,     icon: "⬜" },
+    { type: "video",     label: w.blockVideo,     icon: "▶" },
+    { type: "link",      label: w.blockLink,      icon: "↗" },
+    { type: "divider",   label: w.blockDivider,   icon: "—" },
+    { type: "checklist", label: w.blockChecklist, icon: "✓" },
+  ];
+
+  const templateTranslations: Record<string, { label: string; description: string }> = {
+    market_analysis:  { label: w.tplMarketAnalysis,  description: w.tplMarketAnalysisDesc },
+    bull_case:        { label: w.tplBullCase,         description: w.tplBullCaseDesc },
+    bear_case:        { label: w.tplBearCase,         description: w.tplBearCaseDesc },
+    trading_review:   { label: w.tplTradingReview,    description: w.tplTradingReviewDesc },
+    news_reaction:    { label: w.tplNewsReaction,     description: w.tplNewsReactionDesc },
+    project_research: { label: w.tplProjectResearch,  description: w.tplProjectResearchDesc },
+    risk_warning:     { label: w.tplRiskWarning,      description: w.tplRiskWarningDesc },
+  };
+
   const supabase = useMemo(() => (hasSupabaseConfig ? createClient() : null), []);
   const dragIndexRef = useRef<number | null>(null);
   const [selectedArticleSlug] = useState(() => getSelectedArticleSlug());
@@ -798,7 +832,7 @@ export function CommunityWriteStudio({
     setDragOver(null);
   }
 
-  function publishPost() {
+  async function publishPost() {
     const trimmedTitle = title.trim();
     const body = blocksToText(blocks);
 
@@ -809,7 +843,7 @@ export function CommunityWriteStudio({
     setError(null);
     setMessage(null);
 
-    addOpinionPost(body, topic, {
+    const localPost = addOpinionPost(body, topic, {
       title: trimmedTitle,
       author: authorName,
       stance,
@@ -833,6 +867,50 @@ export function CommunityWriteStudio({
       relatedArticleUrl: quoteTarget?.originalUrl,
       attachments: blocksToAttachments(blocks),
     });
+
+    if (supabase) {
+      const { data: authData } = await supabase.auth.getUser();
+      const user = authData.user;
+
+      if (user) {
+        const profileName =
+          authorName ||
+          (typeof user.user_metadata?.name === "string" ? user.user_metadata.name : "") ||
+          (typeof user.user_metadata?.full_name === "string" ? user.user_metadata.full_name : "") ||
+          user.email ||
+          "Chain Brief member";
+
+        const { data: existingProfile } = await supabase
+          .from("profiles")
+          .select("id")
+          .eq("id", user.id)
+          .maybeSingle();
+
+        if (!existingProfile) {
+          const { error: profileError } = await supabase.from("profiles").insert({
+            id: user.id,
+            username: profileName,
+          });
+
+          if (profileError) {
+            await supabase.from("profiles").insert({
+              id: user.id,
+              username: `${profileName}-${user.id.slice(0, 8)}`,
+            });
+          }
+        }
+
+        const { error: postError } = await supabase
+          .from("posts")
+          .insert(databaseInsertFromCommunityPost(localPost, user.id));
+
+        if (postError) {
+          setError("Saved locally, but could not sync to your Chain Brief account.");
+          setIsPublishing(false);
+          return;
+        }
+      }
+    }
 
     if (quoteTarget) {
       clearCommunityQuoteTarget();
@@ -858,11 +936,9 @@ export function CommunityWriteStudio({
             <Card className="min-w-0 p-5 sm:p-6">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">Writing Studio</p>
-                  <h1 className="mt-3 text-3xl font-semibold tracking-tight text-ink">Write with a clear direction.</h1>
-                  <p className="mt-3 text-sm leading-6 text-muted">
-                    Pick a template, write in one clean canvas, and publish.
-                  </p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">{w.studio}</p>
+                  <h1 className="mt-3 text-3xl font-semibold tracking-tight text-ink">{w.studioTitle}</h1>
+                  <p className="mt-3 text-sm leading-6 text-muted">{w.studioDesc}</p>
                 </div>
                 <button
                   type="button"
@@ -874,7 +950,7 @@ export function CommunityWriteStudio({
                       : "border-tint/10 text-muted hover:border-accent/50 hover:text-ink",
                   )}
                 >
-                  {previewMode ? "← Edit" : "Preview"}
+                  {previewMode ? w.editMode : w.preview}
                 </button>
               </div>
 
@@ -882,7 +958,7 @@ export function CommunityWriteStudio({
                 {quoteTarget ? (
                   <div className="rounded-md border border-accent/25 bg-accent-soft/25 p-3">
                     <p className="text-xs font-semibold uppercase tracking-[0.16em] text-accent-ink">
-                      Writing about this news
+                      {w.writingAbout}
                     </p>
                     <p className="mt-2 break-words text-sm font-semibold text-ink">
                       {quoteTarget.title}
@@ -895,11 +971,11 @@ export function CommunityWriteStudio({
 
                 {/* Title */}
                 <label className="block">
-                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Title</span>
+                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">{w.titleLabel}</span>
                   <input
                     className="mt-2 h-11 w-full rounded-md border border-tint/10 bg-background px-3 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
                     onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Short, clear title"
+                    placeholder={w.titlePlaceholder}
                     value={title}
                   />
                 </label>
@@ -907,7 +983,7 @@ export function CommunityWriteStudio({
                 {/* Topic + Stance */}
                 <div className="grid gap-4 sm:grid-cols-2">
                   <label className="block">
-                    <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Topic</span>
+                    <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">{w.topicLabel}</span>
                     <select
                       className="mt-2 h-11 w-full rounded-md border border-tint/10 bg-background px-3 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
                       onChange={(e) => setTopic(e.target.value)}
@@ -918,7 +994,7 @@ export function CommunityWriteStudio({
                   </label>
 
                   <div>
-                    <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Stance</span>
+                    <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">{w.stanceLabel}</span>
                     <div className="mt-2 flex flex-wrap gap-2">
                       {STANCES.map((s) => (
                         <button
@@ -933,7 +1009,7 @@ export function CommunityWriteStudio({
                               : "border-tint/10 bg-tint/[0.03] text-muted hover:border-accent/50 hover:text-ink",
                           )}
                         >
-                          {s}
+                          {stanceLabels[s]}
                         </button>
                       ))}
                     </div>
@@ -943,27 +1019,27 @@ export function CommunityWriteStudio({
                 {/* Writing canvas */}
                 <div>
                   <div className="mb-3 flex items-center justify-between">
-                    <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Content</span>
+                    <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">{w.contentLabel}</span>
                     <div className="relative">
                       <button
                         type="button"
                         onClick={() => setAddMenuOpen((v) => !v)}
                         className="rounded-full border border-tint/10 bg-tint/[0.03] px-3 py-1.5 text-xs font-semibold text-muted transition hover:border-accent/50 hover:text-accent"
                       >
-                        + Add content
+                        {w.addContent}
                       </button>
                       {addMenuOpen && (
                         <>
                           <div className="fixed inset-0 z-10" onClick={() => setAddMenuOpen(false)} />
-                          <div className="absolute right-0 top-9 z-20 w-44 overflow-hidden rounded-xl border border-tint/10 bg-[#0f1420] shadow-2xl">
-                            {BLOCK_MENU_ITEMS.map((item) => (
+                          <div className="absolute right-0 top-9 z-20 w-52 overflow-hidden rounded-xl border border-tint/10 bg-surface shadow-xl">
+                            {blockMenuItems.map((item) => (
                               <button
                                 key={item.type}
                                 type="button"
                                 onClick={() => { addBlockAtEnd(item.type); setAddMenuOpen(false); }}
-                                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-ink transition hover:bg-tint/[0.06]"
+                                className="flex w-full items-center gap-3 px-3 py-2.5 text-sm font-medium text-ink transition hover:bg-tint/[0.07]"
                               >
-                                <span className="w-5 text-center text-xs text-muted">{item.icon}</span>
+                                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-tint/10 bg-tint/[0.04] text-xs text-muted">{item.icon}</span>
                                 {item.label}
                               </button>
                             ))}
@@ -1004,15 +1080,15 @@ export function CommunityWriteStudio({
 
                 {postType !== "general" && (
                   <div className="rounded-md border border-amber-400/20 bg-amber-400/10 px-3 py-2">
-                    <p className="text-xs leading-5 text-amber-100">{INVESTMENT_NOTICE}</p>
+                    <p className="text-xs leading-5 text-amber-100">{w.investmentNotice}</p>
                   </div>
                 )}
 
                 <div className="flex flex-wrap gap-2">
                   <Button disabled={isPublishing} onClick={publishPost} type="button">
-                    {isPublishing ? "Publishing…" : "Publish"}
+                    {isPublishing ? w.publishing : w.publish}
                   </Button>
-                  <Button href="/community" variant="secondary">Cancel</Button>
+                  <Button href="/community" variant="secondary">{w.cancel}</Button>
                 </div>
 
                 {message && (
@@ -1033,7 +1109,7 @@ export function CommunityWriteStudio({
 
               {/* ── Posting as ── */}
               <Card className="min-w-0 p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">Posting as</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">{w.postingAs}</p>
 
                 {editingAuthor ? (
                   <div className="mt-3 flex gap-2">
@@ -1042,7 +1118,7 @@ export function CommunityWriteStudio({
                       className="min-h-9 flex-1 rounded-md border border-accent/50 bg-background px-3 text-sm text-ink outline-none focus:ring-2 focus:ring-accent/30"
                       onKeyDown={(e) => { if (e.key === "Enter") saveAuthorName(); if (e.key === "Escape") setEditingAuthor(false); }}
                       onChange={(e) => setAuthorDraft(e.target.value)}
-                      placeholder="Your display name"
+                      placeholder={w.namePlaceholder}
                       value={authorDraft}
                     />
                     <button
@@ -1050,7 +1126,7 @@ export function CommunityWriteStudio({
                       onClick={saveAuthorName}
                       className="rounded-md border border-accent/50 bg-accent/15 px-3 py-1.5 text-xs font-semibold text-accent-ink transition hover:bg-accent/25"
                     >
-                      Save
+                      {w.save}
                     </button>
                   </div>
                 ) : (
@@ -1060,7 +1136,7 @@ export function CommunityWriteStudio({
                         {authorName ? authorName.slice(0, 2).toUpperCase() : "?"}
                       </div>
                       <span className="truncate text-sm font-semibold text-ink">
-                        {authorName || <span className="italic text-muted-2">No name set</span>}
+                        {authorName || <span className="italic text-muted-2">{w.noNameSet}</span>}
                       </span>
                     </div>
                     <button
@@ -1068,14 +1144,14 @@ export function CommunityWriteStudio({
                       onClick={() => { setAuthorDraft(authorName); setEditingAuthor(true); }}
                       className="shrink-0 rounded-md border border-tint/10 px-2.5 py-1 text-xs font-semibold text-muted transition hover:border-accent/50 hover:text-accent"
                     >
-                      Edit
+                      {w.editName}
                     </button>
                   </div>
                 )}
 
                 {!authorName && !editingAuthor && (
                   <p className="mt-2 text-xs leading-5 text-amber-200/80">
-                    Set a name so your posts are saved correctly and appear in your profile history.
+                    {w.nameHint}
                   </p>
                 )}
               </Card>
@@ -1086,7 +1162,7 @@ export function CommunityWriteStudio({
                   onClick={() => setTemplateOpen((v) => !v)}
                   className="flex w-full items-center justify-between px-4 py-3 text-left"
                 >
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">Post Templates</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">{w.postTemplates}</p>
                   <span className="text-xs text-muted">{templateOpen ? "▲" : "▼"}</span>
                 </button>
                 {templateOpen && (
@@ -1103,8 +1179,8 @@ export function CommunityWriteStudio({
                             : "border-tint/[0.06] bg-tint/[0.02] hover:border-accent/40 hover:bg-tint/[0.04]",
                         )}
                       >
-                        <p className="text-sm font-semibold text-ink">{tpl.label}</p>
-                        <p className="mt-1 text-xs leading-5 text-muted">{tpl.description}</p>
+                        <p className="text-sm font-semibold text-ink">{templateTranslations[tpl.id]?.label ?? tpl.label}</p>
+                        <p className="mt-1 text-xs leading-5 text-muted">{templateTranslations[tpl.id]?.description ?? tpl.description}</p>
                       </button>
                     ))}
                   </div>
@@ -1112,11 +1188,8 @@ export function CommunityWriteStudio({
               </Card>
 
               <Card className="p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">Reminder</p>
-                <p className="mt-3 text-sm leading-6 text-muted">
-                  Chain Brief is for market analysis and educational discussion. Avoid guaranteed
-                  profit language, signal-room framing, or 1:1 buy/sell instructions.
-                </p>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">{w.reminder}</p>
+                <p className="mt-3 text-sm leading-6 text-muted">{w.reminderText}</p>
               </Card>
             </aside>
 

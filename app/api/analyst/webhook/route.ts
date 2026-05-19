@@ -79,19 +79,43 @@ async function handleEvent(event: StripeEvent, stripeKey: string) {
 
     if (hasSupabaseAdminConfig()) {
       const supabase = createAdminClient();
-      const { error } = await supabase.from("newsletter_subscriptions").upsert(
+      const now = new Date().toISOString();
+
+      // Record newsletter subscription
+      const { error: subError } = await supabase.from("newsletter_subscriptions").upsert(
         {
           analyst_id: analystId,
           email: email.toLowerCase().trim(),
           plan: "premium",
           stripe_session_id: stripeSessionId,
           cancelled_at: null,
-          subscribed_at: new Date().toISOString(),
+          subscribed_at: now,
         },
         { onConflict: "analyst_id,email" },
       );
-      if (error) {
-        console.error("[webhook] Supabase upsert error:", error.message);
+      if (subError) {
+        console.error("[webhook] newsletter_subscriptions upsert error:", subError.message);
+      }
+
+      // Look up analyst UUID via slug stored in analyst_profiles
+      const { data: analystProfile } = await supabase
+        .from("analyst_profiles")
+        .select("analyst_id")
+        .eq("slug", analystId)
+        .maybeSingle();
+
+      if (analystProfile) {
+        const amountUsd = session.amount_total ? session.amount_total / 100 : 0;
+        // Record 70% analyst share in revenue_events
+        const { error: revError } = await supabase.from("revenue_events").insert({
+          analyst_id: analystProfile.analyst_id,
+          type: "subscription",
+          amount: Math.round(amountUsd * 0.7 * 100) / 100,
+          created_at: now,
+        });
+        if (revError) {
+          console.error("[webhook] revenue_events insert error:", revError.message);
+        }
       }
     }
     return;
@@ -197,6 +221,7 @@ type StripeEvent = {
 type StripeCheckoutSession = {
   id: string;
   mode: string;
+  amount_total: number | null;
   customer_email: string | null;
   customer_details?: { email?: string } | null;
   metadata?: Record<string, string> | null;

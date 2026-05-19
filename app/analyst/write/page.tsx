@@ -44,6 +44,7 @@ export default function AnalystWritePage() {
 
   const analystId = useMemo(() => slugifyAnalyst(authorName), [authorName]);
   const [subscriberCount, setSubscriberCount] = useState(0);
+  const [userId, setUserId] = useState<string | null>(null);
 
   // Fetch live subscriber count from API when analystId changes
   useEffect(() => {
@@ -77,6 +78,7 @@ export default function AnalystWritePage() {
     supabase.auth.getUser().then(({ data }) => {
       const user = data.user;
       if (!user) return;
+      setUserId(user.id);
       const profile = user.user_metadata?.chainBriefProfile as { displayName?: string } | undefined;
       const name =
         profile?.displayName ??
@@ -121,6 +123,21 @@ export default function AnalystWritePage() {
       tags: [topic],
       topic,
     });
+
+    // Mirror to Supabase posts table so the dashboard counts it
+    if (supabase && userId) {
+      supabase.from("posts").insert({
+        author_id: userId,
+        title: title.trim(),
+        body: body.trim(),
+        category: topic,
+        post_type: isPremium ? "premium" : "general",
+        coin_tags: [topic],
+        status: "published",
+      }).then(({ error }) => {
+        if (error) console.warn("[write] posts insert:", error.message);
+      });
+    }
 
     // Notify subscribers via API (fire-and-forget)
     if (notifySubscribers && subscriberCount > 0) {

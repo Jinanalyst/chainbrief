@@ -103,19 +103,23 @@ export async function submitAnalystApplicationAction(
       }
     }
 
-    const { error } = await supabase.from("analyst_applications").insert({
-      user_id: user.id,
-      full_name: fullName,
-      twitter_handle: twitterHandle || null,
-      expertise_areas: expertiseAreas,
-      experience_years: experienceYears,
-      bio,
-      sample_link: sampleLink,
-      motivation,
-      no_investment_advice_agreed: true,
-      risk_disclosure_agreed: true,
-      status: "pending",
-    });
+    const { data: newApp, error } = await supabase
+      .from("analyst_applications")
+      .insert({
+        user_id: user.id,
+        full_name: fullName,
+        twitter_handle: twitterHandle || null,
+        expertise_areas: expertiseAreas,
+        experience_years: experienceYears,
+        bio,
+        sample_link: sampleLink,
+        motivation,
+        no_investment_advice_agreed: true,
+        risk_disclosure_agreed: true,
+        status: "pending",
+      })
+      .select("id")
+      .single();
 
     if (error) {
       // Table may not exist yet — surface a friendly message instead of crashing
@@ -128,9 +132,30 @@ export async function submitAnalystApplicationAction(
       return { error: error.message };
     }
 
+    // Auto-approve immediately using the service-role client to bypass RLS
+    if (newApp?.id && hasSupabaseAdminConfig()) {
+      const adminClient = createAdminClient();
+      const now = new Date().toISOString();
+      await adminClient
+        .from("analyst_applications")
+        .update({ status: "approved", reviewed_at: now, rejection_reason: null })
+        .eq("id", newApp.id);
+      await adminClient
+        .from("profiles")
+        .update({ role: "verified_analyst" })
+        .eq("id", user.id);
+      await adminClient.from("analyst_profiles").upsert({
+        analyst_id: user.id,
+        membership_enabled: false,
+        membership_price_usd: 1,
+        membership_description: "",
+        updated_at: now,
+      });
+    }
+
     revalidatePath("/analyst/apply");
-    revalidatePath("/analyst/status");
-    redirect("/analyst/status");
+    revalidatePath("/analyst/dashboard");
+    redirect("/analyst/dashboard");
   } catch (err) {
     // redirect() throws internally in Next.js — let it propagate
     if (isRedirectError(err)) throw err;
@@ -171,18 +196,27 @@ export async function saveAnalystDashboardSettingsAction(formData: FormData) {
       redirect("/analyst/dashboard?error=price");
     }
 
+    // Derive slug from display name so the webhook can map slug → UUID
+    const displayName =
+      getString(user.user_metadata?.chainBriefProfile?.displayName) ??
+      getString(user.user_metadata?.full_name) ??
+      "";
+    const slug = slugifyForAnalyst(displayName) || user.id;
+
     await upsertAnalystSettings(user.id, {
       membershipEnabled,
       membershipPriceUsd,
       membershipDescription,
+      slug,
     });
   } catch (err) {
     if (isRedirectError(err)) throw err;
     console.error("saveAnalystDashboardSettingsAction error:", err);
+    redirect("/analyst/dashboard?error=save");
   }
 
   revalidatePath("/analyst/dashboard");
-  redirect("/analyst/dashboard");
+  redirect("/analyst/dashboard?saved=1");
 }
 
 export async function approveAnalystApplicationAction(formData: FormData) {
@@ -286,10 +320,44 @@ export async function rejectAnalystApplicationAction(formData: FormData) {
   redirect("/admin/analyst-applications");
 }
 
+export async function saveWithdrawAddressAction(formData: FormData) {
+  try {
+    const { user } = await getCurrentUserContext();
+    if (!user) redirect("/login");
+
+    const snapshot = await getApprovedAnalystProfile(user.id);
+    if (!snapshot) redirect("/analyst/apply");
+
+    const tronAddress = optionalString(formData.get("tron_usdt_address")).slice(0, 200);
+
+    await upsertAnalystSettings(user.id, {
+      membershipEnabled: snapshot.settings?.membership_enabled ?? false,
+      membershipPriceUsd: snapshot.settings?.membership_price_usd ?? 1,
+      membershipDescription: snapshot.settings?.membership_description ?? "",
+      tronUsdtAddress: tronAddress,
+    });
+  } catch (err) {
+    if (isRedirectError(err)) throw err;
+    console.error("saveWithdrawAddressAction error:", err);
+    redirect("/analyst/dashboard?error=withdraw");
+  }
+
+  revalidatePath("/analyst/dashboard");
+  redirect("/analyst/dashboard?saved=1");
+}
+
 // ── helpers ────────────────────────────────────────────────────────────────────
 
 function optionalString(value: FormDataEntryValue | null) {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function slugifyForAnalyst(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9가-힣]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
 }
 
 function getString(value: unknown) {

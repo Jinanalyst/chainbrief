@@ -1,4 +1,5 @@
 import { createClient as createServerClient } from "@/lib/supabase/server";
+import { hasSupabaseAdminConfig, createAdminClient } from "@/lib/supabase/admin";
 
 export type AnalystApplicationStatus = "pending" | "approved" | "rejected";
 export type AnalystExperienceYears = "lt_1" | "1_3" | "3_5" | "5_plus";
@@ -33,6 +34,8 @@ export type AnalystProfileRow = {
   membership_enabled: boolean;
   membership_price_usd: number;
   membership_description: string | null;
+  slug: string | null;
+  tron_usdt_address: string | null;
   updated_at: string;
 };
 
@@ -62,6 +65,7 @@ export type AnalystDashboardSnapshot = {
   revenueBars: Array<{ label: string; amount: number }>;
   memberships: AnalystMembershipRow[];
   profile: AnalystProfileRow | null;
+  tronAddress: string | null;
 };
 
 export async function getSupabase() {
@@ -158,7 +162,7 @@ export async function getAnalystSettings(userId: string) {
   const supabase = await getSupabase();
   const { data } = await supabase
     .from("analyst_profiles")
-    .select("analyst_id, membership_enabled, membership_price_usd, membership_description, updated_at")
+    .select("analyst_id, membership_enabled, membership_price_usd, membership_description, slug, tron_usdt_address, updated_at")
     .eq("analyst_id", userId)
     .maybeSingle();
 
@@ -171,19 +175,25 @@ export async function upsertAnalystSettings(
     membershipEnabled: boolean;
     membershipPriceUsd: number;
     membershipDescription: string;
+    slug?: string;
+    tronUsdtAddress?: string;
   },
 ) {
   const supabase = await getSupabase();
+  const row: Record<string, unknown> = {
+    analyst_id: userId,
+    membership_enabled: input.membershipEnabled,
+    membership_price_usd: input.membershipPriceUsd,
+    membership_description: input.membershipDescription,
+    updated_at: new Date().toISOString(),
+  };
+  if (input.slug !== undefined) row.slug = input.slug;
+  if (input.tronUsdtAddress !== undefined) row.tron_usdt_address = input.tronUsdtAddress;
+
   const { data } = await supabase
     .from("analyst_profiles")
-    .upsert({
-      analyst_id: userId,
-      membership_enabled: input.membershipEnabled,
-      membership_price_usd: input.membershipPriceUsd,
-      membership_description: input.membershipDescription,
-      updated_at: new Date().toISOString(),
-    })
-    .select("analyst_id, membership_enabled, membership_price_usd, membership_description, updated_at")
+    .upsert(row)
+    .select("analyst_id, membership_enabled, membership_price_usd, membership_description, slug, tron_usdt_address, updated_at")
     .single();
 
   return data as AnalystProfileRow;
@@ -300,9 +310,23 @@ export async function getAnalystDashboardSnapshot(userId: string): Promise<Analy
 
   const memberships = (membershipsResult.data ?? []) as AnalystMembershipRow[];
   const revenueEvents = (revenueResult.data ?? []) as RevenueEventRow[];
-  const activeSubscriberCount = new Set(memberships.map((item) => item.subscriber_user_id)).size;
+  const supabaseSubscriberCount = new Set(memberships.map((item) => item.subscriber_user_id)).size;
   const thisMonthRevenue = sumRevenueForCurrentMonth(revenueEvents);
   const revenueBars = buildRevenueBars(revenueEvents);
+
+  // Count newsletter subscribers (slug-based system) via admin client if available
+  let newsletterSubscriberCount = 0;
+  if (settings?.slug && hasSupabaseAdminConfig()) {
+    try {
+      const admin = createAdminClient();
+      const { count } = await admin
+        .from("newsletter_subscriptions")
+        .select("id", { count: "exact", head: true })
+        .eq("analyst_id", settings.slug)
+        .is("cancelled_at", null);
+      newsletterSubscriberCount = count ?? 0;
+    } catch { /* admin client unavailable */ }
+  }
 
   const subscriberProfiles = await listSubscriberProfiles(
     memberships.map((item) => item.subscriber_user_id),
@@ -315,11 +339,12 @@ export async function getAnalystDashboardSnapshot(userId: string): Promise<Analy
 
   return {
     thisMonthRevenue,
-    totalSubscribers: activeSubscriberCount,
+    totalSubscribers: Math.max(supabaseSubscriberCount, newsletterSubscriberCount),
     postsPublished: postsCountResult.count ?? 0,
     revenueBars,
     memberships: nextMemberships,
     profile: settings,
+    tronAddress: settings?.tron_usdt_address ?? null,
   };
 }
 

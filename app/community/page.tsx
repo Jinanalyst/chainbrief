@@ -9,15 +9,20 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import "./community.css";
 import {
+  addCommunityPostReply,
   addQuotePost,
   addThreadQuote,
   addThreadRepost,
   clearCommunityQuoteTarget,
   COMMUNITY_POSTS_CHANGED_EVENT,
   COMMUNITY_QUOTE_CHANGED_EVENT,
+  communityPostFromDatabase,
+  mergeCommunityPosts,
   readCommunityPosts,
   readCommunityQuoteTarget,
+  toggleCommunityPostLike,
   type CommunityPost,
+  type DatabaseCommunityPostRow,
   type CommunityQuoteTarget,
   type CommunityStance,
   type QuotedCommunityPostSnapshot,
@@ -127,7 +132,8 @@ export default function CommunityPage() {
     return () => subscription.unsubscribe();
   }, [supabase]);
 
-  const [posts, setPosts] = useState<CommunityPost[]>([]);
+  const [localPosts, setLocalPosts] = useState<CommunityPost[]>([]);
+  const [remotePosts, setRemotePosts] = useState<CommunityPost[]>([]);
   const [quoteTarget, setQuoteTarget] = useState<CommunityQuoteTarget | null>(null);
   const [activeTab, setActiveTab] = useState<CommunityTab>("Latest");
   const [selectedArticleSlug] = useState<string | null>(() => {
@@ -138,9 +144,14 @@ export default function CommunityPage() {
     return new URLSearchParams(window.location.search).get("articleSlug")?.trim() || null;
   });
 
+  const posts = useMemo(
+    () => mergeCommunityPosts(remotePosts, localPosts),
+    [localPosts, remotePosts],
+  );
+
   useEffect(() => {
     function syncCommunityState() {
-      setPosts(readCommunityPosts());
+      setLocalPosts(readCommunityPosts());
       setQuoteTarget(readCommunityQuoteTarget());
     }
 
@@ -155,6 +166,45 @@ export default function CommunityPage() {
       window.removeEventListener(COMMUNITY_QUOTE_CHANGED_EVENT, syncCommunityState);
     };
   }, []);
+
+  useEffect(() => {
+    if (!supabase) {
+      setRemotePosts([]);
+      return;
+    }
+
+    const client = supabase;
+    let isMounted = true;
+
+    async function loadPublicPosts() {
+      const { data, error } = await client
+        .from("posts")
+        .select(
+          "id, author_id, title, body, category, post_type, coin_tags, linked_news_id, status, view_count, created_at, updated_at, profiles(username, avatar_url, role)",
+        )
+        .eq("status", "published")
+        .order("created_at", { ascending: false })
+        .limit(100);
+
+      if (!isMounted) return;
+
+      if (error) {
+        console.warn("Failed to load public community posts", error);
+        setRemotePosts([]);
+        return;
+      }
+
+      setRemotePosts(
+        ((data ?? []) as DatabaseCommunityPostRow[]).map(communityPostFromDatabase),
+      );
+    }
+
+    void loadPublicPosts();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [supabase]);
 
   const focusedTarget = useMemo(() => {
     if (!selectedArticleSlug) {
@@ -761,8 +811,10 @@ function AnalystScoreCard({ compact = false }: { compact?: boolean }) {
 
 function RiskNotice() {
   return (
-    <div className="rounded-md border border-amber-400/20 bg-amber-400/10 px-3 py-2">
-      <p className="text-xs leading-5 text-amber-100">{INVESTMENT_NOTICE}</p>
+    <div className="rounded-lg border border-tint/10 bg-tint/[0.03] px-3 py-2.5">
+      <p className="border-l-2 border-amber-400/50 pl-3 text-xs leading-5 text-muted-2">
+        {INVESTMENT_NOTICE}
+      </p>
     </div>
   );
 }
@@ -1084,6 +1136,8 @@ function CommunityPostCard({
   const [quoteBody, setQuoteBody] = useState("");
   const [quoteStance, setQuoteStance] = useState<CommunityStance>("Neutral");
   const [reposted, setReposted] = useState(false);
+  const [replyOpen, setReplyOpen] = useState(false);
+  const [replyBody, setReplyBody] = useState("");
 
   const isRepost = post.kind === "thread_repost";
   const isThreadQuote = post.kind === "thread_quote";
@@ -1102,6 +1156,17 @@ function CommunityPostCard({
     setQuoteOpen(false);
     setQuoteBody("");
     setQuoteStance("Neutral");
+  }
+
+  function handleLike() {
+    toggleCommunityPostLike(post.id);
+  }
+
+  function handleReplySubmit() {
+    if (!replyBody.trim()) return;
+    addCommunityPostReply(post.id, replyBody, authorName);
+    setReplyBody("");
+    setReplyOpen(false);
   }
 
   return (
@@ -1211,6 +1276,116 @@ function CommunityPostCard({
             {post.tags[0] ? <Badge tone="muted">{post.tags[0]}</Badge> : null}
           </div>
 
+          <div className="mt-4 flex flex-wrap items-center gap-2 border-y border-tint/10 py-3">
+            <button
+              className={cn(
+                "inline-flex h-9 items-center gap-1.5 rounded-full border px-3 text-xs font-bold transition",
+                post.likedByUser
+                  ? "border-accent/50 bg-accent/15 text-accent-ink"
+                  : "border-tint/10 bg-tint/[0.03] text-muted hover:border-accent/40 hover:text-ink",
+              )}
+              onClick={handleLike}
+              type="button"
+            >
+              <span>{post.likedByUser ? "Liked" : "Like"}</span>
+              <span className="text-muted-2">{post.likes}</span>
+            </button>
+            <button
+              className={cn(
+                "inline-flex h-9 items-center gap-1.5 rounded-full border px-3 text-xs font-bold transition",
+                replyOpen
+                  ? "border-accent/50 bg-accent/15 text-accent-ink"
+                  : "border-tint/10 bg-tint/[0.03] text-muted hover:border-accent/40 hover:text-ink",
+              )}
+              onClick={() => setReplyOpen((open) => !open)}
+              type="button"
+            >
+              <span>Reply</span>
+              <span className="text-muted-2">{post.commentsCount}</span>
+            </button>
+            <button
+              className="inline-flex h-9 items-center rounded-full border border-tint/10 bg-tint/[0.03] px-3 text-xs font-bold text-muted transition hover:border-accent/40 hover:text-ink"
+              onClick={() => sharePost(post)}
+              type="button"
+            >
+              Share
+            </button>
+            {canThread ? (
+              <>
+                <button
+                  className={cn(
+                    "inline-flex h-9 items-center rounded-full border px-3 text-xs font-bold transition",
+                    reposted
+                      ? "border-accent/50 bg-accent/15 text-accent-ink"
+                      : "border-tint/10 bg-tint/[0.03] text-muted hover:border-accent/40 hover:text-ink",
+                  )}
+                  onClick={handleRepost}
+                  type="button"
+                >
+                  {reposted ? "Reposted" : "Repost"}
+                </button>
+                <button
+                  className={cn(
+                    "inline-flex h-9 items-center rounded-full border px-3 text-xs font-bold transition",
+                    quoteOpen
+                      ? "border-accent/50 bg-accent/15 text-accent-ink"
+                      : "border-tint/10 bg-tint/[0.03] text-muted hover:border-accent/40 hover:text-ink",
+                  )}
+                  onClick={() => setQuoteOpen((open) => !open)}
+                  type="button"
+                >
+                  Quote
+                </button>
+              </>
+            ) : null}
+          </div>
+
+          {post.replies?.length ? (
+            <div className="mt-4 space-y-3 border-l border-tint/10 pl-3">
+              {post.replies.slice(-3).map((reply) => (
+                <div key={reply.id} className="rounded-lg border border-tint/10 bg-tint/[0.03] p-3">
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-muted-2">
+                    <span className="font-semibold text-ink">{reply.author}</span>
+                    <span>{formatRelativeTime(reply.createdAt, language)}</span>
+                  </div>
+                  <p className="mt-1 break-words text-sm leading-6 text-muted">{reply.body}</p>
+                </div>
+              ))}
+            </div>
+          ) : null}
+
+          {replyOpen ? (
+            <div className="mt-4 rounded-xl border border-tint/10 bg-background/70 p-3">
+              <textarea
+                autoFocus
+                className="min-h-20 w-full rounded-md border border-tint/10 bg-background px-3 py-2 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/25"
+                maxLength={240}
+                onChange={(event) => setReplyBody(event.target.value)}
+                placeholder="Reply with your market take"
+                value={replyBody}
+              />
+              <div className="mt-2 flex justify-end gap-2">
+                <button
+                  className="h-9 rounded-md border border-tint/10 px-3 text-xs font-bold text-muted transition hover:text-ink"
+                  onClick={() => {
+                    setReplyOpen(false);
+                    setReplyBody("");
+                  }}
+                  type="button"
+                >
+                  Cancel
+                </button>
+                <button
+                  className="h-9 rounded-md border border-accent/40 bg-accent/15 px-3 text-xs font-bold text-accent-ink transition hover:bg-accent/20"
+                  onClick={handleReplySubmit}
+                  type="button"
+                >
+                  Reply
+                </button>
+              </div>
+            </div>
+          ) : null}
+
           {post.analystTier ? (
             <div className="mt-4 rounded-xl border border-tint/10 bg-tint/[0.03] p-3">
               <div className="mb-3 flex items-center justify-between gap-3">
@@ -1227,7 +1402,7 @@ function CommunityPostCard({
 
           {isAnalysisPost(post) ? <div className="mt-4"><RiskNotice /></div> : null}
 
-          <div className="mt-4 flex items-center gap-2">
+          <div className="hidden">
             <IconButton label={language === "ko" ? "북마크" : "Bookmark"} glyph="⌁" />
             <IconButton
               label={language === "ko" ? "공유" : "Share"}

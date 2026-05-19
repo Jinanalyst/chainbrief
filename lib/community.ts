@@ -5,6 +5,8 @@ export const COMMUNITY_POSTS_CHANGED_EVENT = "chain-brief-community-posts-change
 export const COMMUNITY_QUOTE_STORAGE_KEY = "chain-brief-community-quote";
 export const COMMUNITY_QUOTE_CHANGED_EVENT = "chain-brief-community-quote-changed";
 export const COMMUNITY_AUTHOR_NAME_KEY = "chain-brief-author-name";
+export const ARTICLE_SENTIMENT_STORAGE_KEY = "chain-brief-article-sentiment";
+export const ARTICLE_SENTIMENT_CHANGED_EVENT = "chain-brief-article-sentiment-changed";
 
 /** Read the saved community author name from localStorage. */
 export function readAuthorName(): string {
@@ -47,6 +49,30 @@ export type CommunityAttachment = {
   size: number;
 };
 
+export type CommunityReply = {
+  id: string;
+  body: string;
+  author: string;
+  createdAt: string;
+  likes: number;
+};
+
+export type ArticleReaction = "Bullish" | "Bearish";
+
+export type ArticleSentiment = {
+  articleSlug: string;
+  bull: number;
+  bear: number;
+  userReaction?: ArticleReaction;
+  opinions: Array<{
+    id: string;
+    body: string;
+    author: string;
+    reaction: ArticleReaction;
+    createdAt: string;
+  }>;
+};
+
 export type CommunityPostType =
   | "general"
   | "news_interpretation"
@@ -87,6 +113,35 @@ export type CommunityPost = {
   relatedArticleUrl?: string;
   attachments?: CommunityAttachment[];
   quotedCommunityPost?: QuotedCommunityPostSnapshot;
+  replies?: CommunityReply[];
+  likedByUser?: boolean;
+};
+
+export type DatabaseCommunityPostRow = {
+  id: string;
+  author_id?: string | null;
+  title: string;
+  body: string;
+  category: string;
+  post_type?: string | null;
+  coin_tags?: string[] | null;
+  linked_news_id?: string | null;
+  status?: string | null;
+  view_count?: number | null;
+  created_at: string;
+  updated_at?: string | null;
+  profiles?:
+    | {
+        username?: string | null;
+        avatar_url?: string | null;
+        role?: CommunityPost["analystTier"] | "admin" | null;
+      }
+    | Array<{
+        username?: string | null;
+        avatar_url?: string | null;
+        role?: CommunityPost["analystTier"] | "admin" | null;
+      }>
+    | null;
 };
 
 export type CommunityQuoteTarget = {
@@ -157,6 +212,201 @@ export function writeCommunityPosts(posts: CommunityPost[]) {
   }
 
   window.dispatchEvent(new CustomEvent(COMMUNITY_POSTS_CHANGED_EVENT, { detail: nextPosts }));
+}
+
+export function toggleCommunityPostLike(postId: string) {
+  const nextPosts = readCommunityPosts().map((post) => {
+    if (post.id !== postId) return post;
+
+    const likedByUser = !post.likedByUser;
+    return {
+      ...post,
+      likedByUser,
+      likes: Math.max(0, post.likes + (likedByUser ? 1 : -1)),
+    };
+  });
+
+  writeCommunityPosts(nextPosts);
+}
+
+export function addCommunityPostReply(postId: string, body: string, author = "You") {
+  const trimmed = body.trim();
+  if (!trimmed) return null;
+
+  let reply: CommunityReply | null = null;
+  const nextPosts = readCommunityPosts().map((post) => {
+    if (post.id !== postId) return post;
+
+    const nextReply: CommunityReply = {
+      id: createPostId(),
+      body: trimmed,
+      author,
+      createdAt: new Date().toISOString(),
+      likes: 0,
+    };
+    reply = nextReply;
+
+    return {
+      ...post,
+      commentsCount: post.commentsCount + 1,
+      replies: [...(post.replies ?? []), nextReply],
+    };
+  });
+
+  writeCommunityPosts(nextPosts);
+  return reply;
+}
+
+export function readArticleSentiments(): Record<string, ArticleSentiment> {
+  if (typeof window === "undefined") {
+    return {};
+  }
+
+  const stored = window.localStorage.getItem(ARTICLE_SENTIMENT_STORAGE_KEY);
+  if (!stored) return {};
+
+  try {
+    const parsed = JSON.parse(stored);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return {};
+    }
+
+    return Object.fromEntries(
+      Object.entries(parsed)
+        .map(([slug, value]) => [slug, normalizeArticleSentiment(slug, value)] as const)
+        .filter(([, value]) => Boolean(value)),
+    ) as Record<string, ArticleSentiment>;
+  } catch {
+    return {};
+  }
+}
+
+export function readArticleSentiment(articleSlug: string): ArticleSentiment {
+  return (
+    readArticleSentiments()[articleSlug] ?? {
+      articleSlug,
+      bull: 0,
+      bear: 0,
+      opinions: [],
+    }
+  );
+}
+
+export function reactToArticle(
+  article: Article,
+  reaction: ArticleReaction,
+  options?: {
+    opinion?: string;
+    author?: string;
+  },
+) {
+  const sentiments = readArticleSentiments();
+  const current = sentiments[article.slug] ?? {
+    articleSlug: article.slug,
+    bull: 0,
+    bear: 0,
+    opinions: [],
+  };
+  const previousReaction = current.userReaction;
+  const opinion = options?.opinion?.trim() ?? "";
+  const next: ArticleSentiment = {
+    ...current,
+    bull: Math.max(0, current.bull - (previousReaction === "Bullish" ? 1 : 0)) + (reaction === "Bullish" ? 1 : 0),
+    bear: Math.max(0, current.bear - (previousReaction === "Bearish" ? 1 : 0)) + (reaction === "Bearish" ? 1 : 0),
+    userReaction: reaction,
+    opinions: opinion
+      ? [
+          {
+            id: createPostId(),
+            body: opinion,
+            author: options?.author ?? "You",
+            reaction,
+            createdAt: new Date().toISOString(),
+          },
+          ...current.opinions,
+        ].slice(0, 8)
+      : current.opinions,
+  };
+
+  sentiments[article.slug] = next;
+  writeArticleSentiments(sentiments, next);
+
+  if (opinion) {
+    addQuotePost(opinion, articleToQuoteTarget(article), {
+      author: options?.author ?? "You",
+      stance: reaction,
+      title: `${reaction === "Bullish" ? "Bull case" : "Bear case"}: ${article.title}`,
+    });
+  }
+
+  return next;
+}
+
+export function communityPostFromDatabase(row: DatabaseCommunityPostRow): CommunityPost {
+  const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
+  const postType = normalizePostType(row.post_type);
+  const analystTier = normalizeAnalystTier(profile?.role);
+  const author = profile?.username?.trim() || "Chain Brief member";
+  const tags = Array.isArray(row.coin_tags)
+    ? row.coin_tags.filter((tag): tag is string => typeof tag === "string" && Boolean(tag.trim()))
+    : [];
+
+  return {
+    id: row.id,
+    slug: slugify(`${row.id}-${row.title}`),
+    title: row.title,
+    body: row.body,
+    preview: truncate(row.body.replace(/\s+/g, " ").trim(), 160),
+    author,
+    avatar: profile?.avatar_url || avatarFromName(author),
+    category: row.category || "All",
+    publishedAt: row.created_at,
+    likes: 0,
+    commentsCount: 0,
+    views: row.view_count ?? 0,
+    tags,
+    createdAt: row.created_at,
+    kind: "opinion",
+    postType,
+    analystTier,
+    topic: row.category,
+    stance: inferStance(row.title, row.body),
+    discussionType: row.linked_news_id ? "news_reaction" : postType === "chart_analysis" ? "analysis" : "opinion",
+    relatedArticleSlug: row.linked_news_id ?? undefined,
+  };
+}
+
+export function databaseInsertFromCommunityPost(post: CommunityPost, authorId: string) {
+  return {
+    author_id: authorId,
+    title: post.title,
+    body: post.body,
+    category: post.category,
+    post_type: post.postType ?? "general",
+    coin_tags: post.tags,
+    linked_news_id: post.relatedArticleSlug ?? null,
+    status: "published",
+  };
+}
+
+export function mergeCommunityPosts(
+  primaryPosts: CommunityPost[],
+  secondaryPosts: CommunityPost[],
+) {
+  const seen = new Set<string>();
+  return [...primaryPosts, ...secondaryPosts]
+    .filter((post) => {
+      const keys = [
+        post.id,
+        post.slug,
+        `${post.author}:${post.title}:${post.body.slice(0, 120)}`,
+      ].filter(Boolean);
+      if (keys.some((key) => seen.has(key))) return false;
+      keys.forEach((key) => seen.add(key));
+      return true;
+    })
+    .sort(sortPostsNewestFirst)
+    .slice(0, 120);
 }
 
 export function addOpinionPost(
@@ -385,17 +635,7 @@ export function storeCommunityQuoteTarget(article: Article) {
     return;
   }
 
-  const target: CommunityQuoteTarget = {
-    id: article.id,
-    slug: article.slug,
-    title: article.title,
-    sourceName: article.sourceName,
-    category: article.category,
-    originalUrl: article.originalUrl,
-    publishedAt: article.publishedAt,
-    excerpt: article.excerpt,
-    briefSummary: article.briefSummary,
-  };
+  const target = articleToQuoteTarget(article);
 
   window.localStorage.setItem(
     COMMUNITY_QUOTE_STORAGE_KEY,
@@ -406,6 +646,36 @@ export function storeCommunityQuoteTarget(article: Article) {
       detail: target,
     }),
   );
+}
+
+function writeArticleSentiments(
+  sentiments: Record<string, ArticleSentiment>,
+  changed?: ArticleSentiment,
+) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.setItem(ARTICLE_SENTIMENT_STORAGE_KEY, JSON.stringify(sentiments));
+  window.dispatchEvent(
+    new CustomEvent(ARTICLE_SENTIMENT_CHANGED_EVENT, {
+      detail: changed ?? sentiments,
+    }),
+  );
+}
+
+function articleToQuoteTarget(article: Article): CommunityQuoteTarget {
+  return {
+    id: article.id,
+    slug: article.slug,
+    title: article.title,
+    sourceName: article.sourceName,
+    category: article.category,
+    originalUrl: article.originalUrl,
+    publishedAt: article.publishedAt,
+    excerpt: article.excerpt,
+    briefSummary: article.briefSummary,
+  };
 }
 
 export function readCommunityQuoteTarget(): CommunityQuoteTarget | null {
@@ -543,7 +813,116 @@ function normalizeCommunityPost(value: unknown): CommunityPost | null {
     relatedArticleUrl: post.relatedArticleUrl,
     attachments: normalizeAttachments(post.attachments),
     quotedCommunityPost: normalizeQuotedSnapshot(post.quotedCommunityPost),
+    replies: normalizeReplies(post.replies),
+    likedByUser: Boolean(post.likedByUser),
   };
+}
+
+function normalizePostType(value: unknown): CommunityPostType {
+  switch (value) {
+    case "news_interpretation":
+    case "chart_analysis":
+    case "trade_review":
+    case "loss_review":
+    case "risk_analysis":
+      return value;
+    default:
+      return "general";
+  }
+}
+
+function normalizeAnalystTier(value: unknown): CommunityPost["analystTier"] | undefined {
+  switch (value) {
+    case "rookie_analyst":
+    case "rising_analyst":
+    case "verified_analyst":
+    case "partner_expert":
+    case "user":
+      return value;
+    default:
+      return undefined;
+  }
+}
+
+function inferStance(title: string, body: string): CommunityStance {
+  const text = `${title} ${body}`.toLowerCase();
+  if (/\bbear|bearish|downside|risk|short\b/.test(text)) return "Bearish";
+  if (/\bbull|bullish|upside|long\b/.test(text)) return "Bullish";
+  if (/\?|\bquestion\b/.test(text)) return "Question";
+  return "Neutral";
+}
+
+function avatarFromName(name: string) {
+  return name
+    .split(/\s+/)
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase() || "CB";
+}
+
+function normalizeArticleSentiment(slug: string, value: unknown): ArticleSentiment | null {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const sentiment = value as Partial<ArticleSentiment>;
+  const userReaction =
+    sentiment.userReaction === "Bullish" || sentiment.userReaction === "Bearish"
+      ? sentiment.userReaction
+      : undefined;
+  const opinions = Array.isArray(sentiment.opinions)
+    ? sentiment.opinions
+        .map((item) => {
+          if (!item || typeof item !== "object") return null;
+          const opinion = item as Partial<ArticleSentiment["opinions"][number]>;
+          if (typeof opinion.body !== "string" || !opinion.body.trim()) return null;
+          return {
+            id: typeof opinion.id === "string" ? opinion.id : createPostId(),
+            body: opinion.body,
+            author: typeof opinion.author === "string" ? opinion.author : "Community",
+            reaction:
+              opinion.reaction === "Bearish" || opinion.reaction === "Bullish"
+                ? opinion.reaction
+                : "Bullish",
+            createdAt:
+              typeof opinion.createdAt === "string"
+                ? opinion.createdAt
+                : new Date().toISOString(),
+          };
+        })
+        .filter((item): item is ArticleSentiment["opinions"][number] => Boolean(item))
+    : [];
+
+  return {
+    articleSlug: typeof sentiment.articleSlug === "string" ? sentiment.articleSlug : slug,
+    bull: typeof sentiment.bull === "number" ? sentiment.bull : 0,
+    bear: typeof sentiment.bear === "number" ? sentiment.bear : 0,
+    userReaction,
+    opinions,
+  };
+}
+
+function normalizeReplies(value: unknown): CommunityReply[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((item) => {
+      if (!item || typeof item !== "object") return null;
+      const reply = item as Partial<CommunityReply>;
+      if (typeof reply.body !== "string" || !reply.body.trim()) return null;
+
+      return {
+        id: typeof reply.id === "string" ? reply.id : createPostId(),
+        body: reply.body,
+        author: typeof reply.author === "string" ? reply.author : "Community",
+        createdAt: typeof reply.createdAt === "string" ? reply.createdAt : new Date().toISOString(),
+        likes: typeof reply.likes === "number" ? reply.likes : 0,
+      };
+    })
+    .filter((item): item is CommunityReply => Boolean(item));
 }
 
 function normalizeAttachments(value: unknown): CommunityAttachment[] {
