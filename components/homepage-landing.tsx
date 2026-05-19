@@ -374,7 +374,7 @@ function DashboardSection({ copy }: { copy: LandingCopy }) {
   return (
     <section className="border-t border-tint/10 bg-background/88">
       <Container className="section-space grid min-w-0 gap-8 lg:grid-cols-[0.86fr_1.14fr] lg:items-start">
-        <div className="min-w-0">
+        <div className="min-w-0 lg:pt-14 xl:pt-20">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">
             {copy.dashboardEyebrow}
           </p>
