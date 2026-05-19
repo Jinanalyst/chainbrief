@@ -9,7 +9,7 @@ import { saveAnalystDashboardSettingsAction, saveWithdrawAddressAction } from "@
 import { hasSupabaseConfig } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/client";
 
-// ?€?€ Types (mirrored from analyst-data so this stays a pure client file) ?€?€?€?€?€?€?€?€
+// Types mirrored from analyst-data so this stays a pure client file.
 
 export type AnalystProfileRow = {
   analyst_id: string;
@@ -66,7 +66,7 @@ export type DashboardSnapshot = {
   tronAddress: string | null;
 };
 
-// ?€?€ Main view ?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€
+// Main view.
 
 export function AnalystDashboardView({ snapshot }: { snapshot: DashboardSnapshot }) {
   const [preferences] = usePreferences();
@@ -115,7 +115,7 @@ export function AnalystDashboardView({ snapshot }: { snapshot: DashboardSnapshot
   return (
     <div className="mx-auto grid max-w-7xl gap-6">
 
-      {/* ?€?€ Header card ?€?€ */}
+      {/* Header card */}
       <Card className="min-w-0 p-6">
         <div className="flex items-start justify-between gap-4">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">
@@ -129,7 +129,7 @@ export function AnalystDashboardView({ snapshot }: { snapshot: DashboardSnapshot
         <p className="mt-3 text-sm leading-6 text-muted">{d.description}</p>
       </Card>
 
-      {/* ?€?€ Feedback banners ?€?€ */}
+      {/* Feedback banners */}
       {showSaved && (
         <div className="rounded-xl border border-emerald-400/25 bg-emerald-400/10 px-4 py-3 text-sm font-medium text-emerald-300">
           {d.settingsSaved}
@@ -141,7 +141,7 @@ export function AnalystDashboardView({ snapshot }: { snapshot: DashboardSnapshot
         </div>
       )}
 
-      {/* ?€?€ Metric cards ?€?€ */}
+      {/* Metric cards */}
       <div className="grid gap-3 sm:grid-cols-3">
         <MetricCard label={d.thisMonthRevenue} value={formatCurrency(snapshot.thisMonthRevenue)} />
         <MetricCard label={d.totalSubscribers} value={String(snapshot.totalSubscribers)} />
@@ -222,7 +222,7 @@ export function AnalystDashboardView({ snapshot }: { snapshot: DashboardSnapshot
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_20rem]">
         <div className="grid gap-6">
 
-          {/* ?€?€ Membership settings form ?€?€ */}
+          {/* Membership settings form */}
           <Card className="p-5">
             <div className="flex items-center justify-between gap-3">
               <div>
@@ -271,7 +271,7 @@ export function AnalystDashboardView({ snapshot }: { snapshot: DashboardSnapshot
             </form>
           </Card>
 
-          {/* ?€?€ Revenue chart ?€?€ */}
+          {/* Revenue chart */}
           <Card className="p-5">
             <div className="flex items-center justify-between gap-3">
               <div>
@@ -344,7 +344,7 @@ export function AnalystDashboardView({ snapshot }: { snapshot: DashboardSnapshot
           </Card>
         </div>
 
-        {/* ?€?€ Sidebar ?€?€ */}
+        {/* Sidebar */}
         <aside className="space-y-3">
           <Card className="p-4">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
@@ -435,7 +435,7 @@ export function AnalystDashboardView({ snapshot }: { snapshot: DashboardSnapshot
   );
 }
 
-// ?€?€ Sub-components ?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€
+// Sub-components.
 
 function MetricCard({ label, value }: { label: string; value: string }) {
   return (
@@ -455,7 +455,7 @@ function StatRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-// ?€?€ Formatters ?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€
+// Formatters.
 
 function formatCurrency(value: number | string) {
   const amount = Number(value) || 0;
