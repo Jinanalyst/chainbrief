@@ -15,6 +15,8 @@ const EMPTY_SNAPSHOT: DashboardSnapshot = {
   bullReactions: 0,
   bearReactions: 0,
   totalBookmarks: 0,
+  totalRebriefs: 0,
+  totalQuoteAnalyses: 0,
   followerGrowth: 0,
   analystScore: 0,
   rankingPosition: null,
@@ -65,6 +67,8 @@ export function AnalyticsTab() {
         <MetricCard label="Bull reactions" value={formatCompact(snapshot.bullReactions)} loading={loading} />
         <MetricCard label="Bear reactions" value={formatCompact(snapshot.bearReactions)} loading={loading} />
         <MetricCard label="Saves" value={formatCompact(snapshot.totalBookmarks)} loading={loading} />
+        <MetricCard label="Rebriefs" value={formatCompact(snapshot.totalRebriefs)} loading={loading} />
+        <MetricCard label="Quote analysis" value={formatCompact(snapshot.totalQuoteAnalyses)} loading={loading} />
         <MetricCard label="Revenue estimate" value={formatCurrency(snapshot.revenueEstimate)} loading={loading} />
       </div>
 

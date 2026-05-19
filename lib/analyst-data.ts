@@ -63,6 +63,9 @@ export type AnalystDashboardMetricBar = {
   views: number;
   comments: number;
   likes: number;
+  saves: number;
+  rebriefs: number;
+  quoteAnalyses: number;
 };
 
 export type AnalystDashboardTopPost = {
@@ -72,6 +75,10 @@ export type AnalystDashboardTopPost = {
   comments: number;
   likes: number;
   bookmarks: number;
+  bull: number;
+  bear: number;
+  rebriefs: number;
+  quoteAnalyses: number;
   score: number;
 };
 
@@ -86,6 +93,8 @@ export type AnalystDashboardSnapshot = {
   bullReactions: number;
   bearReactions: number;
   totalBookmarks: number;
+  totalRebriefs: number;
+  totalQuoteAnalyses: number;
   followerGrowth: number;
   analystScore: number;
   rankingPosition: number | null;
@@ -423,6 +432,8 @@ export async function getAnalystDashboardSnapshot(userId: string): Promise<Analy
     bullReactions: engagement.reactions.filter((item) => item.reaction === "bull").length,
     bearReactions: engagement.reactions.filter((item) => item.reaction === "bear").length,
     totalBookmarks: engagement.bookmarks.length,
+    totalRebriefs: engagement.quotes.filter((item) => item.quote_kind === "rebrief").length,
+    totalQuoteAnalyses: engagement.quotes.filter((item) => item.quote_kind === "quote_analysis").length,
     followerGrowth: calculateFollowerGrowth(memberships),
     analystScore,
     rankingPosition,
@@ -444,11 +455,12 @@ async function getDashboardEngagement(postIds: string[]) {
       bookmarks: [] as Array<{ post_id: string; created_at: string }>,
       comments: [] as Array<{ post_id: string; created_at: string }>,
       reactions: [] as Array<{ post_id: string; reaction: "bull" | "bear"; created_at: string }>,
+      quotes: [] as Array<{ quoted_post_id: string; quote_kind: "rebrief" | "quote_analysis"; created_at: string }>,
     };
   }
 
   const supabase = await getSupabase();
-  const [viewsResult, likesResult, bookmarksResult, commentsResult, reactionsResult] = await Promise.all([
+  const [viewsResult, likesResult, bookmarksResult, commentsResult, reactionsResult, quotesResult] = await Promise.all([
     supabase
       .from("post_views")
       .select("post_id, viewer_id, session_id, viewed_at")
@@ -469,6 +481,11 @@ async function getDashboardEngagement(postIds: string[]) {
       .from("post_reactions")
       .select("post_id, reaction, created_at")
       .in("post_id", postIds),
+    supabase
+      .from("posts")
+      .select("quoted_post_id, quote_kind, created_at")
+      .in("quoted_post_id", postIds)
+      .eq("status", "published"),
   ]);
 
   return {
@@ -477,6 +494,7 @@ async function getDashboardEngagement(postIds: string[]) {
     bookmarks: (bookmarksResult.data ?? []) as Array<{ post_id: string; created_at: string }>,
     comments: (commentsResult.data ?? []) as Array<{ post_id: string; created_at: string }>,
     reactions: (reactionsResult.data ?? []) as Array<{ post_id: string; reaction: "bull" | "bear"; created_at: string }>,
+    quotes: (quotesResult.data ?? []) as Array<{ quoted_post_id: string; quote_kind: "rebrief" | "quote_analysis"; created_at: string }>,
   };
 }
 
@@ -549,6 +567,9 @@ function buildEngagementBars(
     views: 0,
     comments: 0,
     likes: 0,
+    saves: 0,
+    rebriefs: 0,
+    quoteAnalyses: 0,
   }));
 
   for (const post of posts) {
@@ -571,6 +592,18 @@ function buildEngagementBars(
     if (bucket) bucket.likes += 1;
   }
 
+  for (const bookmark of engagement.bookmarks) {
+    const bucket = buckets.get(monthKey(bookmark.created_at));
+    if (bucket) bucket.saves += 1;
+  }
+
+  for (const quote of engagement.quotes) {
+    const bucket = buckets.get(monthKey(quote.created_at));
+    if (!bucket) continue;
+    if (quote.quote_kind === "quote_analysis") bucket.quoteAnalyses += 1;
+    else bucket.rebriefs += 1;
+  }
+
   return Array.from(buckets.entries()).map(([key, value]) => ({
     ...value,
     label: monthLabel(key),
@@ -590,8 +623,12 @@ function buildTopPosts(
       const comments = engagement.comments.filter((item) => item.post_id === post.id).length;
       const likes = engagement.likes.filter((item) => item.post_id === post.id).length;
       const bookmarks = engagement.bookmarks.filter((item) => item.post_id === post.id).length;
-      const score = Math.round(views * 0.1 + comments * 3 + likes * 2 + bookmarks * 4);
-      return { id: post.id, title: post.title, views, comments, likes, bookmarks, score };
+      const bull = engagement.reactions.filter((item) => item.post_id === post.id && item.reaction === "bull").length;
+      const bear = engagement.reactions.filter((item) => item.post_id === post.id && item.reaction === "bear").length;
+      const rebriefs = engagement.quotes.filter((item) => item.quoted_post_id === post.id && item.quote_kind === "rebrief").length;
+      const quoteAnalyses = engagement.quotes.filter((item) => item.quoted_post_id === post.id && item.quote_kind === "quote_analysis").length;
+      const score = Math.round(views * 0.1 + comments * 3 + likes * 2 + bookmarks * 4 + rebriefs * 5 + quoteAnalyses * 7);
+      return { id: post.id, title: post.title, views, comments, likes, bookmarks, bull, bear, rebriefs, quoteAnalyses, score };
     })
     .sort((a, b) => b.score - a.score)
     .slice(0, 5);

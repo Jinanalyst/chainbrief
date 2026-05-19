@@ -40,6 +40,10 @@ export type TopPost = {
   comments: number;
   likes: number;
   bookmarks: number;
+  bull: number;
+  bear: number;
+  rebriefs: number;
+  quoteAnalyses: number;
   score: number;
 };
 
@@ -54,6 +58,8 @@ export type DashboardSnapshot = {
   bullReactions: number;
   bearReactions: number;
   totalBookmarks: number;
+  totalRebriefs: number;
+  totalQuoteAnalyses: number;
   followerGrowth: number;
   analystScore: number;
   rankingPosition: number | null;
@@ -156,6 +162,8 @@ export function AnalystDashboardView({ snapshot }: { snapshot: DashboardSnapshot
         <MetricCard label="Bull reactions" value={formatCompact(snapshot.bullReactions)} />
         <MetricCard label="Bear reactions" value={formatCompact(snapshot.bearReactions)} />
         <MetricCard label="Saves" value={formatCompact(snapshot.totalBookmarks)} />
+        <MetricCard label="Rebriefs" value={formatCompact(snapshot.totalRebriefs)} />
+        <MetricCard label="Quote analysis" value={formatCompact(snapshot.totalQuoteAnalyses)} />
         <MetricCard label="Follower growth" value={formatPercent(snapshot.followerGrowth)} />
       </div>
 
@@ -334,6 +342,9 @@ export function AnalystDashboardView({ snapshot }: { snapshot: DashboardSnapshot
                       <span>{formatCompact(post.comments)} comments</span>
                       <span>{formatCompact(post.likes)} likes</span>
                       <span>{formatCompact(post.bookmarks)} saves</span>
+                      <span>{formatCompact(post.rebriefs)} rebriefs</span>
+                      <span>{formatCompact(post.quoteAnalyses)} quotes</span>
+                      <span>{post.bull}/{post.bear} Bull/Bear</span>
                     </div>
                   </div>
                 ))

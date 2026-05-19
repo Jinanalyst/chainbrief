@@ -56,6 +56,8 @@ export default async function AnalystDashboardPage() {
       bullReactions: 0,
       bearReactions: 0,
       totalBookmarks: 0,
+      totalRebriefs: 0,
+      totalQuoteAnalyses: 0,
       followerGrowth: 0,
       analystScore: 0,
       rankingPosition: null,

@@ -10,6 +10,7 @@ import {
   addOpinionPost,
   clearCommunityQuoteTarget,
   databaseInsertFromCommunityPost,
+  normalizeTags,
   readAuthorName,
   readCommunityQuoteTarget,
   writeAuthorName,
@@ -759,6 +760,13 @@ export function CommunityWriteStudio({
     quoteTarget ? `Thoughts on ${quoteTarget.title}` : "",
   );
   const [topic, setTopic] = useState(() => getInitialTopic(quoteTarget));
+  const [tagDraft, setTagDraft] = useState(() =>
+    normalizeTags([
+      getInitialTopic(quoteTarget),
+      quoteTarget?.category ?? "",
+      quoteTarget ? "News Reactions" : "",
+    ]).join(", "),
+  );
   const [stance, setStance] = useState<CommunityStance>("Neutral");
   const [postType, setPostType] = useState<CommunityPostType>(
     quoteTarget ? "news_interpretation" : initialPostType,
@@ -835,6 +843,7 @@ export function CommunityWriteStudio({
   async function publishPost() {
     const trimmedTitle = title.trim();
     const body = blocksToText(blocks);
+    const tags = normalizeTags([topic, tagDraft]);
 
     if (!trimmedTitle) { setError("Please add a title."); return; }
     if (!body.trim()) { setError("Please add some content."); return; }
@@ -866,6 +875,7 @@ export function CommunityWriteStudio({
       relatedArticleSource: quoteTarget?.sourceName,
       relatedArticleUrl: quoteTarget?.originalUrl,
       attachments: blocksToAttachments(blocks),
+      tags,
     });
 
     if (supabase) {
@@ -1015,6 +1025,19 @@ export function CommunityWriteStudio({
                     </div>
                   </div>
                 </div>
+
+                <label className="block">
+                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">SEO tags</span>
+                  <input
+                    className="mt-2 h-11 w-full rounded-md border border-tint/10 bg-background px-3 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
+                    onChange={(e) => setTagDraft(e.target.value)}
+                    placeholder="BTC, ETF, Macro, Solana"
+                    value={tagDraft}
+                  />
+                  <p className="mt-2 text-xs leading-5 text-muted">
+                    Use comma-separated tags. They become community filters and indexable topic links.
+                  </p>
+                </label>
 
                 {/* Writing canvas */}
                 <div>

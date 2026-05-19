@@ -55,6 +55,7 @@ export type CommunityReply = {
   author: string;
   createdAt: string;
   likes: number;
+  parentId?: string;
 };
 
 export type ArticleReaction = "Bullish" | "Bearish";
@@ -117,6 +118,21 @@ export type CommunityPost = {
   likedByUser?: boolean;
 };
 
+export type CommunityEngagementMetrics = {
+  postId: string;
+  views: number;
+  likes: number;
+  comments: number;
+  saves: number;
+  bull: number;
+  bear: number;
+  rebriefs: number;
+  quoteAnalyses: number;
+  likedByUser: boolean;
+  savedByUser: boolean;
+  userReaction?: "bull" | "bear";
+};
+
 export type DatabaseCommunityPostRow = {
   id: string;
   author_id?: string | null;
@@ -126,6 +142,8 @@ export type DatabaseCommunityPostRow = {
   post_type?: string | null;
   coin_tags?: string[] | null;
   linked_news_id?: string | null;
+  quoted_post_id?: string | null;
+  quote_kind?: "rebrief" | "quote_analysis" | null;
   status?: string | null;
   view_count?: number | null;
   created_at: string;
@@ -142,6 +160,16 @@ export type DatabaseCommunityPostRow = {
         role?: CommunityPost["analystTier"] | "admin" | null;
       }>
     | null;
+};
+
+export type DatabaseCommunityCommentRow = {
+  id: string;
+  post_id: string;
+  user_id?: string | null;
+  parent_comment_id?: string | null;
+  body: string;
+  created_at: string;
+  updated_at?: string | null;
 };
 
 export type CommunityQuoteTarget = {
@@ -229,7 +257,12 @@ export function toggleCommunityPostLike(postId: string) {
   writeCommunityPosts(nextPosts);
 }
 
-export function addCommunityPostReply(postId: string, body: string, author = "You") {
+export function addCommunityPostReply(
+  postId: string,
+  body: string,
+  author = "You",
+  parentId?: string,
+) {
   const trimmed = body.trim();
   if (!trimmed) return null;
 
@@ -243,6 +276,7 @@ export function addCommunityPostReply(postId: string, body: string, author = "Yo
       author,
       createdAt: new Date().toISOString(),
       likes: 0,
+      parentId,
     };
     reply = nextReply;
 
@@ -425,9 +459,11 @@ export function addOpinionPost(
     relatedArticleSource?: string;
     relatedArticleUrl?: string;
     attachments?: CommunityAttachment[];
+    tags?: string[];
   },
 ) {
   const title = options?.title ?? buildOpinionTitle(body);
+  const tags = normalizeTags([...(options?.tags ?? []), topic ?? ""]);
   const nextPost: CommunityPost = {
     id: createPostId(),
     slug: slugify(`${topic ?? "community"}-${title}`),
@@ -441,7 +477,7 @@ export function addOpinionPost(
     likes: 0,
     commentsCount: 0,
     views: 0,
-    tags: topic && topic !== "All" ? [topic] : [],
+    tags,
     createdAt: new Date().toISOString(),
     kind: "opinion",
     postType: options?.postType ?? "general",
@@ -914,15 +950,45 @@ function normalizeReplies(value: unknown): CommunityReply[] {
       const reply = item as Partial<CommunityReply>;
       if (typeof reply.body !== "string" || !reply.body.trim()) return null;
 
-      return {
+      const normalized: CommunityReply = {
         id: typeof reply.id === "string" ? reply.id : createPostId(),
         body: reply.body,
         author: typeof reply.author === "string" ? reply.author : "Community",
         createdAt: typeof reply.createdAt === "string" ? reply.createdAt : new Date().toISOString(),
         likes: typeof reply.likes === "number" ? reply.likes : 0,
       };
+      if (typeof reply.parentId === "string") normalized.parentId = reply.parentId;
+      return normalized;
     })
-    .filter((item): item is CommunityReply => Boolean(item));
+    .filter((item): item is CommunityReply => item !== null);
+}
+
+export function communityReplyFromDatabase(row: DatabaseCommunityCommentRow): CommunityReply {
+  const reply: CommunityReply = {
+    id: row.id,
+    body: row.body,
+    author: "Chain Brief member",
+    createdAt: row.created_at,
+    likes: 0,
+  };
+  if (row.parent_comment_id) reply.parentId = row.parent_comment_id;
+  return reply;
+}
+
+export function normalizeTags(tags: string[]) {
+  const seen = new Set<string>();
+  return tags
+    .flatMap((tag) => tag.split(","))
+    .map((tag) => tag.trim().replace(/^#/, ""))
+    .filter(Boolean)
+    .map((tag) => tag.slice(0, 32))
+    .filter((tag) => {
+      const key = tag.toLowerCase();
+      if (key === "all" || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, 8);
 }
 
 function normalizeAttachments(value: unknown): CommunityAttachment[] {
