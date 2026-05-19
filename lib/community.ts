@@ -458,7 +458,7 @@ export function communityPostFromDatabase(row: DatabaseCommunityPostRow): Commun
   const str = (v: unknown) => (typeof v === "string" ? v : undefined);
 
   const author = str(metadata.author) || profile?.username?.trim() || "Chain Brief member";
-  const avatar = str(metadata.avatar) || profile?.avatar_url || avatarFromName(author);
+  const avatar = profile?.avatar_url || str(metadata.avatar) || avatarFromName(author);
 
   const stanceValue = str(metadata.stance) as CommunityStance | undefined;
   const stance: CommunityStance =

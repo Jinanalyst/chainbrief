@@ -342,8 +342,7 @@ export function ProfileSection() {
 
     await supabase
       .from("profiles")
-      .update({ avatar_url: publicUrl })
-      .eq("id", user.id);
+      .upsert({ id: user.id, avatar_url: publicUrl }, { onConflict: "id" });
 
     setIsUploadingAvatar(false);
     setUser(data.user);

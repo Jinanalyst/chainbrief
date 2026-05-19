@@ -1317,6 +1317,7 @@ function CommunityPostCard({
   const [replyBody, setReplyBody] = useState("");
   const [rebriefOpen, setRebriefOpen] = useState(false);
   const [rebriefBody, setRebriefBody] = useState("");
+  const [scoreOpen, setScoreOpen] = useState(false);
 
   const isRepost = post.kind === "thread_repost";
   const isThreadQuote = post.kind === "thread_quote";
@@ -1384,10 +1385,19 @@ function CommunityPostCard({
       ) : null}
 
       <div className="flex min-w-0 items-start gap-3">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-tint/10 bg-tint/[0.04] text-sm font-bold text-ink">
-          {isRepost && post.quotedCommunityPost
-            ? avatarFromName(post.quotedCommunityPost.author)
-            : (post.avatar ?? avatarFromName(post.author))}
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-tint/10 bg-tint/[0.04] text-sm font-bold text-ink">
+          {(() => {
+            const displayAuthor =
+              isRepost && post.quotedCommunityPost ? post.quotedCommunityPost.author : post.author;
+            const rawAvatar =
+              isRepost && post.quotedCommunityPost ? undefined : post.avatar;
+            const isUrl = typeof rawAvatar === "string" && /^(https?:\/\/|\/)/i.test(rawAvatar);
+            if (isUrl) {
+              // eslint-disable-next-line @next/next/no-img-element
+              return <img src={rawAvatar!} alt={displayAuthor} className="h-full w-full object-cover" />;
+            }
+            return rawAvatar ?? avatarFromName(displayAuthor);
+          })()}
         </div>
 
         <div className="min-w-0 flex-1">
@@ -1519,15 +1529,26 @@ function CommunityPostCard({
 
           {post.analystTier ? (
             <div className="mt-4 rounded-xl border border-tint/10 bg-tint/[0.03] p-3">
-              <div className="mb-3 flex items-center justify-between gap-3">
+              <button
+                aria-expanded={scoreOpen}
+                className="flex w-full items-center justify-between gap-3 text-left"
+                onClick={() => setScoreOpen((o) => !o)}
+                type="button"
+              >
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
                   Analyst Score
                 </p>
-                <span className="text-xs font-semibold text-accent-ink">
+                <span className="flex items-center gap-2 text-xs font-semibold text-accent-ink">
                   {formatAnalystTier(post.analystTier)}
+                  <span className="text-muted-2">{scoreOpen ? "Hide" : "Details"}</span>
+                  <span className={cn("transition-transform", scoreOpen ? "rotate-180" : "")}>▾</span>
                 </span>
-              </div>
-              <AnalystScoreCard compact />
+              </button>
+              {scoreOpen ? (
+                <div className="mt-3">
+                  <AnalystScoreCard compact />
+                </div>
+              ) : null}
             </div>
           ) : null}
 
