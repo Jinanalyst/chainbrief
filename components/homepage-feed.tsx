@@ -26,6 +26,18 @@ import {
   readCustomRssSources,
   type CustomRssSource,
 } from "@/lib/custom-rss-sources";
+import {
+  CUSTOM_BRIEF_CATEGORIES_CHANGED_EVENT,
+  addCustomBriefCategory,
+  readCustomBriefCategories,
+  removeCustomBriefCategory,
+} from "@/lib/custom-brief-categories";
+import {
+  BRIEF_SOURCE_CATEGORY_OVERRIDES_CHANGED_EVENT,
+  readBriefSourceCategoryOverrides,
+  setBriefSourceCategoryOverride,
+  type BriefSourceCategoryOverrides,
+} from "@/lib/brief-source-category-overrides";
 import { cn } from "@/lib/cn";
 import { formatBriefSummary } from "@/lib/summary";
 import type { Article } from "@/lib/rss/types";
@@ -56,6 +68,9 @@ const VISIBLE_ARTICLE_STEP = 12;
 export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
   const [articles, setArticles] = useState<Article[]>([]);
   const [customSources, setCustomSources] = useState<CustomRssSource[]>([]);
+  const [customBriefCategories, setCustomBriefCategories] = useState<string[]>([]);
+  const [briefSourceOverrides, setBriefSourceOverrides] = useState<BriefSourceCategoryOverrides>({});
+  const [newBriefCategoryName, setNewBriefCategoryName] = useState("");
   const [preferences, setPreferences] = usePreferences();
   const { t: copy, language } = useI18n(preferences.language);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
@@ -77,17 +92,44 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
     function syncCustomSources() {
       setCustomSources(readCustomRssSources());
     }
+    function syncCustomBriefCategories() {
+      setCustomBriefCategories(readCustomBriefCategories());
+    }
+    function syncBriefSourceOverrides() {
+      setBriefSourceOverrides(readBriefSourceCategoryOverrides());
+    }
+    function syncAll() {
+      syncCustomSources();
+      syncCustomBriefCategories();
+      syncBriefSourceOverrides();
+    }
 
-    const timer = window.setTimeout(syncCustomSources, 0);
-    window.addEventListener("storage", syncCustomSources);
+    const timer = window.setTimeout(syncAll, 0);
+    window.addEventListener("storage", syncAll);
     window.addEventListener("chain-brief-custom-rss-sources-changed", syncCustomSources);
+    window.addEventListener(
+      CUSTOM_BRIEF_CATEGORIES_CHANGED_EVENT,
+      syncCustomBriefCategories,
+    );
+    window.addEventListener(
+      BRIEF_SOURCE_CATEGORY_OVERRIDES_CHANGED_EVENT,
+      syncBriefSourceOverrides,
+    );
 
     return () => {
       window.clearTimeout(timer);
-      window.removeEventListener("storage", syncCustomSources);
+      window.removeEventListener("storage", syncAll);
       window.removeEventListener(
         "chain-brief-custom-rss-sources-changed",
         syncCustomSources,
+      );
+      window.removeEventListener(
+        CUSTOM_BRIEF_CATEGORIES_CHANGED_EVENT,
+        syncCustomBriefCategories,
+      );
+      window.removeEventListener(
+        BRIEF_SOURCE_CATEGORY_OVERRIDES_CHANGED_EVENT,
+        syncBriefSourceOverrides,
       );
     };
   }, []);
@@ -194,25 +236,54 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
   }, [articles]);
 
   const dynamicBriefCategories = useMemo(() => {
-    const custom = customSources
+    const fromSources = customSources
       .filter((s) => s.enabled)
       .map((s) => s.customCategory?.trim())
       .filter((c): c is string => Boolean(c));
-    const unique = Array.from(new Set(custom));
+    const fromOverrides = Object.values(briefSourceOverrides)
+      .map((c) => c.trim())
+      .filter(Boolean);
+    const fromStandalone = customBriefCategories.map((c) => c.trim()).filter(Boolean);
+    const unique = Array.from(
+      new Set([...fromSources, ...fromOverrides, ...fromStandalone]),
+    );
     const base = BRIEF_CATEGORIES.filter((c) => c !== "Web3");
     return [...base, ...unique.filter((c) => !base.includes(c))];
-  }, [customSources]);
+  }, [briefSourceOverrides, customBriefCategories, customSources]);
 
   const filteredArticles = useMemo(
-    () => filterArticles(articles, preferences, availableSources),
-    [articles, preferences, availableSources],
+    () => filterArticles(articles, preferences, availableSources, briefSourceOverrides),
+    [articles, briefSourceOverrides, preferences, availableSources],
   );
   const visibleArticles = filteredArticles.slice(0, visibleArticleCount);
   const hasMoreArticles = visibleArticles.length < filteredArticles.length;
   const categoryCounts = useMemo(
-    () => getCategoryCounts(articles, preferences, availableSources, dynamicBriefCategories),
-    [articles, preferences, availableSources, dynamicBriefCategories],
+    () =>
+      getCategoryCounts(
+        articles,
+        preferences,
+        availableSources,
+        dynamicBriefCategories,
+        briefSourceOverrides,
+      ),
+    [articles, briefSourceOverrides, dynamicBriefCategories, preferences, availableSources],
   );
+
+  function handleAddBriefCategory() {
+    const trimmed = newBriefCategoryName.trim();
+    if (!trimmed) return;
+    setCustomBriefCategories(addCustomBriefCategory(trimmed));
+    setNewBriefCategoryName("");
+  }
+
+  function handleRemoveBriefCategory(name: string) {
+    setCustomBriefCategories(removeCustomBriefCategory(name));
+  }
+
+  function handleAssignBriefSourceCategory(sourceId: string, category: string) {
+    setBriefSourceCategoryOverride(sourceId, category || null);
+    setBriefSourceOverrides(readBriefSourceCategoryOverrides());
+  }
   const liveIssues = getLiveIssueArticles(articles);
 
   function setCategory(category: string) {
@@ -379,6 +450,15 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
             sources={availableSources}
             lastUpdatedAt={lastUpdatedAt}
             onSourceChange={setSource}
+            articles={articles}
+            customBriefCategories={customBriefCategories}
+            briefSourceOverrides={briefSourceOverrides}
+            dynamicBriefCategories={dynamicBriefCategories}
+            newBriefCategoryName={newBriefCategoryName}
+            onNewBriefCategoryNameChange={setNewBriefCategoryName}
+            onAddBriefCategory={handleAddBriefCategory}
+            onRemoveBriefCategory={handleRemoveBriefCategory}
+            onAssignBriefSourceCategory={handleAssignBriefSourceCategory}
           />
         </div>
       </Container>
@@ -1130,14 +1210,46 @@ function FeedSidebar({
   onSourceChange,
   preferences,
   sources,
+  articles,
+  customBriefCategories,
+  briefSourceOverrides,
+  dynamicBriefCategories,
+  newBriefCategoryName,
+  onNewBriefCategoryNameChange,
+  onAddBriefCategory,
+  onRemoveBriefCategory,
+  onAssignBriefSourceCategory,
 }: {
   articleCount: number;
   lastUpdatedAt: string | null;
   onSourceChange: (source: string) => void;
   preferences: BriefPreferences;
   sources: string[];
+  articles: Article[];
+  customBriefCategories: string[];
+  briefSourceOverrides: BriefSourceCategoryOverrides;
+  dynamicBriefCategories: string[];
+  newBriefCategoryName: string;
+  onNewBriefCategoryNameChange: (value: string) => void;
+  onAddBriefCategory: () => void;
+  onRemoveBriefCategory: (name: string) => void;
+  onAssignBriefSourceCategory: (sourceId: string, category: string) => void;
 }) {
   const { t: copy } = useI18n(preferences.language);
+  const language = preferences.language;
+  const sourceList = useMemo(() => {
+    const map = new Map<string, { id: string; name: string; defaultCategory: string }>();
+    for (const article of articles) {
+      if (!map.has(article.sourceId)) {
+        map.set(article.sourceId, {
+          id: article.sourceId,
+          name: article.sourceName,
+          defaultCategory: article.customCategory ?? article.category,
+        });
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [articles]);
   const allSourcesSelected = sources.every((source) =>
     preferences.sources.includes(source),
   ) || ACTIVE_SOURCES.every((source) => preferences.sources.includes(source));
@@ -1215,6 +1327,108 @@ function FeedSidebar({
           {copy.feed.customizeFeed}
         </Button>
       </Card>
+
+      <Card className="min-w-0 p-4">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+          {language === "ko" ? "카테고리" : "Categories"}
+        </p>
+        <p className="mt-2 text-xs leading-5 text-muted">
+          {language === "ko"
+            ? "직접 카테고리를 추가해 브리프 소스를 분류해 보세요."
+            : "Add your own categories to group brief sources."}
+        </p>
+        <div className="mt-3 flex gap-2">
+          <input
+            className="min-h-9 w-full rounded-md border border-tint/10 bg-background px-3 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
+            maxLength={40}
+            onChange={(event) => onNewBriefCategoryNameChange(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                onAddBriefCategory();
+              }
+            }}
+            placeholder={language === "ko" ? "예: 국내 매크로" : "e.g. Korea Macro"}
+            value={newBriefCategoryName}
+          />
+          <button
+            className="shrink-0 rounded-md border border-accent/50 bg-accent/15 px-3 text-xs font-bold text-accent-ink transition hover:bg-accent/25 disabled:opacity-50"
+            disabled={!newBriefCategoryName.trim()}
+            onClick={onAddBriefCategory}
+            type="button"
+          >
+            +
+          </button>
+        </div>
+        {customBriefCategories.length > 0 ? (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {customBriefCategories.map((name) => (
+              <span
+                className="inline-flex items-center gap-1 rounded-full border border-tint/10 bg-tint/[0.04] px-2.5 py-1 text-xs font-semibold text-muted"
+                key={name}
+              >
+                {name}
+                <button
+                  aria-label={language === "ko" ? `${name} 삭제` : `Remove ${name}`}
+                  className="ml-1 text-muted-2 transition hover:text-ink"
+                  onClick={() => onRemoveBriefCategory(name)}
+                  type="button"
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+        ) : null}
+      </Card>
+
+      {sourceList.length > 0 ? (
+        <Card className="min-w-0 p-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+            {language === "ko" ? "소스 분류" : "Group sources"}
+          </p>
+          <p className="mt-2 text-xs leading-5 text-muted">
+            {language === "ko"
+              ? "각 소스를 원하는 카테고리로 옮길 수 있어요."
+              : "Reassign any source to a category you choose."}
+          </p>
+          <div className="mt-3 grid max-h-80 gap-2 overflow-y-auto pr-1">
+            {sourceList.map((source) => {
+              const current = briefSourceOverrides[source.id] ?? "";
+              return (
+                <div
+                  className="flex min-w-0 items-center gap-2 rounded-md border border-tint/10 bg-tint/[0.03] px-2.5 py-1.5"
+                  key={source.id}
+                >
+                  <span className="min-w-0 flex-1 truncate text-xs font-semibold text-ink">
+                    {source.name}
+                  </span>
+                  <select
+                    className="max-w-[8.5rem] rounded-md border border-tint/10 bg-background px-2 py-1 text-xs font-semibold text-ink outline-none transition focus:border-accent"
+                    onChange={(event) =>
+                      onAssignBriefSourceCategory(source.id, event.target.value)
+                    }
+                    value={current}
+                  >
+                    <option value="">
+                      {language === "ko"
+                        ? `기본 (${source.defaultCategory})`
+                        : `Default (${source.defaultCategory})`}
+                    </option>
+                    {dynamicBriefCategories
+                      .filter((c) => c !== "All")
+                      .map((category) => (
+                        <option key={category} value={category}>
+                          {category}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      ) : null}
 
       <Card className="min-w-0 p-4">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
@@ -1298,8 +1512,9 @@ function filterArticles(
   articles: Article[],
   preferences: BriefPreferences,
   availableSources: string[],
+  overrides: BriefSourceCategoryOverrides = {},
 ) {
-  return filterArticlesWithOptions(articles, preferences, availableSources, {
+  return filterArticlesWithOptions(articles, preferences, availableSources, overrides, {
     includeCategory: true,
   });
 }
@@ -1315,11 +1530,13 @@ function getCategoryCounts(
   preferences: BriefPreferences,
   availableSources: string[],
   categories: string[],
+  overrides: BriefSourceCategoryOverrides = {},
 ) {
   const baseMatches = filterArticlesWithOptions(
     articles,
     preferences,
     availableSources,
+    overrides,
     {
       includeCategory: false,
     },
@@ -1329,12 +1546,14 @@ function getCategoryCounts(
   counts.All = baseMatches.length;
 
   for (const article of baseMatches) {
+    const override = overrides[article.sourceId]?.trim();
     for (const category of categories) {
       if (
         category !== "All" &&
         (article.category === category ||
           article.tags.includes(category) ||
-          article.customCategory === category)
+          article.customCategory === category ||
+          (override && override === category))
       ) {
         counts[category] += 1;
       }
@@ -1348,6 +1567,7 @@ function filterArticlesWithOptions(
   articles: Article[],
   preferences: BriefPreferences,
   availableSources: string[],
+  overrides: BriefSourceCategoryOverrides,
   options: { includeCategory: boolean },
 ) {
   const includeKeywords = parseKeywords(preferences.includeKeywords);
@@ -1377,12 +1597,14 @@ function filterArticlesWithOptions(
       baseSourcesSelected ||
       preferences.sources.includes(article.sourceName) ||
       article.sourceId.startsWith("custom-brief-");
+    const override = overrides[article.sourceId]?.trim();
     const categoryMatches =
       !options.includeCategory ||
       preferences.category === "All" ||
       article.category === preferences.category ||
       article.tags.includes(preferences.category) ||
-      article.customCategory === preferences.category;
+      article.customCategory === preferences.category ||
+      (override !== undefined && override === preferences.category);
     const stockRegionMatches =
       article.feedCategory !== "Stock Market" ||
       !article.region ||
