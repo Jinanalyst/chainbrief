@@ -100,6 +100,24 @@ const EXPLORE_ITEMS: Array<{
   { action: "rules", en: "Community Rules", ko: "커뮤니티 규칙" },
 ];
 
+const SEARCH_NAV_ITEMS = [
+  { label: "Analyst profiles", href: "/analysts" },
+  { label: "Posts", href: "/community" },
+  { label: "Coin & stock tickers", href: "/market" },
+  { label: "Trending analysts", href: "/analysts" },
+  { label: "Rising creators", href: "/community" },
+  { label: "Verified analysts", href: "/analysts" },
+];
+
+const LIBRARY_NAV_ITEMS = [
+  { label: "Saved posts", href: "/sns" },
+  { label: "Liked posts", href: "/sns" },
+  { label: "Rebriefed posts", href: "/sns" },
+  { label: "Comment history", href: "/sns" },
+  { label: "Reading history", href: "/briefs" },
+  { label: "Followed analysts", href: "/analysts" },
+];
+
 export default function CommunityPage() {
   const [preferences] = usePreferences();
   const { t: copy, language } = useI18n(preferences.language);
@@ -447,8 +465,8 @@ function CommunityLeftNav({
       <CbMenuLink href="/" label={language === "ko" ? "홈" : "Home"} icon={<HomeIcon />} />
       <CbMenuLink href="/briefs" label={language === "ko" ? "브리프" : "Briefs"} icon={<BoltIcon />} />
       <CbMenuLink href="/market" label={language === "ko" ? "마켓" : "Market"} icon={<PulseIcon />} />
-      <CbMenuLink href="/analyst" label="Analyst" icon={<AwardIcon />} />
-      <CbMenuLink href="/sns" label="SNS" icon={<ChatIcon />} />
+      <CbMenuCluster href="/analysts" label="Search" icon={<SearchIcon />} items={SEARCH_NAV_ITEMS} />
+      <CbMenuCluster href="/sns" label="Library" icon={<BookmarkIcon />} items={LIBRARY_NAV_ITEMS} />
 
       <CbDivider />
       <CbSectionLabel>{language === "ko" ? "커뮤니티" : "Community"}</CbSectionLabel>
@@ -458,22 +476,16 @@ function CommunityLeftNav({
         icon={<UsersIcon />}
         active
       />
-      {EXPLORE_ITEMS.map((item) => (
+      <CbDivider />
+      <CbSectionLabel>Policy & Info</CbSectionLabel>
+      {EXPLORE_ITEMS.filter((item) => ["guide", "privacy", "rules"].includes(item.action)).map((item) => (
         <button
           key={item.action}
           type="button"
           onClick={() => onAction(item.action)}
-          className="flex items-center gap-2"
-          style={{
-            padding: "8px 10px",
-            borderRadius: 6,
-            fontSize: 13,
-            color: "var(--cb-t2)",
-            background: "transparent",
-            border: "none",
-            textAlign: "left",
-          }}
+          className="cb-nav-link cb-nav-button"
         >
+          <span className="cb-nav-icon"><InfoIcon /></span>
           {language === "ko" ? item.ko : item.en}
         </button>
       ))}
@@ -482,20 +494,31 @@ function CommunityLeftNav({
 }
 
 function CbSectionLabel({ children }: { children: React.ReactNode }) {
+  return <span className="cb-section-label">{children}</span>;
+}
+
+function CbMenuCluster({
+  href,
+  icon,
+  label,
+  items,
+}: {
+  href: string;
+  icon?: React.ReactNode;
+  label: string;
+  items: Array<{ label: string; href: string }>;
+}) {
   return (
-    <span
-      style={{
-        fontSize: 10,
-        fontWeight: 600,
-        textTransform: "uppercase",
-        letterSpacing: "0.07em",
-        color: "var(--cb-t3)",
-        padding: "8px 10px 4px",
-        marginTop: 4,
-      }}
-    >
-      {children}
-    </span>
+    <div className="cb-nav-cluster">
+      <CbMenuLink href={href} label={label} icon={icon} />
+      <div className="cb-subnav" aria-label={`${label} shortcuts`}>
+        {items.map((item) => (
+          <Link key={item.label} href={item.href} className="cb-subnav-link">
+            {item.label}
+          </Link>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -513,24 +536,16 @@ function CbMenuLink({
   return (
     <Link
       href={href}
-      className="flex items-center gap-2"
-      style={{
-        padding: "8px 10px",
-        borderRadius: 6,
-        fontSize: 13,
-        color: active ? "var(--cb-accent)" : "var(--cb-t2)",
-        background: active ? "rgba(47,123,255,0.12)" : "transparent",
-        transition: "all .1s",
-      }}
+      className={cn("cb-nav-link", active && "is-active")}
     >
-      {icon ? <span style={{ opacity: active ? 1 : 0.6, flexShrink: 0 }}>{icon}</span> : null}
+      {icon ? <span className="cb-nav-icon">{icon}</span> : null}
       <span>{label}</span>
     </Link>
   );
 }
 
 function CbDivider() {
-  return <div style={{ height: 1, background: "var(--cb-b1)", margin: "8px 4px" }} />;
+  return <div className="cb-nav-divider" />;
 }
 
 function CommunityToolbar({
@@ -643,6 +658,30 @@ function PulseIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+    </svg>
+  );
+}
+function SearchIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="11" cy="11" r="7" />
+      <path d="m20 20-3.5-3.5" />
+    </svg>
+  );
+}
+function BookmarkIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M19 21 12 17 5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+    </svg>
+  );
+}
+function InfoIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 16v-4" />
+      <path d="M12 8h.01" />
     </svg>
   );
 }
