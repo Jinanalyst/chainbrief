@@ -11,6 +11,18 @@ import {
   readCustomRssSources,
   type CustomRssSource,
 } from "@/lib/custom-rss-sources";
+import {
+  CUSTOM_CREATOR_CATEGORIES_CHANGED_EVENT,
+  addCustomCreatorCategory,
+  readCustomCreatorCategories,
+  removeCustomCreatorCategory,
+} from "@/lib/custom-creator-categories";
+import {
+  CREATOR_CATEGORY_OVERRIDES_CHANGED_EVENT,
+  readCreatorCategoryOverrides,
+  setCreatorCategoryOverride,
+  type CreatorCategoryOverrides,
+} from "@/lib/creator-category-overrides";
 import { formatShortTime } from "@/lib/i18n";
 import { snsSources, SNS_CATEGORIES } from "@/lib/sns/sources";
 import type { SnsCategory, SnsVideo } from "@/lib/sns/types";
@@ -107,6 +119,9 @@ export function SNSFeed() {
   const copy = getSnsCopy(language);
   const [videos, setVideos] = useState<SnsVideo[]>([]);
   const [customSources, setCustomSources] = useState<CustomRssSource[]>([]);
+  const [customCategories, setCustomCategories] = useState<string[]>([]);
+  const [overrides, setOverrides] = useState<CreatorCategoryOverrides>({});
+  const [newCategoryName, setNewCategoryName] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
   const [activeSources, setActiveSources] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -138,17 +153,38 @@ export function SNSFeed() {
     function loadCustomSources() {
       setCustomSources(readCustomRssSources());
     }
+    function loadCustomCategories() {
+      setCustomCategories(readCustomCreatorCategories());
+    }
+    function loadOverrides() {
+      setOverrides(readCreatorCategoryOverrides());
+    }
+    function loadAll() {
+      loadCustomSources();
+      loadCustomCategories();
+      loadOverrides();
+    }
 
-    loadCustomSources();
+    loadAll();
     window.addEventListener("chain-brief-custom-rss-sources-changed", loadCustomSources);
-    window.addEventListener("storage", loadCustomSources);
+    window.addEventListener(CUSTOM_CREATOR_CATEGORIES_CHANGED_EVENT, loadCustomCategories);
+    window.addEventListener(CREATOR_CATEGORY_OVERRIDES_CHANGED_EVENT, loadOverrides);
+    window.addEventListener("storage", loadAll);
 
     return () => {
       window.removeEventListener(
         "chain-brief-custom-rss-sources-changed",
         loadCustomSources,
       );
-      window.removeEventListener("storage", loadCustomSources);
+      window.removeEventListener(
+        CUSTOM_CREATOR_CATEGORIES_CHANGED_EVENT,
+        loadCustomCategories,
+      );
+      window.removeEventListener(
+        CREATOR_CATEGORY_OVERRIDES_CHANGED_EVENT,
+        loadOverrides,
+      );
+      window.removeEventListener("storage", loadAll);
     };
   }, []);
 
@@ -205,24 +241,42 @@ export function SNSFeed() {
   const effectiveActiveSources = activeSources.length > 0 ? activeSources : sourceNames;
 
   const dynamicCategories = useMemo(() => {
-    const custom = enabledCustomSources
+    const fromSources = enabledCustomSources
       .map((s) => s.customCategory?.trim())
       .filter((c): c is string => Boolean(c));
-    const unique = Array.from(new Set(custom));
+    const fromOverrides = Object.values(overrides).map((c) => c.trim()).filter(Boolean);
+    const fromStandalone = customCategories.map((c) => c.trim()).filter(Boolean);
+    const unique = Array.from(new Set([...fromSources, ...fromOverrides, ...fromStandalone]));
     const base = SNS_CATEGORIES as string[];
     return [...base, ...unique.filter((c) => !base.includes(c))];
-  }, [enabledCustomSources]);
+  }, [customCategories, enabledCustomSources, overrides]);
 
   const filteredVideos = useMemo(
-    () => filterVideos(videos, activeCategory, effectiveActiveSources, searchQuery),
-    [activeCategory, effectiveActiveSources, searchQuery, videos],
+    () => filterVideos(videos, activeCategory, effectiveActiveSources, searchQuery, overrides),
+    [activeCategory, effectiveActiveSources, overrides, searchQuery, videos],
   );
   const visibleVideos = filteredVideos.slice(0, visibleVideoCount);
   const hasMoreVideos = visibleVideos.length < filteredVideos.length;
   const categoryCounts = useMemo(
-    () => getCategoryCounts(videos, dynamicCategories, effectiveActiveSources, searchQuery),
-    [dynamicCategories, effectiveActiveSources, searchQuery, videos],
+    () => getCategoryCounts(videos, dynamicCategories, effectiveActiveSources, searchQuery, overrides),
+    [dynamicCategories, effectiveActiveSources, overrides, searchQuery, videos],
   );
+
+  function handleAddCategory() {
+    const trimmed = newCategoryName.trim();
+    if (!trimmed) return;
+    setCustomCategories(addCustomCreatorCategory(trimmed));
+    setNewCategoryName("");
+  }
+
+  function handleRemoveCategory(name: string) {
+    setCustomCategories(removeCustomCreatorCategory(name));
+  }
+
+  function handleAssignSourceCategory(sourceId: string, category: string) {
+    setCreatorCategoryOverride(sourceId, category || null);
+    setOverrides(readCreatorCategoryOverrides());
+  }
 
   function toggleSource(sourceName: string) {
     if (sourceName === ALL_SOURCES) {
@@ -399,6 +453,119 @@ export function SNSFeed() {
 
             <Card className="min-w-0 p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+                {language === "ko" ? "카테고리" : "Categories"}
+              </p>
+              <p className="mt-2 text-xs leading-5 text-muted">
+                {language === "ko"
+                  ? "직접 카테고리를 추가해 크리에이터를 분류해 보세요."
+                  : "Add your own categories to group creators."}
+              </p>
+              <div className="mt-3 flex gap-2">
+                <input
+                  className="min-h-9 w-full rounded-md border border-tint/10 bg-background px-3 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
+                  maxLength={40}
+                  onChange={(event) => setNewCategoryName(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      handleAddCategory();
+                    }
+                  }}
+                  placeholder={
+                    language === "ko" ? "예: 한국 크리에이터" : "e.g. Korean Creators"
+                  }
+                  value={newCategoryName}
+                />
+                <button
+                  className="shrink-0 rounded-md border border-accent/50 bg-accent/15 px-3 text-xs font-bold text-accent-ink transition hover:bg-accent/25 disabled:opacity-50"
+                  disabled={!newCategoryName.trim()}
+                  onClick={handleAddCategory}
+                  type="button"
+                >
+                  +
+                </button>
+              </div>
+              {customCategories.length > 0 ? (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {customCategories.map((name) => (
+                    <span
+                      className="inline-flex items-center gap-1 rounded-full border border-tint/10 bg-tint/[0.04] px-2.5 py-1 text-xs font-semibold text-muted"
+                      key={name}
+                    >
+                      {name}
+                      <button
+                        aria-label={language === "ko" ? `${name} 삭제` : `Remove ${name}`}
+                        className="ml-1 text-muted-2 transition hover:text-ink"
+                        onClick={() => handleRemoveCategory(name)}
+                        type="button"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+            </Card>
+
+            <Card className="min-w-0 p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+                {language === "ko" ? "크리에이터 분류" : "Group creators"}
+              </p>
+              <p className="mt-2 text-xs leading-5 text-muted">
+                {language === "ko"
+                  ? "각 채널을 원하는 카테고리로 옮길 수 있어요."
+                  : "Reassign any channel to a category you choose."}
+              </p>
+              <div className="mt-3 grid gap-2">
+                {[
+                  ...snsSources.map((s) => ({
+                    id: s.id,
+                    name: s.name,
+                    defaultCategory: s.category as string,
+                  })),
+                  ...enabledCustomSources.map((s) => ({
+                    id: s.id,
+                    name: s.name,
+                    defaultCategory: s.customCategory?.trim() || (s.category as string),
+                  })),
+                ].map((source) => {
+                  const current = overrides[source.id] ?? "";
+                  return (
+                    <div
+                      className="flex min-w-0 items-center gap-2 rounded-md border border-tint/10 bg-tint/[0.03] px-2.5 py-1.5"
+                      key={source.id}
+                    >
+                      <span className="min-w-0 flex-1 truncate text-xs font-semibold text-ink">
+                        {source.name}
+                      </span>
+                      <select
+                        className="max-w-[8.5rem] rounded-md border border-tint/10 bg-background px-2 py-1 text-xs font-semibold text-ink outline-none transition focus:border-accent"
+                        onChange={(event) =>
+                          handleAssignSourceCategory(source.id, event.target.value)
+                        }
+                        value={current}
+                      >
+                        <option value="">
+                          {language === "ko"
+                            ? `기본 (${source.defaultCategory})`
+                            : `Default (${source.defaultCategory})`}
+                        </option>
+                        {dynamicCategories
+                          .filter((c) => c !== "All")
+                          .map((category) => (
+                            <option key={category} value={category}>
+                              {category}
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
+
+            <Card className="min-w-0 p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
                 {copy.futureIntegrations}
               </p>
               <div className="mt-3 grid gap-2">
@@ -519,23 +686,29 @@ function NoMatchesState({
   );
 }
 
+function effectiveCategory(video: SnsVideo, overrides: CreatorCategoryOverrides) {
+  return overrides[video.sourceId]?.trim() || video.category;
+}
+
 function filterVideos(
   videos: SnsVideo[],
   activeCategory: string,
   activeSources: string[],
   searchQuery: string,
+  overrides: CreatorCategoryOverrides,
 ) {
   const query = searchQuery.trim().toLowerCase();
 
   return videos.filter((video) => {
     const sourceMatches = activeSources.includes(video.sourceName);
+    const effective = effectiveCategory(video, overrides);
     const categoryMatches =
       activeCategory === "All" ||
-      video.category === activeCategory ||
+      effective === activeCategory ||
       video.tags.includes(activeCategory);
     const queryMatches =
       query.length === 0 ||
-      [video.title, video.description, video.sourceName, video.category, ...video.tags]
+      [video.title, video.description, video.sourceName, effective, ...video.tags]
         .join(" ")
         .toLowerCase()
         .includes(query);
@@ -549,17 +722,19 @@ function getCategoryCounts(
   categories: string[],
   activeSources: string[],
   searchQuery: string,
+  overrides: CreatorCategoryOverrides,
 ) {
-  const baseMatches = filterVideos(videos, "All", activeSources, searchQuery);
+  const baseMatches = filterVideos(videos, "All", activeSources, searchQuery, overrides);
   const counts = Object.fromEntries(categories.map((c) => [c, 0])) as Record<string, number>;
 
   counts.All = baseMatches.length;
 
   for (const video of baseMatches) {
+    const effective = effectiveCategory(video, overrides);
     for (const category of categories) {
       if (
         category !== "All" &&
-        (video.category === category || video.tags.includes(category))
+        (effective === category || video.tags.includes(category))
       ) {
         counts[category] += 1;
       }
