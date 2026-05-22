@@ -36,6 +36,39 @@ const parser = new Parser<Record<string, never>, FeedItem>({
 
 const MAX_ARTICLES = 120;
 const REQUEST_TIMEOUT_MS = 9000;
+const NEWS_API_ENDPOINT = "https://newsapi.org/v2/everything";
+const NEWS_API_SOURCE_ID = "newsapi";
+const DEFAULT_NEWS_API_QUERY =
+  "(crypto OR bitcoin OR ethereum OR blockchain OR stock market OR economy OR federal reserve)";
+const DEFAULT_NEWS_API_LANGUAGE = "en";
+const DEFAULT_NEWS_API_PAGE_SIZE = 40;
+const DEFAULT_NEWS_API_LOOKBACK_DAYS = 3;
+
+type NewsApiArticle = {
+  source?: {
+    id?: string | null;
+    name?: string | null;
+  } | null;
+  author?: string | null;
+  title?: string | null;
+  description?: string | null;
+  url?: string | null;
+  urlToImage?: string | null;
+  publishedAt?: string | null;
+  content?: string | null;
+};
+
+type NewsApiResponse =
+  | {
+      status: "ok";
+      totalResults?: number;
+      articles?: NewsApiArticle[];
+    }
+  | {
+      status: "error";
+      code?: string;
+      message?: string;
+    };
 
 export class AllRssSourcesFailedError extends Error {
   constructor() {
@@ -45,23 +78,28 @@ export class AllRssSourcesFailedError extends Error {
 }
 
 export async function fetchFeeds(options: { withAiSummaries?: boolean } = {}): Promise<Article[]> {
-  const feedResults = await Promise.allSettled(
-    rssSources.map((source) => fetchSourceFeed(source, options)),
-  );
+  const [rssFeedResults, newsApiResult] = await Promise.all([
+    Promise.allSettled(rssSources.map((source) => fetchSourceFeed(source, options))),
+    fetchNewsApiFeed(options),
+  ]);
 
-  const sourceResults = feedResults.map((result) =>
+  const sourceResults = rssFeedResults.map((result) =>
     result.status === "fulfilled"
       ? result.value
       : { ok: false, articles: [] as Article[] },
   );
 
   const successfulSources = sourceResults.filter((result) => result.ok).length;
+  const newsApiArticles = newsApiResult.articles;
 
-  if (successfulSources === 0) {
+  if (successfulSources === 0 && newsApiArticles.length === 0) {
     throw new AllRssSourcesFailedError();
   }
 
-  const articles = sourceResults.flatMap((result) => result.articles);
+  const articles = [
+    ...newsApiArticles,
+    ...sourceResults.flatMap((result) => result.articles),
+  ];
 
   return removeDuplicateArticles(articles)
     .sort(
@@ -204,6 +242,65 @@ async function fetchCustomSourceFeed(
   }
 }
 
+async function fetchNewsApiFeed(
+  options: { withAiSummaries?: boolean },
+): Promise<{ ok: boolean; articles: Article[] }> {
+  const apiKey = process.env.NEWS_API_KEY?.trim();
+
+  if (!apiKey) {
+    return { ok: false, articles: [] };
+  }
+
+  try {
+    const url = new URL(NEWS_API_ENDPOINT);
+    url.searchParams.set("q", envValue("NEWS_API_QUERY", DEFAULT_NEWS_API_QUERY));
+    url.searchParams.set("sortBy", "publishedAt");
+    url.searchParams.set("language", envValue("NEWS_API_LANGUAGE", DEFAULT_NEWS_API_LANGUAGE));
+    url.searchParams.set("pageSize", String(readNewsApiPageSize()));
+    url.searchParams.set("page", "1");
+    url.searchParams.set("from", getNewsApiFromDate());
+
+    setOptionalSearchParam(url, "sources", process.env.NEWS_API_SOURCES);
+    setOptionalSearchParam(url, "domains", process.env.NEWS_API_DOMAINS);
+    setOptionalSearchParam(url, "excludeDomains", process.env.NEWS_API_EXCLUDE_DOMAINS);
+
+    const response = await fetch(url, {
+      headers: {
+        "User-Agent": "ChainBrief/0.1 News API Reader",
+        Accept: "application/json",
+        "X-Api-Key": apiKey,
+      },
+      next: { revalidate: RSS_REFRESH_SECONDS },
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    });
+
+    if (!response.ok) {
+      throw new Error(`News API returned ${response.status}`);
+    }
+
+    const data = (await response.json()) as NewsApiResponse;
+
+    if (data.status !== "ok") {
+      throw new Error(data.message ?? data.code ?? "News API request failed.");
+    }
+
+    const normalized = (data.articles ?? [])
+      .map(normalizeNewsApiItem)
+      .filter((article): article is Article => Boolean(article));
+    const articles = options.withAiSummaries
+      ? [
+          ...(await Promise.all(normalized.slice(0, 20).map(enrichWithAiBrief))),
+          ...normalized.slice(20),
+        ]
+      : normalized;
+
+    return { ok: true, articles };
+  } catch (error) {
+    console.error("Failed to fetch News API source", error);
+    return { ok: false, articles: [] };
+  }
+}
+
 async function enrichWithAiBrief(article: Article) {
   return {
     ...article,
@@ -300,6 +397,44 @@ function normalizeCustomItem(
   return { ...article, briefSummary: createRuleBasedBrief(article) };
 }
 
+function normalizeNewsApiItem(item: NewsApiArticle): Article | null {
+  const title = cleanText(item.title);
+  const originalUrl = cleanText(item.url);
+
+  if (!title || !originalUrl || title === "[Removed]" || originalUrl === "https://removed.com") {
+    return null;
+  }
+
+  const sourceName = cleanText(item.source?.name) || "News API";
+  const sourceId = createNewsApiSourceId(sourceName);
+  const rawContentSnippet = cleanText(
+    stripNewsApiTruncation(item.description ?? item.content ?? undefined),
+  );
+  const category = inferCategory("Global News", title, rawContentSnippet, []);
+  const excerpt = createExcerpt(rawContentSnippet, category);
+  const tags = createTags([], title, rawContentSnippet, category);
+  const article: Article = {
+    id: createArticleId(`${NEWS_API_SOURCE_ID}-${originalUrl}-${title}`),
+    title,
+    slug: slugify(title),
+    sourceId,
+    sourceName,
+    originalUrl,
+    publishedAt: parsePublishedAt(item.publishedAt ?? undefined),
+    excerpt,
+    category,
+    tags,
+    readingTime: estimateReadingTime(excerpt || title),
+    briefSummary: "",
+    rawContentSnippet,
+    imageUrl: isValidHttpUrl(cleanText(item.urlToImage)) ? cleanText(item.urlToImage) : undefined,
+    marketImpact: inferMarketImpact(title, rawContentSnippet),
+    feedCategory: "News API",
+  };
+
+  return { ...article, briefSummary: createRuleBasedBrief(article) };
+}
+
 function extractOfficialLinks(html: string, source: RssSource): Article[] {
   const normalized = html.replace(/\s+/g, " ");
   const links = Array.from(
@@ -355,6 +490,53 @@ function isValidHttpUrl(value: string) {
   } catch {
     return false;
   }
+}
+
+function envValue(key: string, fallback: string) {
+  const value = process.env[key]?.trim();
+  return value || fallback;
+}
+
+function setOptionalSearchParam(url: URL, key: string, value?: string) {
+  const trimmed = value?.trim();
+
+  if (trimmed) {
+    url.searchParams.set(key, trimmed);
+  }
+}
+
+function readNewsApiPageSize() {
+  const value = Number.parseInt(process.env.NEWS_API_PAGE_SIZE ?? "", 10);
+
+  if (!Number.isFinite(value)) {
+    return DEFAULT_NEWS_API_PAGE_SIZE;
+  }
+
+  return Math.min(100, Math.max(1, value));
+}
+
+function getNewsApiFromDate() {
+  const days = Number.parseInt(process.env.NEWS_API_LOOKBACK_DAYS ?? "", 10);
+  const lookbackDays = Number.isFinite(days)
+    ? Math.min(30, Math.max(1, days))
+    : DEFAULT_NEWS_API_LOOKBACK_DAYS;
+  const date = new Date(Date.now() - lookbackDays * 24 * 60 * 60 * 1000);
+
+  return date.toISOString();
+}
+
+function createNewsApiSourceId(sourceName: string) {
+  const normalized = sourceName
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
+
+  return `${NEWS_API_SOURCE_ID}-${normalized || "source"}`;
+}
+
+function stripNewsApiTruncation(value?: string | null) {
+  return value?.replace(/\s*\[\+\d+\schars\]\s*$/i, "");
 }
 
 function removeDuplicateArticles(articles: Article[]) {
