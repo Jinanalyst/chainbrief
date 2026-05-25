@@ -437,26 +437,75 @@ function normalizeNewsApiItem(item: NewsApiArticle): Article | null {
 
 function extractOfficialLinks(html: string, source: RssSource): Article[] {
   const normalized = html.replace(/\s+/g, " ");
-  const links = Array.from(
-    normalized.matchAll(/<a\b[^>]*href=["']([^"']+)["'][^>]*>(.*?)<\/a>/gi),
-  )
-    .map((match) => {
-      const title = cleanText(stripHtml(match[2]));
-      const originalUrl = toAbsoluteUrl(match[1], source.url);
-      return { title, originalUrl };
-    })
-    .filter((item) => item.title.length >= 8 && item.originalUrl);
-  const unique = new Map<string, { title: string; originalUrl: string }>();
+  // Split into row-like chunks so each link can be paired with the date
+  // rendered next to it in the BBS table (e.g. 한국은행, 국토교통부).
+  const chunks = normalized.split(/<\/(?:tr|li|article|dd|div)>/i);
+  const dateRegex = /\b(20\d{2})[.\-\/\s년]\s*(\d{1,2})[.\-\/\s월]\s*(\d{1,2})/;
+  type RawItem = {
+    title: string;
+    originalUrl: string;
+    publishedAt: string;
+    hasRealDate: boolean;
+  };
+  const items: RawItem[] = [];
 
-  for (const item of links) {
-    const text = `${item.title} ${item.originalUrl}`;
-    if (!/(보도|자료|정책|경제|금융|부동산|press|bbs|news|article)/i.test(text)) {
-      continue;
+  for (const chunk of chunks) {
+    for (const linkMatch of chunk.matchAll(
+      /<a\b[^>]*href=["']([^"']+)["'][^>]*>(.*?)<\/a>/gi,
+    )) {
+      const title = cleanText(stripHtml(linkMatch[2]));
+      const originalUrl = toAbsoluteUrl(linkMatch[1], source.url);
+      if (title.length < 8 || !originalUrl) continue;
+      const text = `${title} ${originalUrl}`;
+      if (!/(보도|자료|정책|경제|금융|부동산|press|bbs|news|article)/i.test(text)) {
+        continue;
+      }
+
+      const dateMatch = chunk.match(dateRegex);
+      let publishedAt = new Date().toISOString();
+      let hasRealDate = false;
+      if (dateMatch) {
+        const iso = `${dateMatch[1]}-${dateMatch[2].padStart(2, "0")}-${dateMatch[3].padStart(2, "0")}T00:00:00Z`;
+        const parsed = Date.parse(iso);
+        if (Number.isFinite(parsed)) {
+          publishedAt = new Date(parsed).toISOString();
+          hasRealDate = true;
+        }
+      }
+
+      items.push({ title, originalUrl, publishedAt, hasRealDate });
     }
-    unique.set(item.originalUrl, item);
   }
 
-  return Array.from(unique.values())
+  // Dedupe by URL, keeping the entry with the newest parsed date.
+  const unique = new Map<string, RawItem>();
+  for (const item of items) {
+    const existing = unique.get(item.originalUrl);
+    if (
+      !existing ||
+      new Date(item.publishedAt).getTime() > new Date(existing.publishedAt).getTime()
+    ) {
+      unique.set(item.originalUrl, item);
+    }
+  }
+
+  // BBS-style pages list newest entries first in the DOM. When no real date
+  // was extractable from the row, anchor the synthetic timestamp a day in
+  // the past (decreasing with position) so these items don't outrank live
+  // RSS articles with real publish times in the global feed sort.
+  const fallbackBase = Date.now() - 24 * 60 * 60 * 1000;
+  const ordered = Array.from(unique.values());
+  ordered.forEach((item, idx) => {
+    if (!item.hasRealDate) {
+      item.publishedAt = new Date(fallbackBase - idx * 60_000).toISOString();
+    }
+  });
+
+  return ordered
+    .sort(
+      (a, b) =>
+        new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime(),
+    )
     .slice(0, 12)
     .map((item) => {
       const excerpt = `${source.name} 공식 페이지에서 확인된 최신 ${source.defaultCategory} 소식입니다.`;
@@ -468,7 +517,7 @@ function extractOfficialLinks(html: string, source: RssSource): Article[] {
         sourceId: source.id,
         sourceName: source.name,
         originalUrl: item.originalUrl,
-        publishedAt: new Date().toISOString(),
+        publishedAt: item.publishedAt,
         excerpt,
         category: source.defaultCategory,
         tags,
