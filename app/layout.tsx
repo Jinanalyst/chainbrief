@@ -4,7 +4,8 @@ import { RealtimeKeywordAlerts } from "@/components/realtime-keyword-alerts";
 import { THEME_INIT_SCRIPT } from "@/components/theme-toggle";
 import "./globals.css";
 
-const adsenseClient = process.env.NEXT_PUBLIC_ADSENSE_CLIENT;
+const adsenseClient =
+  process.env.NEXT_PUBLIC_ADSENSE_CLIENT ?? "ca-pub-4572550568039838";
 
 export const metadata: Metadata = {
   title: "Chain Brief | Market Intelligence, Connected.",
