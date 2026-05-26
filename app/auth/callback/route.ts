@@ -31,6 +31,37 @@ export async function GET(request: NextRequest) {
   if (result.error) {
     redirectTo.pathname = "/login";
     redirectTo.searchParams.set("error", "auth-callback");
+  } else {
+    // Heal the profile row on every sign-in so OAuth pictures (Google sets
+    // `picture`, others use `avatar_url`) land in profiles.avatar_url. Without
+    // this, community cards fall back to initials even after a successful login.
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (user) {
+      const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
+      const pickStr = (v: unknown) => (typeof v === "string" && v.trim() ? v : undefined);
+      const avatarUrl =
+        pickStr(meta.avatar_url) ?? pickStr(meta.picture) ?? null;
+      const username =
+        pickStr(meta.username) ??
+        pickStr(meta.preferred_username) ??
+        pickStr(meta.name) ??
+        pickStr(meta.full_name) ??
+        (user.email ? user.email.split("@")[0] : `user_${user.id.slice(0, 8)}`);
+
+      const { data: existing } = await supabase
+        .from("profiles")
+        .select("id, avatar_url")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (!existing) {
+        await supabase.from("profiles").insert({ id: user.id, username, avatar_url: avatarUrl });
+      } else if (!existing.avatar_url && avatarUrl) {
+        await supabase.from("profiles").update({ avatar_url: avatarUrl }).eq("id", user.id);
+      }
+    }
   }
 
   return NextResponse.redirect(redirectTo);

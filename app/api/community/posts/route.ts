@@ -43,20 +43,21 @@ export async function POST(req: NextRequest) {
   // posts.author_id FK → profiles.id. Make sure the row exists.
   const { data: existingProfile } = await supabase
     .from("profiles")
-    .select("id")
+    .select("id, avatar_url")
     .eq("id", user.id)
     .maybeSingle();
 
+  const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
+  const pickStr = (v: unknown) => (typeof v === "string" && v.trim() ? v : undefined);
+  const avatarUrl = pickStr(meta.avatar_url) ?? pickStr(meta.picture) ?? null;
+
   if (!existingProfile) {
-    const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
     const username =
-      (typeof meta.username === "string" && meta.username) ||
-      (typeof meta.preferred_username === "string" && meta.preferred_username) ||
-      (typeof meta.name === "string" && meta.name) ||
-      (typeof meta.full_name === "string" && meta.full_name) ||
-      (user.email ? user.email.split("@")[0] : null) ||
-      `user_${user.id.slice(0, 8)}`;
-    const avatarUrl = typeof meta.avatar_url === "string" ? meta.avatar_url : null;
+      pickStr(meta.username) ??
+      pickStr(meta.preferred_username) ??
+      pickStr(meta.name) ??
+      pickStr(meta.full_name) ??
+      (user.email ? user.email.split("@")[0] : `user_${user.id.slice(0, 8)}`);
 
     const { error: profileError } = await supabase.from("profiles").insert({
       id: user.id,
@@ -66,6 +67,8 @@ export async function POST(req: NextRequest) {
     if (profileError && !profileError.message?.toLowerCase().includes("duplicate")) {
       return NextResponse.json({ error: profileError.message }, { status: 500 });
     }
+  } else if (!existingProfile.avatar_url && avatarUrl) {
+    await supabase.from("profiles").update({ avatar_url: avatarUrl }).eq("id", user.id);
   }
 
   const insertRow: Record<string, unknown> = {
