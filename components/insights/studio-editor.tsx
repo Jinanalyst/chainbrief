@@ -9,6 +9,7 @@ import {
   type Insight,
   type InsightCategory,
 } from "@/lib/insights";
+import { looksLikeHtml, sanitizeHtml } from "@/lib/sanitize-html";
 import { renderMarkdown } from "@/lib/markdown";
 
 type Props = {
@@ -20,16 +21,20 @@ type SaveState = "idle" | "saving" | "saved" | "error";
 type Draft = {
   title: string;
   excerpt: string;
-  body: string;
+  body: string; // HTML
   category: InsightCategory;
   cover_image_url: string;
 };
 
 function toDraft(insight: Insight): Draft {
+  // If body is legacy markdown (no leading tag), pre-render it to HTML so the
+  // WYSIWYG surface displays it correctly.
+  const body = insight.body ?? "";
+  const html = looksLikeHtml(body) ? body : renderMarkdown(body);
   return {
     title: insight.title,
     excerpt: insight.excerpt ?? "",
-    body: insight.body ?? "",
+    body: html,
     category: insight.category,
     cover_image_url: insight.cover_image_url ?? "",
   };
@@ -41,16 +46,26 @@ export function StudioEditor({ initialInsight }: Props) {
   const [draft, setDraft] = useState<Draft>(() => toDraft(initialInsight));
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [error, setError] = useState<string | null>(null);
-  const [showPreview, setShowPreview] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const lastSavedSerialised = useRef(JSON.stringify(toDraft(initialInsight)));
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const editorRef = useRef<HTMLDivElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
 
   const dirty = useMemo(
     () => JSON.stringify(draft) !== lastSavedSerialised.current,
     [draft],
   );
+
+  // Initialise contentEditable surface once with the stored HTML.
+  useEffect(() => {
+    if (editorRef.current && editorRef.current.innerHTML === "") {
+      editorRef.current.innerHTML = draft.body;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const persist = useCallback(
     async (overrides: Partial<Draft & { status: "draft" | "published" }> = {}) => {
@@ -77,8 +92,16 @@ export function StudioEditor({ initialInsight }: Props) {
       }
       const updated = json.insight as Insight;
       setInsight(updated);
-      const nextDraft = toDraft(updated);
-      lastSavedSerialised.current = JSON.stringify(nextDraft);
+      // Don't bounce server-returned body back into the contentEditable —
+      // doing so would steal cursor focus mid-typing. Just sync the saved
+      // marker.
+      lastSavedSerialised.current = JSON.stringify({
+        title: updated.title,
+        excerpt: updated.excerpt ?? "",
+        body: updated.body ?? "",
+        category: updated.category,
+        cover_image_url: updated.cover_image_url ?? "",
+      });
       setSaveState("saved");
       return updated;
     },
@@ -92,13 +115,12 @@ export function StudioEditor({ initialInsight }: Props) {
     setSaveState("idle");
     saveTimer.current = setTimeout(() => {
       void persist();
-    }, 1200);
+    }, 1500);
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
     };
   }, [draft, dirty, persist]);
 
-  // Warn on page exit while a save is in flight.
   useEffect(() => {
     function beforeUnload(e: BeforeUnloadEvent) {
       if (dirty || saveState === "saving") {
@@ -110,8 +132,77 @@ export function StudioEditor({ initialInsight }: Props) {
     return () => window.removeEventListener("beforeunload", beforeUnload);
   }, [dirty, saveState]);
 
+  function readHtmlFromEditor() {
+    if (!editorRef.current) return;
+    const html = sanitizeHtml(editorRef.current.innerHTML);
+    setDraft((d) => (d.body === html ? d : { ...d, body: html }));
+  }
+
+  function exec(command: string, value?: string) {
+    editorRef.current?.focus();
+    // document.execCommand is deprecated but remains the simplest cross-browser
+    // way to drive contentEditable formatting; libraries replicate this.
+    document.execCommand(command, false, value);
+    readHtmlFromEditor();
+  }
+
+  function formatBlock(tag: string) {
+    exec("formatBlock", `<${tag}>`);
+  }
+
+  function insertLink() {
+    const url = window.prompt("Link URL", "https://");
+    if (!url) return;
+    exec("createLink", url);
+  }
+
+  function insertHtmlAtCaret(html: string) {
+    editorRef.current?.focus();
+    document.execCommand("insertHTML", false, html);
+    readHtmlFromEditor();
+  }
+
+  async function uploadFile(file: File): Promise<{ url: string; kind: "image" | "video" } | null> {
+    setUploading(true);
+    setError(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/insights/upload", { method: "POST", body: fd });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(json.error ?? "upload failed");
+        return null;
+      }
+      return { url: json.url as string, kind: json.kind as "image" | "video" };
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function handleImagePicked(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    const result = await uploadFile(file);
+    if (!result) return;
+    insertHtmlAtCaret(
+      `<p><img src="${result.url}" alt="" style="max-width:100%;border-radius:8px" loading="lazy" /></p><p><br/></p>`,
+    );
+  }
+
+  async function handleVideoPicked(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    const result = await uploadFile(file);
+    if (!result) return;
+    insertHtmlAtCaret(
+      `<p><video controls src="${result.url}" style="max-width:100%;border-radius:8px"></video></p><p><br/></p>`,
+    );
+  }
+
   async function togglePublish() {
-    // Flush in-flight edits first.
     const flushed = await persist();
     if (!flushed) return;
     const nextStatus = flushed.status === "published" ? "draft" : "published";
@@ -129,23 +220,7 @@ export function StudioEditor({ initialInsight }: Props) {
     }
   }
 
-  function insertMarkdown(prefix: string, suffix: string = prefix) {
-    const ta = textareaRef.current;
-    if (!ta) return;
-    const start = ta.selectionStart;
-    const end = ta.selectionEnd;
-    const selected = draft.body.slice(start, end);
-    const next = draft.body.slice(0, start) + prefix + selected + suffix + draft.body.slice(end);
-    setDraft((d) => ({ ...d, body: next }));
-    requestAnimationFrame(() => {
-      ta.focus();
-      ta.setSelectionRange(start + prefix.length, end + prefix.length);
-    });
-  }
-
-  const previewHtml = useMemo(() => renderMarkdown(draft.body), [draft.body]);
   const isPublished = insight.status === "published";
-
   const statusLabel: Record<SaveState, string> = {
     idle: dirty ? "Unsaved" : "Up to date",
     saving: "Saving…",
@@ -173,16 +248,12 @@ export function StudioEditor({ initialInsight }: Props) {
           >
             {insight.status}
           </span>
-          <span className="text-xs text-muted">{statusLabel[saveState]}</span>
+          <span className="text-xs text-muted">
+            {statusLabel[saveState]}
+            {uploading ? " · uploading…" : ""}
+          </span>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setShowPreview((s) => !s)}
-            className="min-h-10 rounded-md border border-tint/15 bg-tint/[0.04] px-3 text-xs font-semibold text-ink hover:border-accent/50"
-          >
-            {showPreview ? "Edit" : "Preview"}
-          </button>
           {isPublished ? (
             <Link
               href={`/insights/${insight.slug}`}
@@ -220,40 +291,68 @@ export function StudioEditor({ initialInsight }: Props) {
             className="w-full resize-none rounded-md border border-tint/10 bg-transparent px-3 py-2 text-sm text-muted outline-none focus:border-accent/50"
           />
 
-          {!showPreview ? (
-            <>
-              <div className="flex flex-wrap items-center gap-1 rounded-md border border-tint/10 bg-tint/[0.03] p-1 text-xs font-semibold text-muted">
-                <ToolbarButton onClick={() => insertMarkdown("**")}>B</ToolbarButton>
-                <ToolbarButton onClick={() => insertMarkdown("_")}><em>I</em></ToolbarButton>
-                <ToolbarButton onClick={() => insertMarkdown("`")}>{"<>"}</ToolbarButton>
-                <span className="mx-1 h-5 w-px bg-tint/15" />
-                <ToolbarButton onClick={() => insertMarkdown("\n## ", "")}>H2</ToolbarButton>
-                <ToolbarButton onClick={() => insertMarkdown("\n### ", "")}>H3</ToolbarButton>
-                <ToolbarButton onClick={() => insertMarkdown("\n- ", "")}>List</ToolbarButton>
-                <ToolbarButton onClick={() => insertMarkdown("\n> ", "")}>Quote</ToolbarButton>
-                <ToolbarButton onClick={() => insertMarkdown("\n```\n", "\n```\n")}>Code</ToolbarButton>
-                <ToolbarButton onClick={() => insertMarkdown("[", "](https://)")}>Link</ToolbarButton>
-                <ToolbarButton onClick={() => insertMarkdown("\n![alt](", ")\n")}>Image</ToolbarButton>
-              </div>
+          <div className="flex flex-wrap items-center gap-1 rounded-md border border-tint/10 bg-tint/[0.03] p-1 text-xs font-semibold text-ink">
+            <ToolbarButton onClick={() => exec("bold")} title="Bold (Ctrl+B)">
+              <span className="font-bold">B</span>
+            </ToolbarButton>
+            <ToolbarButton onClick={() => exec("italic")} title="Italic (Ctrl+I)">
+              <em>I</em>
+            </ToolbarButton>
+            <ToolbarButton onClick={() => exec("underline")} title="Underline">
+              <span className="underline">U</span>
+            </ToolbarButton>
+            <span className="mx-1 h-5 w-px bg-tint/15" />
+            <ToolbarButton onClick={() => formatBlock("h2")} title="Heading 2">H2</ToolbarButton>
+            <ToolbarButton onClick={() => formatBlock("h3")} title="Heading 3">H3</ToolbarButton>
+            <ToolbarButton onClick={() => formatBlock("p")} title="Paragraph">¶</ToolbarButton>
+            <span className="mx-1 h-5 w-px bg-tint/15" />
+            <ToolbarButton onClick={() => exec("insertUnorderedList")} title="Bulleted list">• List</ToolbarButton>
+            <ToolbarButton onClick={() => exec("insertOrderedList")} title="Numbered list">1. List</ToolbarButton>
+            <ToolbarButton onClick={() => formatBlock("blockquote")} title="Quote">❝</ToolbarButton>
+            <span className="mx-1 h-5 w-px bg-tint/15" />
+            <ToolbarButton onClick={insertLink} title="Link">🔗 Link</ToolbarButton>
+            <ToolbarButton
+              onClick={() => imageInputRef.current?.click()}
+              title="Upload image"
+              disabled={uploading}
+            >
+              🖼 Image
+            </ToolbarButton>
+            <ToolbarButton
+              onClick={() => videoInputRef.current?.click()}
+              title="Upload video"
+              disabled={uploading}
+            >
+              🎬 Video
+            </ToolbarButton>
+            <span className="mx-1 h-5 w-px bg-tint/15" />
+            <ToolbarButton onClick={() => exec("removeFormat")} title="Clear formatting">Clear</ToolbarButton>
+          </div>
 
-              <textarea
-                ref={textareaRef}
-                value={draft.body}
-                onChange={(e) => setDraft((d) => ({ ...d, body: e.target.value }))}
-                placeholder="Write your insight in markdown… ideas, charts, calls."
-                className="min-h-[60vh] w-full resize-y rounded-md border border-tint/10 bg-transparent px-4 py-4 font-mono text-sm leading-6 text-ink outline-none focus:border-accent/50"
-              />
-            </>
-          ) : (
-            <div className="min-h-[60vh] rounded-md border border-tint/10 bg-tint/[0.02] p-6">
-              <h1 className="text-2xl font-bold text-ink">{draft.title || "Untitled"}</h1>
-              {draft.excerpt ? <p className="mt-2 text-base text-muted">{draft.excerpt}</p> : null}
-              <article
-                className="prose-insight mt-6 text-[15px] leading-7 text-ink"
-                dangerouslySetInnerHTML={{ __html: previewHtml }}
-              />
-            </div>
-          )}
+          <input
+            ref={imageInputRef}
+            type="file"
+            accept="image/*"
+            hidden
+            onChange={handleImagePicked}
+          />
+          <input
+            ref={videoInputRef}
+            type="file"
+            accept="video/*"
+            hidden
+            onChange={handleVideoPicked}
+          />
+
+          <div
+            ref={editorRef}
+            contentEditable
+            suppressContentEditableWarning
+            onInput={readHtmlFromEditor}
+            onBlur={readHtmlFromEditor}
+            data-placeholder="Start writing your insight…"
+            className="insights-editor min-h-[60vh] rounded-md border border-tint/10 bg-transparent px-5 py-5 text-[15px] leading-7 text-ink outline-none focus:border-accent/50"
+          />
         </div>
 
         <aside className="flex h-fit flex-col gap-4 rounded-lg border border-tint/10 bg-tint/[0.03] p-4 text-sm">
@@ -277,14 +376,23 @@ export function StudioEditor({ initialInsight }: Props) {
           </div>
           <div>
             <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-muted">
-              Cover image URL
+              Cover image
             </label>
             <input
               value={draft.cover_image_url}
               onChange={(e) => setDraft((d) => ({ ...d, cover_image_url: e.target.value }))}
-              placeholder="https://…"
+              placeholder="Paste a URL, or use Image button in toolbar"
               className="w-full rounded-md border border-tint/15 bg-tint/[0.04] px-3 py-2 text-sm text-ink"
             />
+            <button
+              type="button"
+              onClick={async () => {
+                imageInputRef.current?.click();
+              }}
+              className="mt-2 text-xs font-semibold text-accent hover:underline"
+            >
+              Upload via toolbar →
+            </button>
             {draft.cover_image_url ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -318,15 +426,22 @@ export function StudioEditor({ initialInsight }: Props) {
 function ToolbarButton({
   children,
   onClick,
+  title,
+  disabled,
 }: {
   children: React.ReactNode;
   onClick: () => void;
+  title?: string;
+  disabled?: boolean;
 }) {
   return (
     <button
       type="button"
+      title={title}
+      disabled={disabled}
+      onMouseDown={(e) => e.preventDefault()} // keep selection
       onClick={onClick}
-      className="rounded px-2 py-1 text-ink hover:bg-tint/[0.08]"
+      className="rounded px-2 py-1 text-xs hover:bg-tint/[0.08] disabled:opacity-40"
     >
       {children}
     </button>

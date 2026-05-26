@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { hasSupabaseConfig } from "@/lib/supabase/config";
 import { INSIGHT_CATEGORIES, type Insight } from "@/lib/insights";
 import { renderMarkdown } from "@/lib/markdown";
+import { looksLikeHtml, sanitizeHtml } from "@/lib/sanitize-html";
 
 export const dynamic = "force-dynamic";
 
@@ -46,7 +47,9 @@ export default async function InsightReader({ params }: { params: Params }) {
     if (!user || user.id !== insight.author_id) notFound();
   }
 
-  const html = renderMarkdown(insight.body);
+  const html = looksLikeHtml(insight.body)
+    ? sanitizeHtml(insight.body)
+    : renderMarkdown(insight.body);
   const categoryLabel =
     INSIGHT_CATEGORIES.find((c) => c.value === insight.category)?.label ?? insight.category;
 
