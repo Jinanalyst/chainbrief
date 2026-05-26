@@ -62,14 +62,18 @@ export async function fetchYouTubeFeeds(): Promise<SnsVideo[]> {
     .slice(0, MAX_VIDEOS);
 }
 
+const YOUTUBE_RSS_USER_AGENT =
+  "Mozilla/5.0 (compatible; ChainBriefBot/1.0; +https://chainbrief.app) AppleWebKit/537.36";
+
 async function fetchYouTubeSource(
   source: SnsSource,
 ): Promise<{ ok: boolean; videos: SnsVideo[] }> {
   try {
     const response = await fetch(source.url, {
       headers: {
-        "User-Agent": "ChainBrief/0.1 SNS RSS Reader",
-        Accept: "application/atom+xml, application/xml, text/xml",
+        "User-Agent": YOUTUBE_RSS_USER_AGENT,
+        Accept: "application/atom+xml, application/xml, text/xml, */*",
+        "Accept-Language": "en-US,en;q=0.9",
       },
       next: {
         revalidate: SNS_REFRESH_SECONDS,
@@ -78,7 +82,10 @@ async function fetchYouTubeSource(
     });
 
     if (!response.ok) {
-      throw new Error(`${source.name} YouTube RSS returned ${response.status}`);
+      console.error(
+        `[sns] ${source.name} (${source.id}) RSS ${response.status} ${response.statusText} url=${source.url}`,
+      );
+      return { ok: false, videos: [] };
     }
 
     const xml = await response.text();
@@ -91,7 +98,10 @@ async function fetchYouTubeSource(
         .filter((video): video is SnsVideo => Boolean(video)),
     };
   } catch (error) {
-    console.error(`Failed to fetch SNS source: ${source.name}`, error);
+    console.error(
+      `[sns] ${source.name} (${source.id}) fetch threw`,
+      error instanceof Error ? `${error.name}: ${error.message}` : error,
+    );
     return { ok: false, videos: [] };
   }
 }

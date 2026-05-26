@@ -78,14 +78,20 @@ async function fetchCustomSource(source: CustomRssSource): Promise<SnsVideo[]> {
 
     const response = await fetch(source.url, {
       headers: {
-        "User-Agent": "ChainBrief/0.1 Custom RSS Reader",
-        Accept: "application/rss+xml, application/atom+xml, application/xml, text/xml",
+        "User-Agent":
+          "Mozilla/5.0 (compatible; ChainBriefBot/1.0; +https://chainbrief.app) AppleWebKit/537.36",
+        Accept:
+          "application/rss+xml, application/atom+xml, application/xml, text/xml, */*",
+        "Accept-Language": "en-US,en;q=0.9",
       },
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
 
     if (!response.ok) {
-      throw new Error(`${source.name} custom RSS returned ${response.status}`);
+      console.error(
+        `[custom-rss] ${source.name} (${source.id}) returned ${response.status} ${response.statusText} url=${source.url}`,
+      );
+      return [];
     }
 
     const xml = await response.text();

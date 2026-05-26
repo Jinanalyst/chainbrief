@@ -1,5 +1,6 @@
 import type { CommunityPost } from "@/lib/community";
 import type { Article } from "@/lib/rss/types";
+import type { SnsVideo } from "@/lib/sns/types";
 
 export type KeywordAlertItem = {
   id: string;
@@ -8,7 +9,7 @@ export type KeywordAlertItem = {
   sourceName: string;
   url: string;
   publishedAt: string;
-  kind: "brief" | "breaking" | "community";
+  kind: "brief" | "breaking" | "community" | "creator";
 };
 
 export function findKeywordMatch(textParts: Array<string | undefined>, keywords: string[]) {
@@ -68,6 +69,31 @@ export function articleToAlertItem(article: Article): KeywordAlertItem {
     url: article.originalUrl || "/briefs",
     publishedAt: article.publishedAt,
     kind: isBreakingArticle(article) ? "breaking" : "brief",
+  };
+}
+
+export function findSnsVideoKeywordMatch(video: SnsVideo, keywords: string[]) {
+  return findKeywordMatch(
+    [
+      video.title,
+      video.description,
+      video.sourceName,
+      video.category,
+      ...video.tags,
+    ],
+    keywords,
+  );
+}
+
+export function snsVideoToAlertItem(video: SnsVideo): KeywordAlertItem {
+  return {
+    id: video.id,
+    title: video.title,
+    body: video.description,
+    sourceName: video.sourceName,
+    url: video.url || "/sns",
+    publishedAt: video.publishedAt,
+    kind: "creator",
   };
 }
 

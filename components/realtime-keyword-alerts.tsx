@@ -10,14 +10,21 @@ import {
   communityPostToAlertItem,
   findArticleKeywordMatch,
   findCommunityKeywordMatch,
+  findSnsVideoKeywordMatch,
+  snsVideoToAlertItem,
   type KeywordAlertItem,
 } from "@/lib/keyword-alerts";
 import type { BriefPreferences } from "@/lib/preferences";
 import type { Article } from "@/lib/rss/types";
+import type { SnsVideo } from "@/lib/sns/types";
 import { usePreferences } from "@/lib/i18n/use-i18n";
 
 type BriefsResponse = {
   articles?: Article[];
+};
+
+type SnsResponse = {
+  videos?: SnsVideo[];
 };
 
 const POLL_INTERVAL_MS = 45 * 1000;
@@ -28,8 +35,10 @@ export function RealtimeKeywordAlerts() {
   const preferencesRef = useRef<BriefPreferences>(preferences);
   const seenBriefIds = useRef<Set<string>>(new Set());
   const seenCommunityIds = useRef<Set<string>>(new Set());
+  const seenSnsIds = useRef<Set<string>>(new Set());
   const initializedBriefs = useRef(false);
   const initializedCommunity = useRef(false);
+  const initializedSns = useRef(false);
   const [activeAlert, setActiveAlert] = useState<{
     item: KeywordAlertItem;
     keyword: string;
@@ -117,6 +126,54 @@ export function RealtimeKeywordAlerts() {
   }, [showAlert]);
 
   useEffect(() => {
+    let ignore = false;
+
+    async function checkSnsVideos() {
+      const prefs = preferencesRef.current;
+      if (!prefs.notificationsEnabled || prefs.notificationKeywords.length === 0) return;
+
+      try {
+        const response = await fetch(`/api/sns?alerts=1&ts=${Date.now()}`, {
+          cache: "no-store",
+        });
+        if (!response.ok) return;
+
+        const data = (await response.json()) as SnsResponse;
+        const videos = data.videos ?? [];
+
+        if (!initializedSns.current) {
+          rememberIds(seenSnsIds.current, videos.map((video) => video.id));
+          initializedSns.current = true;
+          return;
+        }
+
+        for (const video of videos) {
+          if (ignore || seenSnsIds.current.has(video.id)) continue;
+          seenSnsIds.current.add(video.id);
+
+          const keyword = findSnsVideoKeywordMatch(video, prefs.notificationKeywords);
+          if (keyword) {
+            showAlert(snsVideoToAlertItem(video), keyword, prefs);
+            break;
+          }
+        }
+
+        trimSeenIds(seenSnsIds.current);
+      } catch {
+        // Alert polling should never interrupt the app.
+      }
+    }
+
+    void checkSnsVideos();
+    const timer = window.setInterval(checkSnsVideos, POLL_INTERVAL_MS);
+
+    return () => {
+      ignore = true;
+      window.clearInterval(timer);
+    };
+  }, [showAlert]);
+
+  useEffect(() => {
     function checkCommunityPosts() {
       const prefs = preferencesRef.current;
       const posts = readCommunityPosts();
@@ -168,9 +225,13 @@ export function RealtimeKeywordAlerts() {
         ? preferences.language === "ko"
           ? "속보"
           : "Breaking"
-        : preferences.language === "ko"
-          ? "뉴스 브리프"
-          : "News Brief";
+        : item.kind === "creator"
+          ? preferences.language === "ko"
+            ? "크리에이터"
+            : "Creator"
+          : preferences.language === "ko"
+            ? "뉴스 브리프"
+            : "News Brief";
 
   return (
     <button

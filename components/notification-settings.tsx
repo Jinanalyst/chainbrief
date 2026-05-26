@@ -26,7 +26,7 @@ const copy = {
   ko: {
     title: "브라우저 알림",
     description:
-      "뉴스 브리프, 속보, 커뮤니티 글의 제목과 내용에서 키워드가 감지되면 Chrome 푸시 알림과 앱 팝업으로 알려드립니다.",
+      "뉴스 브리프, 속보, 커뮤니티 글, 크리에이터 피드(SNS/RSS)의 제목과 내용에서 키워드가 감지되면 Chrome 푸시 알림과 앱 팝업으로 알려드립니다.",
     enabledState: "상태",
     enabled: "활성화",
     disabled: "비활성화",
@@ -62,7 +62,7 @@ const copy = {
   en: {
     title: "Browser Notifications",
     description:
-      "Get Chrome push notifications and in-app popups when keywords appear in news briefs, breaking items, and community posts.",
+      "Get Chrome push notifications and in-app popups when keywords appear in news briefs, breaking items, community posts, and the creators feed (SNS/RSS).",
     enabledState: "State",
     enabled: "Enabled",
     disabled: "Disabled",
