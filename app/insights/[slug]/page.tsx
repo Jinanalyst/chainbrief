@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { Header } from "@/components/header";
 import { Container } from "@/components/ui/container";
 import { InsightReaderHeader } from "@/components/insights/insight-reader-header";
@@ -15,6 +15,10 @@ const SITE_URL = "https://chainbrief.kr";
 
 type Params = Promise<{ slug: string }>;
 
+function normalizeSlug(value: string): string {
+  return value.toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
+}
+
 async function loadInsight(slug: string): Promise<Insight | null> {
   if (!hasSupabaseConfig) return null;
   try {
@@ -24,7 +28,17 @@ async function loadInsight(slug: string): Promise<Insight | null> {
       .select("*")
       .eq("slug", slug)
       .maybeSingle();
-    return (data as Insight | null) ?? null;
+    if (data) return data as Insight;
+
+    const target = normalizeSlug(slug);
+    if (!target) return null;
+    const { data: all } = await supabase
+      .from("cb_insights")
+      .select("*");
+    const match = ((all ?? []) as Insight[]).find(
+      (row) => normalizeSlug(row.slug) === target,
+    );
+    return match ?? null;
   } catch {
     return null;
   }
@@ -83,15 +97,13 @@ export default async function InsightReader({ params }: { params: Params }) {
   const { slug } = await params;
   if (!hasSupabaseConfig) notFound();
 
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("cb_insights")
-    .select("*")
-    .eq("slug", slug)
-    .maybeSingle();
-
-  const insight = data as Insight | null;
+  const insight = await loadInsight(slug);
   if (!insight) notFound();
+  if (insight.slug !== slug) {
+    redirect(`/insights/${encodeURIComponent(insight.slug)}`);
+  }
+
+  const supabase = await createClient();
 
   if (insight.status !== "published") {
     const {
