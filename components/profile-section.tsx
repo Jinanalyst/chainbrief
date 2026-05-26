@@ -10,22 +10,19 @@ import { hasSupabaseConfig } from "@/lib/supabase/config";
 import { readCommunityPosts, readAuthorName, COMMUNITY_POSTS_CHANGED_EVENT, type CommunityPost } from "@/lib/community";
 import { looksLikeHtml, sanitizeHtml } from "@/lib/sanitize-html";
 import { cn } from "@/lib/cn";
+import {
+  ANALYSIS_STYLES,
+  DEFAULT_SOCIAL_LINKS,
+  EXPERIENCE_LEVELS,
+  MARKET_INTERESTS,
+  PREFERRED_POST_TYPES,
+  PROFILE_ROLES as ROLES_TUPLE,
+  readProfile as readSharedProfile,
+  type ChainBriefProfile,
+  type ChainBriefSocialLinks,
+} from "@/lib/chainbrief-profile";
 
-type ChainBriefProfile = {
-  displayName: string;
-  role: string;
-  interests: string[];
-  bio: string;
-  socialLinks: ChainBriefSocialLinks;
-  updatedAt?: string;
-};
-
-type ChainBriefSocialLinks = {
-  x: string;
-  telegram: string;
-  discord: string;
-  website: string;
-};
+const PROFILE_ROLES = [...ROLES_TUPLE];
 
 type AnalystScores = {
   evidence: number;
@@ -35,20 +32,6 @@ type AnalystScores = {
   credibility: number;
 };
 
-const PROFILE_ROLES = [
-  "Crypto researcher",
-  "Investor",
-  "Builder",
-  "Community member",
-  "Analyst",
-];
-
-const DEFAULT_SOCIAL_LINKS: ChainBriefSocialLinks = {
-  x: "",
-  telegram: "",
-  discord: "",
-  website: "",
-};
 
 const ZERO_SCORES: AnalystScores = {
   evidence: 0,
@@ -182,10 +165,16 @@ export function ProfileSection() {
   const supabase = useMemo(() => (hasSupabaseConfig ? createClient() : null), []);
   const [user, setUser] = useState<User | null>(null);
   const [displayName, setDisplayName] = useState("");
-  const [role, setRole] = useState(PROFILE_ROLES[0]);
+  const [role, setRole] = useState<string>(PROFILE_ROLES[0]);
   const [interests, setInterests] = useState("");
   const [bio, setBio] = useState("");
   const [socialLinks, setSocialLinks] = useState<ChainBriefSocialLinks>(DEFAULT_SOCIAL_LINKS);
+  const [marketInterests, setMarketInterests] = useState<string[]>([]);
+  const [analysisStyle, setAnalysisStyle] = useState<string>("");
+  const [experienceLevel, setExperienceLevel] = useState<string>("");
+  const [preferredPostTypes, setPreferredPostTypes] = useState<string[]>([]);
+  const [analystBio, setAnalystBio] = useState("");
+  const [onboardedAt, setOnboardedAt] = useState<string | undefined>(undefined);
   const [expertise, setExpertise] = useState("");
   const [sampleContent, setSampleContent] = useState("");
   const [markets, setMarkets] = useState("");
@@ -217,6 +206,12 @@ export function ProfileSection() {
     setInterests(profile?.interests?.join(", ") ?? "");
     setBio(profile?.bio ?? "");
     setSocialLinks(profile?.socialLinks ?? DEFAULT_SOCIAL_LINKS);
+    setMarketInterests(profile?.marketInterests ?? []);
+    setAnalysisStyle(profile?.analysisStyle ?? "");
+    setExperienceLevel(profile?.experienceLevel ?? "");
+    setPreferredPostTypes(profile?.preferredPostTypes ?? []);
+    setAnalystBio(profile?.analystBio ?? "");
+    setOnboardedAt(profile?.onboardedAt);
 
     // Build all author identifiers that could belong to this user
     // (display name + localStorage saved name + email + legacy "You" default)
@@ -280,6 +275,12 @@ export function ProfileSection() {
         discord: socialLinks.discord.trim(),
         website: socialLinks.website.trim(),
       },
+      marketInterests,
+      analysisStyle,
+      experienceLevel,
+      preferredPostTypes,
+      analystBio: analystBio.trim(),
+      onboardedAt,
       updatedAt: new Date().toISOString(),
     };
 
@@ -482,6 +483,60 @@ export function ProfileSection() {
                 placeholder="Share what you follow in crypto and how you use Chain Brief."
                 value={bio}
               />
+            </label>
+          </FormSection>
+
+          <FormSection title="Analyst Profile" defaultOpen={true}>
+            <div>
+              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Market interests</span>
+              <ChipGroup
+                options={MARKET_INTERESTS as readonly string[]}
+                selected={marketInterests}
+                onToggle={(v) =>
+                  setMarketInterests((prev) => (prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v]))
+                }
+              />
+            </div>
+
+            <div>
+              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Analysis style</span>
+              <ChipGroup
+                options={ANALYSIS_STYLES as readonly string[]}
+                selected={analysisStyle ? [analysisStyle] : []}
+                onToggle={(v) => setAnalysisStyle((cur) => (cur === v ? "" : v))}
+              />
+            </div>
+
+            <div>
+              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Experience level</span>
+              <ChipGroup
+                options={EXPERIENCE_LEVELS as readonly string[]}
+                selected={experienceLevel ? [experienceLevel] : []}
+                onToggle={(v) => setExperienceLevel((cur) => (cur === v ? "" : v))}
+              />
+            </div>
+
+            <div>
+              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Preferred post types</span>
+              <ChipGroup
+                options={PREFERRED_POST_TYPES as readonly string[]}
+                selected={preferredPostTypes}
+                onToggle={(v) =>
+                  setPreferredPostTypes((prev) => (prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v]))
+                }
+              />
+            </div>
+
+            <label className="block">
+              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Public analyst bio</span>
+              <textarea
+                className="mt-2 min-h-24 w-full rounded-md border border-tint/10 bg-background px-4 py-3 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
+                maxLength={280}
+                onChange={(e) => setAnalystBio(e.target.value)}
+                placeholder="A short bio shown under your name on every post."
+                value={analystBio}
+              />
+              <span className="mt-1 block text-[10px] text-muted-2">{280 - analystBio.length} characters left</span>
             </label>
           </FormSection>
 
@@ -866,19 +921,7 @@ function SocialPreviewRow({ label, value }: { label: string; value: string }) {
 // ─── Utilities ────────────────────────────────────────────────────────────────
 
 function readProfile(user: User | null): ChainBriefProfile | null {
-  const value = user?.user_metadata?.chainBriefProfile;
-  if (!value || typeof value !== "object") return null;
-  const profile = value as Partial<ChainBriefProfile>;
-  return {
-    displayName: typeof profile.displayName === "string" ? profile.displayName : "",
-    role: typeof profile.role === "string" ? profile.role : PROFILE_ROLES[0],
-    interests: Array.isArray(profile.interests)
-      ? profile.interests.filter((item): item is string => typeof item === "string")
-      : [],
-    bio: typeof profile.bio === "string" ? profile.bio : "",
-    socialLinks: sanitizeSocialLinks(profile.socialLinks),
-    updatedAt: typeof profile.updatedAt === "string" ? profile.updatedAt : undefined,
-  };
+  return readSharedProfile(user?.user_metadata as Record<string, unknown> | undefined);
 }
 
 function parseInterests(value: string) {
@@ -895,21 +938,45 @@ function getInitials(value: string) {
   );
 }
 
-function sanitizeSocialLinks(value: unknown): ChainBriefSocialLinks {
-  if (!value || typeof value !== "object") return DEFAULT_SOCIAL_LINKS;
-  const links = value as Partial<ChainBriefSocialLinks>;
-  return {
-    x:        typeof links.x        === "string" ? links.x        : "",
-    telegram: typeof links.telegram === "string" ? links.telegram : "",
-    discord:  typeof links.discord  === "string" ? links.discord  : "",
-    website:  typeof links.website  === "string" ? links.website  : "",
-  };
-}
-
 function hasAnySocialLink(links: ChainBriefSocialLinks) {
   return Boolean(links.x.trim() || links.telegram.trim() || links.discord.trim() || links.website.trim());
 }
 
 function normalizeLink(value: string) {
   return /^https?:\/\//i.test(value) ? value : `https://${value}`;
+}
+
+function ChipGroup({
+  options,
+  selected,
+  onToggle,
+}: {
+  options: readonly string[];
+  selected: string[];
+  onToggle: (value: string) => void;
+}) {
+  return (
+    <div className="mt-2 flex flex-wrap gap-2">
+      {options.map((opt) => {
+        const active = selected.includes(opt);
+        return (
+          <button
+            key={opt}
+            type="button"
+            onClick={() => onToggle(opt)}
+            className={cn(
+              "min-h-9 rounded-full border px-3.5 text-xs font-semibold transition",
+              "focus:outline-none focus:ring-2 focus:ring-accent/40",
+              active
+                ? "border-accent bg-accent/15 text-accent-ink"
+                : "border-tint/12 bg-tint/[0.04] text-muted hover:border-accent/40 hover:bg-tint/[0.08] hover:text-ink",
+            )}
+          >
+            {active ? <span className="mr-1 text-accent">✓</span> : null}
+            {opt}
+          </button>
+        );
+      })}
+    </div>
+  );
 }

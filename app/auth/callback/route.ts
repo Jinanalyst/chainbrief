@@ -61,6 +61,16 @@ export async function GET(request: NextRequest) {
       } else if (!existing.avatar_url && avatarUrl) {
         await supabase.from("profiles").update({ avatar_url: avatarUrl }).eq("id", user.id);
       }
+
+      // Route users who haven't completed analyst-profile onboarding into the
+      // wizard. Honor an explicit ?next= only when onboarding is already done.
+      const profile = meta.chainBriefProfile as Record<string, unknown> | undefined;
+      const onboarded = Boolean(
+        profile && typeof profile === "object" && typeof profile.onboardedAt === "string",
+      );
+      if (!onboarded) {
+        redirectTo.pathname = "/onboarding";
+      }
     }
   }
 
