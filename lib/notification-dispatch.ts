@@ -15,7 +15,6 @@ export async function dispatchNotificationsForLatestBriefs() {
 
   const supabase = createAdminClient();
   const articles = await fetchFeeds();
-  const latestArticles = articles.slice(0, 25);
 
   const { data: subscriptions, error: subscriptionsError } = await supabase
     .from("notification_subscriptions")
@@ -29,40 +28,56 @@ export async function dispatchNotificationsForLatestBriefs() {
 
   let sent = 0;
   let skipped = 0;
+  let expired = 0;
 
   for (const subscription of (subscriptions ?? []) as PushSubscriptionRecord[]) {
-    const article = latestArticles.find((item) =>
-      findArticleNotificationKeyword(item, subscription.keywords),
-    );
-
-    if (!article) {
+    if (!subscription.keywords?.length) {
       skipped += 1;
       continue;
     }
 
-    const alreadySent = await wasArticleDelivered(supabase, subscription.id, article.id);
-    if (alreadySent) {
+    const matches: Array<{ article: Article; keyword: string }> = [];
+    for (const article of articles) {
+      const keyword = findArticleNotificationKeyword(article, subscription.keywords);
+      if (keyword) {
+        matches.push({ article, keyword });
+      }
+    }
+
+    if (!matches.length) {
       skipped += 1;
       continue;
     }
 
-    try {
-      const matchedKeyword = findArticleNotificationKeyword(article, subscription.keywords);
-      await sendArticlePushNotification(subscription, article, subscription.language, matchedKeyword);
-      await recordDelivery(supabase, subscription.id, article);
-      sent += 1;
-    } catch (error) {
-      if (isExpiredSubscriptionError(error)) {
-        await supabase.from("notification_subscriptions").delete().eq("id", subscription.id);
+    let subscriptionExpired = false;
+
+    for (const { article, keyword } of matches) {
+      if (subscriptionExpired) break;
+
+      const alreadySent = await wasArticleDelivered(supabase, subscription.id, article.id);
+      if (alreadySent) {
         skipped += 1;
         continue;
       }
 
-      throw error;
+      try {
+        await sendArticlePushNotification(subscription, article, subscription.language, keyword);
+        await recordDelivery(supabase, subscription.id, article);
+        sent += 1;
+      } catch (error) {
+        if (isExpiredSubscriptionError(error)) {
+          await supabase.from("notification_subscriptions").delete().eq("id", subscription.id);
+          subscriptionExpired = true;
+          expired += 1;
+          break;
+        }
+
+        throw error;
+      }
     }
   }
 
-  return { sent, skipped, reason: "ok" as const };
+  return { sent, skipped, expired, reason: "ok" as const };
 }
 
 async function wasArticleDelivered(
