@@ -521,9 +521,15 @@ function FinalCtaSection({ copy }: { copy: LandingCopy }) {
 function LandingFooter({ copy }: { copy: LandingCopy }) {
   return (
     <footer className="border-t border-tint/10 bg-background/92">
-      <Container className="flex min-w-0 flex-col gap-4 py-8 sm:flex-row sm:items-center sm:justify-between">
-        <BrandLogo compact className="max-w-full" />
-        <p className="max-w-xl text-sm leading-6 text-muted">{copy.footer}</p>
+      <Container className="flex min-w-0 flex-col gap-6 py-8">
+        <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <BrandLogo compact className="max-w-full" />
+          <p className="max-w-xl text-sm leading-6 text-muted">{copy.footer}</p>
+        </div>
+        <div className="flex flex-col gap-1 border-t border-tint/10 pt-4 text-xs leading-5 text-muted/80">
+          <p>체인 랩스 (Chain Labs) · 대표 장진우 · 사업자등록번호 382-25-02223</p>
+          <p>경기도 성남시 중원구 여수울로 50, 406동 403호</p>
+        </div>
       </Container>
     </footer>
   );
