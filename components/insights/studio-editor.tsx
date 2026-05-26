@@ -70,6 +70,8 @@ export function StudioEditor({ initialInsight }: Props) {
   const editorRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
+  const [slugInput, setSlugInput] = useState(initialInsight.slug);
 
   const dirty = useMemo(
     () => JSON.stringify(draft) !== lastSavedSerialised.current,
@@ -198,14 +200,25 @@ export function StudioEditor({ initialInsight }: Props) {
   }
 
   async function handleImagePicked(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = "";
+    if (files.length === 0) return;
+    for (const file of files) {
+      const result = await uploadFile(file);
+      if (!result) continue;
+      insertHtmlAtCaret(
+        `<p><img src="${result.url}" alt="" draggable="true" style="max-width:100%;border-radius:8px;cursor:grab" loading="lazy" /></p><p><br/></p>`,
+      );
+    }
+  }
+
+  async function handleCoverPicked(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
     const result = await uploadFile(file);
     if (!result) return;
-    insertHtmlAtCaret(
-      `<p><img src="${result.url}" alt="" style="max-width:100%;border-radius:8px" loading="lazy" /></p><p><br/></p>`,
-    );
+    setDraft((d) => ({ ...d, cover_image_url: result.url }));
   }
 
   async function handleVideoPicked(e: React.ChangeEvent<HTMLInputElement>) {
@@ -351,8 +364,16 @@ export function StudioEditor({ initialInsight }: Props) {
             ref={imageInputRef}
             type="file"
             accept="image/*"
+            multiple
             hidden
             onChange={handleImagePicked}
+          />
+          <input
+            ref={coverInputRef}
+            type="file"
+            accept="image/*"
+            hidden
+            onChange={handleCoverPicked}
           />
           <input
             ref={videoInputRef}
@@ -404,10 +425,9 @@ export function StudioEditor({ initialInsight }: Props) {
             />
             <button
               type="button"
-              onClick={async () => {
-                imageInputRef.current?.click();
-              }}
+              onClick={() => coverInputRef.current?.click()}
               className="mt-2 text-xs font-semibold text-accent hover:underline"
+              disabled={uploading}
             >
               {sb.uploadHint}
             </button>
@@ -424,8 +444,35 @@ export function StudioEditor({ initialInsight }: Props) {
             <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-muted">
               {sb.slug}
             </label>
-            <div className="break-all rounded-md border border-tint/10 bg-tint/[0.02] px-3 py-2 text-xs text-muted">
-              /insights/{insight.slug}
+            <div className="flex items-center gap-1 rounded-md border border-tint/10 bg-tint/[0.02] px-2 py-1 text-xs text-muted">
+              <span className="shrink-0">/insights/</span>
+              <input
+                value={slugInput}
+                onChange={(ev) => setSlugInput(ev.target.value)}
+                onBlur={async () => {
+                  const next = slugInput.trim();
+                  if (!next || next === insight.slug) {
+                    setSlugInput(insight.slug);
+                    return;
+                  }
+                  const res = await fetch(`/api/insights/${insight.id}`, {
+                    method: "PATCH",
+                    headers: { "content-type": "application/json" },
+                    body: JSON.stringify({ slug: next }),
+                  });
+                  const json = await res.json().catch(() => ({}));
+                  if (!res.ok) {
+                    setError(json.error ?? "could not save");
+                    setSlugInput(insight.slug);
+                    return;
+                  }
+                  const updated = json.insight as Insight;
+                  setInsight(updated);
+                  setSlugInput(updated.slug);
+                }}
+                className="w-full min-w-0 bg-transparent text-xs text-ink outline-none"
+                spellCheck={false}
+              />
             </div>
           </div>
           <button
