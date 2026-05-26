@@ -335,7 +335,7 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
   return (
     <section className="border-t border-tint/10 bg-background/72">
       <Container className="min-w-0 pb-10 pt-4 sm:pb-12 sm:pt-5 lg:pb-16">
-        <div className="mb-5 grid min-w-0 gap-4 border-b border-tint/10 pb-5 sm:mb-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-end">
+        <div className="mb-5 grid min-w-0 gap-4 border-b border-tint/10 pb-5 sm:mb-6">
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">
               {showIntro ? copy.feed.briefsLabel : copy.feed.homeLabel}
@@ -352,7 +352,6 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
                 : copy.feed.lastUpdated(formatLastUpdated(lastUpdatedAt, language))}
             </p>
           </div>
-          <MarketLinkCard language={preferences.language} />
         </div>
 
         <LiveIssueBar
@@ -1183,24 +1182,6 @@ function TranslateButton({
       ) : null}
       <span>{label}</span>
     </button>
-  );
-}
-
-function MarketLinkCard({ language }: { language: BriefPreferences["language"] }) {
-  return (
-    <Card className="min-w-0 p-4">
-      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
-        {language === "ko" ? "시장 데이터" : "Market Data"}
-      </p>
-      <p className="mt-1 text-xs text-muted-2">
-        {language === "ko"
-          ? "Binance 실시간 크립토 히트맵"
-          : "Binance-powered live crypto heatmap"}
-      </p>
-      <Button className="mt-4 w-full" href="/market" variant="secondary">
-        {language === "ko" ? "히트맵 보기 →" : "View Heatmap →"}
-      </Button>
-    </Card>
   );
 }
 
