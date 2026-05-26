@@ -34,6 +34,7 @@ export const dictionaries = {
     nav: {
       home: "홈",
       briefs: "브리프",
+      insights: "인사이트",
       community: "커뮤니티",
       market: "마켓",
       analyst: "애널리스트",
@@ -300,6 +301,7 @@ export const dictionaries = {
     nav: {
       home: "Home",
       briefs: "Briefs",
+      insights: "Insights",
       community: "Community",
       market: "Market",
       analyst: "Analyst",
