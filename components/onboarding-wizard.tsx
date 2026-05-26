@@ -290,18 +290,6 @@ export function OnboardingWizard() {
         )}
       </div>
 
-      <style jsx global>{`
-        @keyframes onb {
-          from {
-            opacity: 0;
-            transform: translateX(var(--onb-x, 24px));
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
-        }
-      `}</style>
     </div>
   );
 }
