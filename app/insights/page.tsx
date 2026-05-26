@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { hasSupabaseConfig } from "@/lib/supabase/config";
 import {
   INSIGHT_CATEGORIES,
+  isInsightAuthor,
   isInsightCategory,
   type Insight,
   type InsightCategory,
@@ -47,6 +48,15 @@ export default async function InsightsPage({ searchParams }: { searchParams: Sea
     : null;
   const insights = await loadInsights(selected);
 
+  let canAuthor = false;
+  if (hasSupabaseConfig) {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    canAuthor = isInsightAuthor(user?.email);
+  }
+
   const tabs: { value: InsightCategory | "all"; label: string; href: string }[] = [
     { value: "all", label: "All", href: "/insights" },
     ...INSIGHT_CATEGORIES.map((c) => ({
@@ -61,15 +71,25 @@ export default async function InsightsPage({ searchParams }: { searchParams: Sea
     <main className="site-grid min-h-screen">
       <Header />
       <Container className="py-10">
-        <div className="mb-8 flex flex-col gap-3">
-          <p className="text-xs font-semibold uppercase tracking-widest text-accent">Insights</p>
-          <h1 className="text-3xl font-bold text-ink sm:text-4xl">
-            Notes from the desk
-          </h1>
-          <p className="max-w-2xl text-sm text-muted">
-            Personal commentary on the macro environment, crypto markets, equities, and the
-            mental models behind them. Filter by category to find what matters to you.
-          </p>
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex flex-col gap-3">
+            <p className="text-xs font-semibold uppercase tracking-widest text-accent">Insights</p>
+            <h1 className="text-3xl font-bold text-ink sm:text-4xl">
+              Notes from the desk
+            </h1>
+            <p className="max-w-2xl text-sm text-muted">
+              Personal commentary on the macro environment, crypto markets, equities, and the
+              mental models behind them. Filter by category to find what matters to you.
+            </p>
+          </div>
+          {canAuthor ? (
+            <Link
+              href="/insights/studio"
+              className="shrink-0 self-start rounded-md border border-accent bg-accent px-4 py-2 text-sm font-semibold text-white shadow-[0_14px_35px_rgba(47,123,255,0.28)] hover:bg-blue-500 sm:self-end"
+            >
+              Writing studio →
+            </Link>
+          ) : null}
         </div>
 
         <div className="mb-6 flex flex-wrap gap-2">
