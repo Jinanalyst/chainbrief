@@ -173,9 +173,18 @@ const FONT_OPTIONS: { label: string; value: string }[] = [
   { label: "Serif", value: 'Georgia, "Times New Roman", serif' },
   { label: "Mono", value: '"Courier New", monospace' },
   { label: "Inter", value: 'Inter, system-ui, sans-serif' },
+  { label: "Roboto", value: 'Roboto, system-ui, sans-serif' },
+  { label: "Open Sans", value: '"Open Sans", system-ui, sans-serif' },
+  { label: "Source Sans 3", value: '"Source Sans 3", system-ui, sans-serif' },
+  { label: "Noto Sans KR", value: '"Noto Sans KR", system-ui, sans-serif' },
   { label: "Lora", value: 'Lora, Georgia, serif' },
   { label: "Merriweather", value: 'Merriweather, Georgia, serif' },
+  { label: "Playfair Display", value: '"Playfair Display", Georgia, serif' },
+  { label: "EB Garamond", value: '"EB Garamond", Georgia, serif' },
+  { label: "Noto Serif KR", value: '"Noto Serif KR", Georgia, serif' },
   { label: "JetBrains Mono", value: '"JetBrains Mono", "Courier New", monospace' },
+  { label: "IBM Plex Mono", value: '"IBM Plex Mono", "Courier New", monospace' },
+  { label: "Fira Code", value: '"Fira Code", "Courier New", monospace' },
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
