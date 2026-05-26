@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { Header } from "@/components/header";
 import { Container } from "@/components/ui/container";
 import { InsightsListing } from "@/components/insights/insights-listing";
@@ -11,6 +12,20 @@ import {
 } from "@/lib/insights";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Insights — Long-Form Market Research",
+  description:
+    "Long-form analyst insights on crypto, stocks, and macro. Deep-dive research, frameworks, and chart notes from Chain Brief analysts.",
+  alternates: { canonical: "/insights" },
+  openGraph: {
+    title: "Chain Brief Insights",
+    description:
+      "Long-form analyst insights on crypto, stocks, and macro from Chain Brief.",
+    url: "/insights",
+    type: "website",
+  },
+};
 
 type SearchParams = Promise<{ category?: string }>;
 
