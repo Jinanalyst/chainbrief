@@ -19,6 +19,19 @@ type Props = {
 
 type SaveState = "idle" | "saving" | "saved" | "error";
 
+// Open-source / no-copyright fonts. System families are royalty-free; the
+// named web fonts are SIL Open Font License and loaded in app/layout.tsx.
+const FONT_OPTIONS: { label: string; value: string }[] = [
+  { label: "Default", value: "" },
+  { label: "Sans (System)", value: 'system-ui, -apple-system, "Segoe UI", Arial, sans-serif' },
+  { label: "Serif", value: 'Georgia, "Times New Roman", serif' },
+  { label: "Mono", value: '"Courier New", monospace' },
+  { label: "Inter", value: 'Inter, system-ui, sans-serif' },
+  { label: "Lora", value: 'Lora, Georgia, serif' },
+  { label: "Merriweather", value: 'Merriweather, Georgia, serif' },
+  { label: "JetBrains Mono", value: '"JetBrains Mono", "Courier New", monospace' },
+];
+
 type Draft = {
   title: string;
   excerpt: string;
@@ -162,6 +175,17 @@ export function StudioEditor({ initialInsight }: Props) {
     // document.execCommand is deprecated but remains the simplest cross-browser
     // way to drive contentEditable formatting; libraries replicate this.
     document.execCommand(command, false, value);
+    readHtmlFromEditor();
+  }
+
+  function applyFont(family: string) {
+    if (!family) {
+      exec("removeFormat");
+      return;
+    }
+    editorRef.current?.focus();
+    document.execCommand("styleWithCSS", false, "true");
+    document.execCommand("fontName", false, family);
     readHtmlFromEditor();
   }
 
@@ -336,6 +360,23 @@ export function StudioEditor({ initialInsight }: Props) {
             <ToolbarButton onClick={() => formatBlock("h2")} title={tb.h2}>H2</ToolbarButton>
             <ToolbarButton onClick={() => formatBlock("h3")} title={tb.h3}>H3</ToolbarButton>
             <ToolbarButton onClick={() => formatBlock("p")} title={tb.paragraph}>¶</ToolbarButton>
+            <span className="mx-1 h-5 w-px bg-tint/15" />
+            <select
+              aria-label="Font family"
+              title="Font family"
+              onMouseDown={(ev) => ev.preventDefault()}
+              onChange={(ev) => {
+                applyFont(ev.target.value);
+                ev.target.selectedIndex = 0;
+              }}
+              className="rounded border border-transparent bg-transparent px-1.5 py-1 text-xs font-semibold text-ink outline-none hover:bg-tint/[0.08] focus:border-accent/40"
+            >
+              {FONT_OPTIONS.map((f) => (
+                <option key={f.label} value={f.value} style={{ fontFamily: f.value || undefined }}>
+                  {f.label}
+                </option>
+              ))}
+            </select>
             <span className="mx-1 h-5 w-px bg-tint/15" />
             <ToolbarButton onClick={() => exec("insertUnorderedList")} title={tb.bulleted}>{tb.listBulleted}</ToolbarButton>
             <ToolbarButton onClick={() => exec("insertOrderedList")} title={tb.numbered}>{tb.listNumbered}</ToolbarButton>

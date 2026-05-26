@@ -164,6 +164,20 @@ const TOPICS = [
 const IMAGE_LIMIT_BYTES = 8 * 1024 * 1024;
 const VIDEO_LIMIT_BYTES = 24 * 1024 * 1024;
 
+// All open-source / no-copyright fonts. System families are royalty-free by
+// definition; the named web fonts (Inter, Lora, Merriweather, JetBrains Mono)
+// are SIL Open Font License and loaded in app/layout.tsx.
+const FONT_OPTIONS: { label: string; value: string }[] = [
+  { label: "Default", value: "" },
+  { label: "Sans (System)", value: 'system-ui, -apple-system, "Segoe UI", Arial, sans-serif' },
+  { label: "Serif", value: 'Georgia, "Times New Roman", serif' },
+  { label: "Mono", value: '"Courier New", monospace' },
+  { label: "Inter", value: 'Inter, system-ui, sans-serif' },
+  { label: "Lora", value: 'Lora, Georgia, serif' },
+  { label: "Merriweather", value: 'Merriweather, Georgia, serif' },
+  { label: "JetBrains Mono", value: '"JetBrains Mono", "Courier New", monospace' },
+];
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function getSelectedArticleSlug() {
@@ -354,6 +368,18 @@ export function CommunityWriteStudio({
   function exec(command: string, value?: string) {
     editorRef.current?.focus();
     document.execCommand(command, false, value);
+    readHtmlFromEditor();
+  }
+
+  function applyFont(family: string) {
+    if (!family) {
+      exec("removeFormat");
+      return;
+    }
+    editorRef.current?.focus();
+    // Emit <span style="font-family:..."> instead of legacy <font face=...>.
+    document.execCommand("styleWithCSS", false, "true");
+    document.execCommand("fontName", false, family);
     readHtmlFromEditor();
   }
 
@@ -640,6 +666,23 @@ export function CommunityWriteStudio({
                       <ToolbarButton onClick={() => formatBlock("h2")} title="Heading 2">H2</ToolbarButton>
                       <ToolbarButton onClick={() => formatBlock("h3")} title="Heading 3">H3</ToolbarButton>
                       <ToolbarButton onClick={() => formatBlock("p")} title="Paragraph">¶</ToolbarButton>
+                      <span className="mx-1 h-5 w-px bg-tint/15" />
+                      <select
+                        aria-label="Font family"
+                        title="Font family"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onChange={(e) => {
+                          applyFont(e.target.value);
+                          e.target.selectedIndex = 0;
+                        }}
+                        className="rounded border border-transparent bg-transparent px-1.5 py-1 text-xs font-semibold text-ink outline-none hover:bg-tint/[0.08] focus:border-accent/40"
+                      >
+                        {FONT_OPTIONS.map((f) => (
+                          <option key={f.label} value={f.value} style={{ fontFamily: f.value || undefined }}>
+                            {f.label}
+                          </option>
+                        ))}
+                      </select>
                       <span className="mx-1 h-5 w-px bg-tint/15" />
                       <ToolbarButton onClick={() => exec("insertUnorderedList")} title="Bulleted list">• List</ToolbarButton>
                       <ToolbarButton onClick={() => exec("insertOrderedList")} title="Numbered list">1. List</ToolbarButton>
