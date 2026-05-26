@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
+import { OnboardingBanner } from "@/components/onboarding-banner";
 import { RealtimeKeywordAlerts } from "@/components/realtime-keyword-alerts";
 import { THEME_INIT_SCRIPT } from "@/components/theme-toggle";
 import "./globals.css";
@@ -168,6 +169,7 @@ export default function RootLayout({
         ) : null}
       </head>
       <body className="font-sans antialiased">
+        <OnboardingBanner />
         {children}
         <RealtimeKeywordAlerts />
       </body>
