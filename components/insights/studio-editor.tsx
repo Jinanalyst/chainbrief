@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useI18n, usePreferences } from "@/lib/i18n/use-i18n";
 import {
   INSIGHT_CATEGORIES,
   type Insight,
@@ -42,6 +43,22 @@ function toDraft(insight: Insight): Draft {
 
 export function StudioEditor({ initialInsight }: Props) {
   const router = useRouter();
+  const [preferences] = usePreferences();
+  const { t } = useI18n(preferences.language);
+  const i = t.insights;
+  const e = i.editor;
+  const tb = e.toolbar;
+  const sb = e.sidebar;
+
+  const categoryLabel = (value: InsightCategory): string => {
+    switch (value) {
+      case "education": return i.categoryEducation;
+      case "crypto": return i.categoryCrypto;
+      case "stocks": return i.categoryStocks;
+      case "macro": return i.categoryMacro;
+    }
+  };
+
   const [insight, setInsight] = useState<Insight>(initialInsight);
   const [draft, setDraft] = useState<Draft>(() => toDraft(initialInsight));
   const [saveState, setSaveState] = useState<SaveState>("idle");
@@ -151,7 +168,7 @@ export function StudioEditor({ initialInsight }: Props) {
   }
 
   function insertLink() {
-    const url = window.prompt("Link URL", "https://");
+    const url = window.prompt(e.linkPrompt, "https://");
     if (!url) return;
     exec("createLink", url);
   }
@@ -210,7 +227,7 @@ export function StudioEditor({ initialInsight }: Props) {
   }
 
   async function remove() {
-    if (!confirm("Delete this insight permanently?")) return;
+    if (!confirm(i.studio.confirmDelete)) return;
     const res = await fetch(`/api/insights/${insight.id}`, { method: "DELETE" });
     if (res.ok) {
       router.push("/insights/studio");
@@ -221,11 +238,12 @@ export function StudioEditor({ initialInsight }: Props) {
   }
 
   const isPublished = insight.status === "published";
+  const statusBadge = isPublished ? i.statusPublished : i.statusDraft;
   const statusLabel: Record<SaveState, string> = {
-    idle: dirty ? "Unsaved" : "Up to date",
-    saving: "Saving…",
-    saved: "Saved",
-    error: "Save failed",
+    idle: dirty ? e.unsaved : e.upToDate,
+    saving: e.saving,
+    saved: e.saved,
+    error: e.saveFailed,
   };
 
   return (
@@ -236,7 +254,7 @@ export function StudioEditor({ initialInsight }: Props) {
             href="/insights/studio"
             className="text-xs font-semibold text-muted hover:text-ink"
           >
-            ← Studio
+            {e.backStudio}
           </Link>
           <span
             className={
@@ -246,11 +264,11 @@ export function StudioEditor({ initialInsight }: Props) {
                 : "bg-tint/10 text-muted")
             }
           >
-            {insight.status}
+            {statusBadge}
           </span>
           <span className="text-xs text-muted">
             {statusLabel[saveState]}
-            {uploading ? " · uploading…" : ""}
+            {uploading ? e.uploading : ""}
           </span>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -260,11 +278,11 @@ export function StudioEditor({ initialInsight }: Props) {
               target="_blank"
               className="min-h-10 rounded-md border border-tint/15 bg-tint/[0.04] px-3 py-2.5 text-xs font-semibold text-ink hover:border-accent/50"
             >
-              View ↗
+              {e.view}
             </Link>
           ) : null}
           <Button onClick={togglePublish} type="button" variant={isPublished ? "secondary" : "primary"}>
-            {isPublished ? "Unpublish" : "Publish"}
+            {isPublished ? e.unpublish : e.publish}
           </Button>
         </div>
       </div>
@@ -279,54 +297,54 @@ export function StudioEditor({ initialInsight }: Props) {
         <div className="flex min-w-0 flex-col gap-3">
           <input
             value={draft.title}
-            onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))}
-            placeholder="Title"
+            onChange={(ev) => setDraft((d) => ({ ...d, title: ev.target.value }))}
+            placeholder={e.titlePlaceholder}
             className="w-full rounded-md border border-tint/10 bg-transparent px-3 py-3 text-2xl font-bold text-ink outline-none focus:border-accent/50"
           />
           <textarea
             value={draft.excerpt}
-            onChange={(e) => setDraft((d) => ({ ...d, excerpt: e.target.value }))}
-            placeholder="One-line excerpt shown on the listing page"
+            onChange={(ev) => setDraft((d) => ({ ...d, excerpt: ev.target.value }))}
+            placeholder={e.excerptPlaceholder}
             rows={2}
             className="w-full resize-none rounded-md border border-tint/10 bg-transparent px-3 py-2 text-sm text-muted outline-none focus:border-accent/50"
           />
 
           <div className="flex flex-wrap items-center gap-1 rounded-md border border-tint/10 bg-tint/[0.03] p-1 text-xs font-semibold text-ink">
-            <ToolbarButton onClick={() => exec("bold")} title="Bold (Ctrl+B)">
+            <ToolbarButton onClick={() => exec("bold")} title={tb.bold}>
               <span className="font-bold">B</span>
             </ToolbarButton>
-            <ToolbarButton onClick={() => exec("italic")} title="Italic (Ctrl+I)">
+            <ToolbarButton onClick={() => exec("italic")} title={tb.italic}>
               <em>I</em>
             </ToolbarButton>
-            <ToolbarButton onClick={() => exec("underline")} title="Underline">
+            <ToolbarButton onClick={() => exec("underline")} title={tb.underline}>
               <span className="underline">U</span>
             </ToolbarButton>
             <span className="mx-1 h-5 w-px bg-tint/15" />
-            <ToolbarButton onClick={() => formatBlock("h2")} title="Heading 2">H2</ToolbarButton>
-            <ToolbarButton onClick={() => formatBlock("h3")} title="Heading 3">H3</ToolbarButton>
-            <ToolbarButton onClick={() => formatBlock("p")} title="Paragraph">¶</ToolbarButton>
+            <ToolbarButton onClick={() => formatBlock("h2")} title={tb.h2}>H2</ToolbarButton>
+            <ToolbarButton onClick={() => formatBlock("h3")} title={tb.h3}>H3</ToolbarButton>
+            <ToolbarButton onClick={() => formatBlock("p")} title={tb.paragraph}>¶</ToolbarButton>
             <span className="mx-1 h-5 w-px bg-tint/15" />
-            <ToolbarButton onClick={() => exec("insertUnorderedList")} title="Bulleted list">• List</ToolbarButton>
-            <ToolbarButton onClick={() => exec("insertOrderedList")} title="Numbered list">1. List</ToolbarButton>
-            <ToolbarButton onClick={() => formatBlock("blockquote")} title="Quote">❝</ToolbarButton>
+            <ToolbarButton onClick={() => exec("insertUnorderedList")} title={tb.bulleted}>{tb.listBulleted}</ToolbarButton>
+            <ToolbarButton onClick={() => exec("insertOrderedList")} title={tb.numbered}>{tb.listNumbered}</ToolbarButton>
+            <ToolbarButton onClick={() => formatBlock("blockquote")} title={tb.quote}>❝</ToolbarButton>
             <span className="mx-1 h-5 w-px bg-tint/15" />
-            <ToolbarButton onClick={insertLink} title="Link">🔗 Link</ToolbarButton>
+            <ToolbarButton onClick={insertLink} title={tb.link}>{tb.linkLabel}</ToolbarButton>
             <ToolbarButton
               onClick={() => imageInputRef.current?.click()}
-              title="Upload image"
+              title={tb.image}
               disabled={uploading}
             >
-              🖼 Image
+              {tb.imageLabel}
             </ToolbarButton>
             <ToolbarButton
               onClick={() => videoInputRef.current?.click()}
-              title="Upload video"
+              title={tb.video}
               disabled={uploading}
             >
-              🎬 Video
+              {tb.videoLabel}
             </ToolbarButton>
             <span className="mx-1 h-5 w-px bg-tint/15" />
-            <ToolbarButton onClick={() => exec("removeFormat")} title="Clear formatting">Clear</ToolbarButton>
+            <ToolbarButton onClick={() => exec("removeFormat")} title={tb.clear}>{tb.clearLabel}</ToolbarButton>
           </div>
 
           <input
@@ -350,7 +368,7 @@ export function StudioEditor({ initialInsight }: Props) {
             suppressContentEditableWarning
             onInput={readHtmlFromEditor}
             onBlur={readHtmlFromEditor}
-            data-placeholder="Start writing your insight…"
+            data-placeholder={e.bodyPlaceholder}
             className="insights-editor min-h-[60vh] rounded-md border border-tint/10 bg-transparent px-5 py-5 text-[15px] leading-7 text-ink outline-none focus:border-accent/50"
           />
         </div>
@@ -358,30 +376,30 @@ export function StudioEditor({ initialInsight }: Props) {
         <aside className="flex h-fit flex-col gap-4 rounded-lg border border-tint/10 bg-tint/[0.03] p-4 text-sm">
           <div>
             <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-muted">
-              Category
+              {sb.category}
             </label>
             <select
               value={draft.category}
-              onChange={(e) =>
-                setDraft((d) => ({ ...d, category: e.target.value as InsightCategory }))
+              onChange={(ev) =>
+                setDraft((d) => ({ ...d, category: ev.target.value as InsightCategory }))
               }
               className="w-full rounded-md border border-tint/15 bg-tint/[0.04] px-3 py-2 text-sm text-ink"
             >
               {INSIGHT_CATEGORIES.map((c) => (
                 <option value={c.value} key={c.value}>
-                  {c.label}
+                  {categoryLabel(c.value)}
                 </option>
               ))}
             </select>
           </div>
           <div>
             <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-muted">
-              Cover image
+              {sb.coverImage}
             </label>
             <input
               value={draft.cover_image_url}
-              onChange={(e) => setDraft((d) => ({ ...d, cover_image_url: e.target.value }))}
-              placeholder="Paste a URL, or use Image button in toolbar"
+              onChange={(ev) => setDraft((d) => ({ ...d, cover_image_url: ev.target.value }))}
+              placeholder={sb.coverImagePlaceholder}
               className="w-full rounded-md border border-tint/15 bg-tint/[0.04] px-3 py-2 text-sm text-ink"
             />
             <button
@@ -391,7 +409,7 @@ export function StudioEditor({ initialInsight }: Props) {
               }}
               className="mt-2 text-xs font-semibold text-accent hover:underline"
             >
-              Upload via toolbar →
+              {sb.uploadHint}
             </button>
             {draft.cover_image_url ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -404,7 +422,7 @@ export function StudioEditor({ initialInsight }: Props) {
           </div>
           <div>
             <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-muted">
-              Slug
+              {sb.slug}
             </label>
             <div className="break-all rounded-md border border-tint/10 bg-tint/[0.02] px-3 py-2 text-xs text-muted">
               /insights/{insight.slug}
@@ -415,7 +433,7 @@ export function StudioEditor({ initialInsight }: Props) {
             onClick={remove}
             className="mt-2 rounded-md border border-tint/15 px-3 py-2 text-xs font-semibold text-muted hover:border-red-400/40 hover:text-red-400"
           >
-            Delete insight
+            {sb.deleteInsight}
           </button>
         </aside>
       </div>
