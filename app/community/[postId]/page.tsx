@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
 import { createClient } from "@/lib/supabase/server";
+import { looksLikeHtml, sanitizeHtml } from "@/lib/sanitize-html";
 
 type PageProps = {
   params: Promise<{ postId: string }>;
@@ -79,7 +80,14 @@ export default async function CommunityPostDetailPage({ params }: PageProps) {
                   <Badge tone="muted">{post.category}</Badge>
                 </div>
                 <h1 className="mt-4 break-words text-3xl font-semibold tracking-tight text-ink">{post.title}</h1>
-                <p className="mt-4 whitespace-pre-wrap break-words text-sm leading-7 text-muted">{post.body}</p>
+                {looksLikeHtml(post.body ?? "") ? (
+                  <div
+                    className="prose-insight mt-4 break-words text-[15px] leading-7 text-ink"
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.body ?? "") }}
+                  />
+                ) : (
+                  <p className="mt-4 whitespace-pre-wrap break-words text-sm leading-7 text-muted">{post.body}</p>
+                )}
                 {post.coin_tags?.length ? (
                   <div className="mt-5 flex flex-wrap gap-2">
                     {post.coin_tags.map((tag: string) => <Badge key={tag} tone="muted">#{tag}</Badge>)}

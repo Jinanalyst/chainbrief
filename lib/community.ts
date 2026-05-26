@@ -577,16 +577,18 @@ export function addOpinionPost(
     relatedArticleUrl?: string;
     attachments?: CommunityAttachment[];
     tags?: string[];
+    preview?: string;
   },
 ) {
   const title = options?.title ?? buildOpinionTitle(body);
   const tags = normalizeTags([...(options?.tags ?? []), topic ?? ""]);
+  const previewSource = options?.preview ?? body;
   const nextPost: CommunityPost = {
     id: createPostId(),
     slug: slugify(`${topic ?? "community"}-${title}`),
     title,
     body: body.trim(),
-    preview: truncate(body.trim(), 120),
+    preview: truncate(previewSource.trim(), 120),
     author: options?.author ?? "You",
     avatar: options?.avatar ?? "CB",
     category: topic ?? "All",

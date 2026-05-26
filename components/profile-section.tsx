@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
 import { hasSupabaseConfig } from "@/lib/supabase/config";
 import { readCommunityPosts, readAuthorName, COMMUNITY_POSTS_CHANGED_EVENT, type CommunityPost } from "@/lib/community";
+import { looksLikeHtml, sanitizeHtml } from "@/lib/sanitize-html";
 import { cn } from "@/lib/cn";
 
 type ChainBriefProfile = {
@@ -749,9 +750,20 @@ function PostHistoryCard({ post }: { post: CommunityPost }) {
           </p>
 
           {/* Full body */}
-          <div className="whitespace-pre-wrap break-words text-sm leading-6 text-muted">
-            {post.body || <span className="italic text-muted-2">(no body)</span>}
-          </div>
+          {post.body ? (
+            looksLikeHtml(post.body) ? (
+              <div
+                className="prose-insight break-words text-sm leading-6 text-ink"
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.body) }}
+              />
+            ) : (
+              <div className="whitespace-pre-wrap break-words text-sm leading-6 text-muted">
+                {post.body}
+              </div>
+            )
+          ) : (
+            <div className="text-sm italic text-muted-2">(no body)</div>
+          )}
 
           {/* Attachments */}
           {post.attachments?.length ? (

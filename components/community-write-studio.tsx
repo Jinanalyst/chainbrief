@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -14,7 +14,6 @@ import {
   readAuthorName,
   readCommunityQuoteTarget,
   writeAuthorName,
-  type CommunityAttachment,
   type CommunityQuoteTarget,
   type CommunityPostType,
   type CommunityStance,
@@ -22,194 +21,136 @@ import {
 import { cn } from "@/lib/cn";
 import { createClient } from "@/lib/supabase/client";
 import { hasSupabaseConfig } from "@/lib/supabase/config";
+import { sanitizeHtml } from "@/lib/sanitize-html";
 import { useI18n, usePreferences } from "@/lib/i18n/use-i18n";
 
-// ─── Block types ──────────────────────────────────────────────────────────────
+// ─── Templates (produce HTML) ─────────────────────────────────────────────────
 
-type TextBlock      = { id: string; type: "text";      content: string };
-type HeadingBlock   = { id: string; type: "heading";   level: 2 | 3; content: string };
-type QuoteBlock     = { id: string; type: "quote";     content: string; attribution: string };
-type ImageBlock     = { id: string; type: "image";     dataUrl: string; caption: string; name: string; size: number; mimeType: string };
-type VideoBlock     = { id: string; type: "video";     source: "file" | "url"; dataUrl?: string; url?: string; caption: string; name?: string; size?: number; mimeType?: string };
-type LinkBlock      = { id: string; type: "link";      url: string; label: string };
-type DividerBlock   = { id: string; type: "divider" };
-type ChecklistBlock = { id: string; type: "checklist"; items: Array<{ id: string; text: string; checked: boolean }> };
-
-type Block = TextBlock | HeadingBlock | QuoteBlock | ImageBlock | VideoBlock | LinkBlock | DividerBlock | ChecklistBlock;
-
-// ─── Factory helpers ──────────────────────────────────────────────────────────
-
-const uid = () => Math.random().toString(36).slice(2, 10);
-
-const mkText      = (content = ""): TextBlock      => ({ id: uid(), type: "text", content });
-const mkHeading   = (content = "", level: 2 | 3 = 2): HeadingBlock => ({ id: uid(), type: "heading", level, content });
-const mkQuote     = (content = "", attribution = ""): QuoteBlock => ({ id: uid(), type: "quote", content, attribution });
-const mkLink      = (url = "", label = ""): LinkBlock => ({ id: uid(), type: "link", url, label });
-const mkDivider   = (): DividerBlock => ({ id: uid(), type: "divider" });
-const mkChecklist = (items: string[] = [""]): ChecklistBlock => ({
-  id: uid(), type: "checklist",
-  items: items.map((text) => ({ id: uid(), text, checked: false })),
-});
-
-function newBlock(type: Block["type"]): Block {
-  switch (type) {
-    case "text":      return mkText();
-    case "heading":   return mkHeading();
-    case "quote":     return mkQuote();
-    case "image":     return { id: uid(), type: "image", dataUrl: "", caption: "", name: "", size: 0, mimeType: "" };
-    case "video":     return { id: uid(), type: "video", source: "url", url: "", caption: "" };
-    case "link":      return mkLink();
-    case "divider":   return mkDivider();
-    case "checklist": return mkChecklist();
-  }
-}
-
-// ─── Templates ───────────────────────────────────────────────────────────────
-
-type Template = { id: string; label: string; description: string; postType: CommunityPostType; blocks: () => Block[] };
+type Template = {
+  id: string;
+  label: string;
+  description: string;
+  postType: CommunityPostType;
+  html: () => string;
+};
 
 const TEMPLATES: Template[] = [
   {
-    id: "market_analysis", label: "Market Analysis", postType: "chart_analysis",
+    id: "market_analysis",
+    label: "Market Analysis",
+    postType: "chart_analysis",
     description: "Map support, resistance, and multi-scenario outlook.",
-    blocks: () => [
-      mkHeading("Market Overview"),
-      mkText("Asset:\nTimeframe:\nCurrent trend:"),
-      mkHeading("Key Levels", 3),
-      mkText("Support:\nResistance:"),
-      mkHeading("Scenarios", 3),
-      mkText("Bullish scenario:\nBearish scenario:\nInvalidation:"),
-      mkHeading("Personal View", 3),
-      mkText(""),
-    ],
+    html: () => `
+      <h2>Market Overview</h2>
+      <p>Asset: <br/>Timeframe: <br/>Current trend: </p>
+      <h3>Key Levels</h3>
+      <p>Support: <br/>Resistance: </p>
+      <h3>Scenarios</h3>
+      <p>Bullish scenario: <br/>Bearish scenario: <br/>Invalidation: </p>
+      <h3>Personal View</h3>
+      <p><br/></p>
+    `,
   },
   {
-    id: "bull_case", label: "Bull Case", postType: "general",
+    id: "bull_case",
+    label: "Bull Case",
+    postType: "general",
     description: "Make the case for upside with catalysts and evidence.",
-    blocks: () => [
-      mkHeading("Bull Case"),
-      mkText("Thesis:"),
-      mkHeading("Supporting Catalysts", 3),
-      mkChecklist(["Catalyst 1", "Catalyst 2", "Catalyst 3"]),
-      mkHeading("Key Risks", 3),
-      mkText("What could invalidate this thesis:"),
-      mkHeading("Conclusion", 3),
-      mkText(""),
-    ],
+    html: () => `
+      <h2>Bull Case</h2>
+      <p>Thesis: </p>
+      <h3>Supporting Catalysts</h3>
+      <ul><li>Catalyst 1</li><li>Catalyst 2</li><li>Catalyst 3</li></ul>
+      <h3>Key Risks</h3>
+      <p>What could invalidate this thesis: </p>
+      <h3>Conclusion</h3>
+      <p><br/></p>
+    `,
   },
   {
-    id: "bear_case", label: "Bear Case", postType: "general",
+    id: "bear_case",
+    label: "Bear Case",
+    postType: "general",
     description: "Make the case for downside with red flags and risks.",
-    blocks: () => [
-      mkHeading("Bear Case"),
-      mkText("Thesis:"),
-      mkHeading("Risk Factors", 3),
-      mkChecklist(["Risk 1", "Risk 2", "Risk 3"]),
-      mkHeading("Counter-argument", 3),
-      mkText("What bulls would say:"),
-      mkHeading("Conclusion", 3),
-      mkText(""),
-    ],
+    html: () => `
+      <h2>Bear Case</h2>
+      <p>Thesis: </p>
+      <h3>Risk Factors</h3>
+      <ul><li>Risk 1</li><li>Risk 2</li><li>Risk 3</li></ul>
+      <h3>Counter-argument</h3>
+      <p>What bulls would say: </p>
+      <h3>Conclusion</h3>
+      <p><br/></p>
+    `,
   },
   {
-    id: "trading_review", label: "Trading Review", postType: "trade_review",
+    id: "trading_review",
+    label: "Trading Review",
+    postType: "trade_review",
     description: "Log entry, exit, and lessons from a completed trade.",
-    blocks: () => [
-      mkHeading("Trade Summary"),
-      mkText("Asset:\nDirection:\nEntry:\nExit:\nP/L:"),
-      mkHeading("Entry Reasoning", 3),
-      mkText("Why I entered:"),
-      mkHeading("What Happened", 3),
-      mkText("How the trade played out:"),
-      mkHeading("Lessons Learned", 3),
-      mkChecklist(["Lesson 1", "Lesson 2"]),
-    ],
+    html: () => `
+      <h2>Trade Summary</h2>
+      <p>Asset: <br/>Direction: <br/>Entry: <br/>Exit: <br/>P/L: </p>
+      <h3>Entry Reasoning</h3>
+      <p>Why I entered: </p>
+      <h3>What Happened</h3>
+      <p>How the trade played out: </p>
+      <h3>Lessons Learned</h3>
+      <ul><li>Lesson 1</li><li>Lesson 2</li></ul>
+    `,
   },
   {
-    id: "news_reaction", label: "News Reaction", postType: "news_interpretation",
+    id: "news_reaction",
+    label: "News Reaction",
+    postType: "news_interpretation",
     description: "Break down what a headline means for the market.",
-    blocks: () => [
-      mkHeading("Headline"),
-      mkQuote("Paste the news headline here", "Source"),
-      mkHeading("My Read", 3),
-      mkText("What this actually means:"),
-      mkHeading("Market Impact", 3),
-      mkText("Short-term impact:\nLong-term impact:"),
-      mkHeading("Alternative Interpretation", 3),
-      mkText(""),
-    ],
+    html: () => `
+      <h2>Headline</h2>
+      <blockquote>Paste the news headline here<br/><em>— Source</em></blockquote>
+      <h3>My Read</h3>
+      <p>What this actually means: </p>
+      <h3>Market Impact</h3>
+      <p>Short-term impact: <br/>Long-term impact: </p>
+      <h3>Alternative Interpretation</h3>
+      <p><br/></p>
+    `,
   },
   {
-    id: "project_research", label: "Project Research", postType: "general",
+    id: "project_research",
+    label: "Project Research",
+    postType: "general",
     description: "Deep-dive on a protocol, token, or team.",
-    blocks: () => [
-      mkHeading("Project Overview"),
-      mkText("Name:\nCategory:\nLaunch date:"),
-      mkHeading("What It Does", 3),
-      mkText(""),
-      mkHeading("Strengths", 3),
-      mkChecklist(["Strength 1"]),
-      mkHeading("Weaknesses", 3),
-      mkChecklist(["Weakness 1"]),
-      mkDivider(),
-      mkHeading("Verdict", 3),
-      mkText(""),
-    ],
+    html: () => `
+      <h2>Project Overview</h2>
+      <p>Name: <br/>Category: <br/>Launch date: </p>
+      <h3>What It Does</h3>
+      <p><br/></p>
+      <h3>Strengths</h3>
+      <ul><li>Strength 1</li></ul>
+      <h3>Weaknesses</h3>
+      <ul><li>Weakness 1</li></ul>
+      <hr/>
+      <h3>Verdict</h3>
+      <p><br/></p>
+    `,
   },
   {
-    id: "risk_warning", label: "Risk Warning", postType: "risk_analysis",
+    id: "risk_warning",
+    label: "Risk Warning",
+    postType: "risk_analysis",
     description: "Highlight a specific downside trigger or red flag.",
-    blocks: () => [
-      mkHeading("Risk Warning"),
-      mkText("Asset or event:\nMain risk:"),
-      mkHeading("Why This Matters", 3),
-      mkText("Possible impact:"),
-      mkHeading("Invalidation", 3),
-      mkText("What would invalidate this risk:"),
-      mkHeading("Data to Watch", 3),
-      mkChecklist(["Signal 1", "Signal 2"]),
-    ],
+    html: () => `
+      <h2>Risk Warning</h2>
+      <p>Asset or event: <br/>Main risk: </p>
+      <h3>Why This Matters</h3>
+      <p>Possible impact: </p>
+      <h3>Invalidation</h3>
+      <p>What would invalidate this risk: </p>
+      <h3>Data to Watch</h3>
+      <ul><li>Signal 1</li><li>Signal 2</li></ul>
+    `,
   },
 ];
-
-// ─── Serializers ──────────────────────────────────────────────────────────────
-
-function blocksToText(blocks: Block[]): string {
-  return blocks
-    .map((b) => {
-      switch (b.type) {
-        case "text":      return b.content;
-        case "heading":   return `${"#".repeat(b.level)} ${b.content}`;
-        case "quote":     return `> ${b.content}${b.attribution ? `\n— ${b.attribution}` : ""}`;
-        case "image":     return `[Image: ${b.name}]${b.caption ? `\nCaption: ${b.caption}` : ""}`;
-        case "video":     { const src = b.source === "url" ? b.url : b.name; return `[Video: ${src ?? ""}]${b.caption ? `\nCaption: ${b.caption}` : ""}`; }
-        case "link":      return `[${b.label || b.url}](${b.url})`;
-        case "divider":   return "---";
-        case "checklist": return b.items.map((i) => `- [${i.checked ? "x" : " "}] ${i.text}`).join("\n");
-      }
-    })
-    .filter(Boolean)
-    .join("\n\n");
-}
-
-function blocksToAttachments(blocks: Block[]): CommunityAttachment[] {
-  const result: CommunityAttachment[] = [];
-  for (const b of blocks) {
-    if (b.type === "image" && b.dataUrl) {
-      result.push({ id: b.id, kind: "image", name: b.name, mimeType: b.mimeType, dataUrl: b.dataUrl, size: b.size });
-    } else if (b.type === "video" && b.source === "file" && b.dataUrl) {
-      result.push({ id: b.id, kind: "video", name: b.name ?? "", mimeType: b.mimeType ?? "", dataUrl: b.dataUrl, size: b.size ?? 0 });
-    }
-  }
-  return result;
-}
-
-// ─── YouTube helper ───────────────────────────────────────────────────────────
-
-function getYouTubeId(url: string): string | null {
-  const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/))([A-Za-z0-9_-]{11})/);
-  return m ? m[1] : null;
-}
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -220,461 +161,71 @@ const TOPICS = [
   "Event", "News Reactions", "Analysis", "Questions", "Lounge",
 ];
 
-const INVESTMENT_NOTICE =
-  "This content is for informational and educational purposes only and is not financial advice. Crypto assets involve risk of loss. All investment decisions are the sole responsibility of the user.";
-
 const IMAGE_LIMIT_BYTES = 8 * 1024 * 1024;
 const VIDEO_LIMIT_BYTES = 24 * 1024 * 1024;
 
-const BLOCK_MENU_ITEMS: Array<{ type: Block["type"]; label: string; icon: string }> = [
-  { type: "text",      label: "Text",      icon: "¶" },
-  { type: "heading",   label: "Heading",   icon: "H" },
-  { type: "quote",     label: "Quote",     icon: "❝" },
-  { type: "image",     label: "Image",     icon: "⬜" },
-  { type: "video",     label: "Video",     icon: "▶" },
-  { type: "link",      label: "Link",      icon: "↗" },
-  { type: "divider",   label: "Divider",   icon: "—" },
-  { type: "checklist", label: "Checklist", icon: "✓" },
-];
-
-// ─── Block editors ────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function getSelectedArticleSlug() {
-  if (typeof window === "undefined") {
-    return "";
-  }
-
+  if (typeof window === "undefined") return "";
   return new URLSearchParams(window.location.search).get("articleSlug")?.trim() ?? "";
 }
 
-function getInitialQuoteTarget(selectedArticleSlug: string) {
-  if (!selectedArticleSlug) {
-    return null;
-  }
-
+function getInitialQuoteTarget(slug: string) {
+  if (!slug) return null;
   const target = readCommunityQuoteTarget();
-  return target?.slug === selectedArticleSlug ? target : null;
-}
-
-function buildNewsReactionBlocks(target: CommunityQuoteTarget): Block[] {
-  return [
-    mkHeading("Headline"),
-    mkQuote(target.title, target.sourceName),
-    mkHeading("My Take", 3),
-    mkText(""),
-    mkHeading("Why It Matters", 3),
-    mkText(target.briefSummary || target.excerpt),
-    mkHeading("Source", 3),
-    mkLink(target.originalUrl, target.sourceName),
-  ];
+  return target?.slug === slug ? target : null;
 }
 
 function getInitialTopic(target: CommunityQuoteTarget | null) {
-  if (!target) {
-    return "Bitcoin";
-  }
-
+  if (!target) return "Bitcoin";
   return (TOPICS as readonly string[]).includes(target.category)
     ? target.category
     : "News Reactions";
 }
 
-function TextEditor({ block, onChange }: { block: TextBlock; onChange: (b: TextBlock) => void }) {
-  const rows = Math.max(2, block.content.split("\n").length);
-  return (
-    <textarea
-      className="w-full resize-none rounded-md border border-transparent bg-transparent px-1 py-2 text-base leading-7 text-ink outline-none transition placeholder:text-muted-2 focus:bg-tint/[0.025]"
-      rows={rows}
-      value={block.content}
-      onChange={(e) => onChange({ ...block, content: e.target.value })}
-      placeholder="Start writing…"
-    />
-  );
+function quoteTargetToHtml(target: CommunityQuoteTarget) {
+  const safeTitle = escapeText(target.title);
+  const safeSource = escapeText(target.sourceName);
+  const safeUrl = encodeURI(target.originalUrl);
+  const summary = escapeText(target.briefSummary || target.excerpt || "");
+  return [
+    `<h2>Headline</h2>`,
+    `<blockquote>${safeTitle}<br/><em>— ${safeSource}</em></blockquote>`,
+    `<h3>My Take</h3>`,
+    `<p><br/></p>`,
+    `<h3>Why It Matters</h3>`,
+    `<p>${summary || "<br/>"}</p>`,
+    `<h3>Source</h3>`,
+    `<p><a href="${safeUrl}" target="_blank" rel="noreferrer noopener">${safeSource}</a></p>`,
+  ].join("");
 }
 
-function HeadingEditor({ block, onChange }: { block: HeadingBlock; onChange: (b: HeadingBlock) => void }) {
-  return (
-    <div className="flex items-center gap-2">
-      <button
-        type="button"
-        onClick={() => onChange({ ...block, level: block.level === 2 ? 3 : 2 })}
-        className="shrink-0 rounded border border-tint/10 bg-tint/[0.04] px-2 py-1 text-xs font-bold text-muted transition hover:text-ink"
-        title="Toggle heading level"
-      >
-        H{block.level}
-      </button>
-      <input
-        className={cn(
-          "w-full rounded-md border border-transparent bg-transparent px-1 py-2 font-bold text-ink outline-none transition placeholder:text-muted-2 focus:bg-tint/[0.025]",
-          block.level === 2 ? "text-2xl" : "text-lg",
-        )}
-        value={block.content}
-        onChange={(e) => onChange({ ...block, content: e.target.value })}
-        placeholder="Heading text…"
-      />
-    </div>
-  );
+function escapeText(input: string) {
+  return input
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
-function QuoteEditor({ block, onChange }: { block: QuoteBlock; onChange: (b: QuoteBlock) => void }) {
-  return (
-    <div className="space-y-2 border-l-2 border-accent/60 pl-3">
-      <textarea
-        className="w-full resize-none rounded-md border border-transparent bg-transparent px-1 py-2 text-base italic leading-7 text-ink outline-none transition placeholder:text-muted-2 focus:bg-tint/[0.025]"
-        rows={2}
-        value={block.content}
-        onChange={(e) => onChange({ ...block, content: e.target.value })}
-        placeholder="Quote text…"
-      />
-      <input
-        className="w-full rounded-md border border-transparent bg-transparent px-1 py-1.5 text-xs text-muted outline-none transition placeholder:text-muted-2 focus:bg-tint/[0.025]"
-        value={block.attribution}
-        onChange={(e) => onChange({ ...block, attribution: e.target.value })}
-        placeholder="— Attribution (optional)"
-      />
-    </div>
-  );
+function htmlToPlain(html: string) {
+  if (typeof window === "undefined") return html;
+  const div = document.createElement("div");
+  div.innerHTML = html;
+  return (div.textContent || "").trim();
 }
 
-function ImageEditor({ block, onChange }: { block: ImageBlock; onChange: (b: ImageBlock) => void }) {
-  const fileRef = useRef<HTMLInputElement>(null);
-
-  async function handleFile(file: File) {
-    if (!file.type.startsWith("image/") || file.size > IMAGE_LIMIT_BYTES) return;
-    const dataUrl = await readFileAsDataUrl(file);
-    onChange({ ...block, dataUrl, name: file.name, size: file.size, mimeType: file.type });
-  }
-
-  return (
-    <div className="space-y-2">
-      {block.dataUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={block.dataUrl} alt={block.name} className="max-h-64 w-full rounded-lg object-cover" />
-      ) : (
-        <button
-          type="button"
-          onClick={() => fileRef.current?.click()}
-          className="flex h-24 w-full items-center justify-center rounded-xl border border-dashed border-tint/10 bg-tint/[0.02] text-sm text-muted transition hover:border-accent/50 hover:text-accent"
-        >
-          Click to upload image (max 8 MB)
-        </button>
-      )}
-      <input
-        ref={fileRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={(e) => { if (e.target.files?.[0]) void handleFile(e.target.files[0]); e.target.value = ""; }}
-      />
-      {block.dataUrl && (
-        <div className="flex gap-2">
-          <input
-            className="flex-1 rounded-md border border-tint/10 bg-background px-3 py-1.5 text-xs text-ink outline-none placeholder:text-muted-2 focus:border-accent"
-            value={block.caption}
-            onChange={(e) => onChange({ ...block, caption: e.target.value })}
-            placeholder="Caption (optional)"
-          />
-          <button
-            type="button"
-            onClick={() => onChange({ ...block, dataUrl: "", name: "", size: 0, mimeType: "" })}
-            className="text-xs text-muted transition hover:text-rose-300"
-          >
-            Remove
-          </button>
-        </div>
-      )}
-    </div>
-  );
+async function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Failed to read file."));
+    reader.onload = () => resolve(String(reader.result ?? ""));
+    reader.readAsDataURL(file);
+  });
 }
 
-function VideoEditor({ block, onChange }: { block: VideoBlock; onChange: (b: VideoBlock) => void }) {
-  const fileRef = useRef<HTMLInputElement>(null);
-  const ytId = block.source === "url" && block.url ? getYouTubeId(block.url) : null;
-
-  async function handleFile(file: File) {
-    if (!file.type.startsWith("video/") || file.size > VIDEO_LIMIT_BYTES) return;
-    const dataUrl = await readFileAsDataUrl(file);
-    onChange({ ...block, source: "file", dataUrl, url: undefined, name: file.name, size: file.size, mimeType: file.type });
-  }
-
-  return (
-    <div className="space-y-2">
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={() => onChange({ ...block, source: "url", dataUrl: undefined, url: block.url ?? "", name: undefined, size: undefined, mimeType: undefined })}
-          className={cn("rounded-full border px-3 py-1 text-xs font-semibold transition", block.source === "url" ? "border-accent/60 bg-accent/15 text-accent-ink" : "border-tint/10 text-muted hover:text-ink")}
-        >
-          URL
-        </button>
-        <button
-          type="button"
-          onClick={() => fileRef.current?.click()}
-          className={cn("rounded-full border px-3 py-1 text-xs font-semibold transition", block.source === "file" ? "border-accent/60 bg-accent/15 text-accent-ink" : "border-tint/10 text-muted hover:text-ink")}
-        >
-          Upload file
-        </button>
-        <input
-          ref={fileRef}
-          type="file"
-          accept="video/*"
-          className="hidden"
-          onChange={(e) => { if (e.target.files?.[0]) void handleFile(e.target.files[0]); e.target.value = ""; }}
-        />
-      </div>
-
-      {block.source === "url" && (
-        <input
-          className="w-full rounded-md border border-tint/10 bg-background px-3 py-2 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-1 focus:ring-accent/30"
-          value={block.url ?? ""}
-          onChange={(e) => onChange({ ...block, url: e.target.value })}
-          placeholder="YouTube or direct video URL…"
-        />
-      )}
-
-      {ytId && (
-        <div className="relative overflow-hidden rounded-lg">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={`https://img.youtube.com/vi/${ytId}/hqdefault.jpg`} alt="YouTube thumbnail" className="w-full rounded-lg" />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-black/60">
-              <span className="text-xl text-white">▶</span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {block.source === "file" && block.dataUrl && (
-        <video src={block.dataUrl} controls className="w-full rounded-lg bg-black" />
-      )}
-
-      <input
-        className="w-full rounded-md border border-tint/10 bg-background px-3 py-1.5 text-xs text-ink outline-none placeholder:text-muted-2 focus:border-accent"
-        value={block.caption}
-        onChange={(e) => onChange({ ...block, caption: e.target.value })}
-        placeholder="Caption (optional)"
-      />
-    </div>
-  );
-}
-
-function LinkEditor({ block, onChange }: { block: LinkBlock; onChange: (b: LinkBlock) => void }) {
-  return (
-    <div className="space-y-2 rounded-xl border border-tint/10 bg-tint/[0.03] p-3">
-      <input
-        className="w-full rounded-md border border-tint/10 bg-background px-3 py-2 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent"
-        value={block.url}
-        onChange={(e) => onChange({ ...block, url: e.target.value })}
-        placeholder="https://…"
-        type="url"
-      />
-      <input
-        className="w-full rounded-md border border-tint/10 bg-background px-3 py-1.5 text-xs text-ink outline-none placeholder:text-muted-2 focus:border-accent"
-        value={block.label}
-        onChange={(e) => onChange({ ...block, label: e.target.value })}
-        placeholder="Link label (optional)"
-      />
-    </div>
-  );
-}
-
-function ChecklistEditor({ block, onChange }: { block: ChecklistBlock; onChange: (b: ChecklistBlock) => void }) {
-  function updateItem(id: string, text: string) {
-    onChange({ ...block, items: block.items.map((i) => (i.id === id ? { ...i, text } : i)) });
-  }
-  function toggleItem(id: string) {
-    onChange({ ...block, items: block.items.map((i) => (i.id === id ? { ...i, checked: !i.checked } : i)) });
-  }
-  function addItem() {
-    onChange({ ...block, items: [...block.items, { id: uid(), text: "", checked: false }] });
-  }
-  function removeItem(id: string) {
-    if (block.items.length <= 1) return;
-    onChange({ ...block, items: block.items.filter((i) => i.id !== id) });
-  }
-
-  return (
-    <div className="space-y-1.5">
-      {block.items.map((item) => (
-        <div key={item.id} className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => toggleItem(item.id)}
-            className={cn(
-              "mt-px h-4 w-4 shrink-0 rounded border transition",
-              item.checked ? "border-accent bg-accent/80" : "border-tint/20 bg-tint/[0.03] hover:border-accent/60",
-            )}
-          >
-            {item.checked && <span className="flex h-full w-full items-center justify-center text-[10px] font-bold text-white">✓</span>}
-          </button>
-          <input
-            className={cn(
-              "flex-1 rounded bg-transparent px-1 py-0.5 text-sm text-ink outline-none placeholder:text-muted-2",
-              item.checked && "text-muted line-through",
-            )}
-            value={item.text}
-            onChange={(e) => updateItem(item.id, e.target.value)}
-            placeholder="Item…"
-            onKeyDown={(e) => {
-              if (e.key === "Enter") { e.preventDefault(); addItem(); }
-              if (e.key === "Backspace" && !item.text) { e.preventDefault(); removeItem(item.id); }
-            }}
-          />
-          <button type="button" onClick={() => removeItem(item.id)} className="text-xs text-muted transition hover:text-rose-300">✕</button>
-        </div>
-      ))}
-      <button type="button" onClick={addItem} className="mt-1 text-xs text-muted transition hover:text-accent">
-        + Add item
-      </button>
-    </div>
-  );
-}
-
-// ─── Block row ────────────────────────────────────────────────────────────────
-
-interface BlockRowProps {
-  block: Block;
-  index: number;
-  total: number;
-  onChange: (block: Block) => void;
-  onDelete: () => void;
-  onMoveUp: () => void;
-  onMoveDown: () => void;
-  onInsertAfter: (type: Block["type"]) => void;
-  dragHandlers: {
-    onDragStart: () => void;
-    onDragOver: (e: React.DragEvent) => void;
-    onDrop: () => void;
-    isDragOver: boolean;
-  };
-}
-
-function BlockRow({ block, index, total, onChange, onDelete, onMoveUp, onMoveDown, onInsertAfter, dragHandlers }: BlockRowProps) {
-  void onInsertAfter;
-
-  return (
-    <div
-      draggable
-      onDragStart={dragHandlers.onDragStart}
-      onDragOver={dragHandlers.onDragOver}
-      onDrop={dragHandlers.onDrop}
-      className={cn(
-        "group relative rounded-md transition",
-        dragHandlers.isDragOver
-          ? "bg-accent/5 ring-1 ring-accent/30"
-          : "hover:bg-tint/[0.025]",
-      )}
-    >
-      {/* Toolbar — shown on hover */}
-      <div className="absolute right-2 top-2 z-10 flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
-        <button type="button" onClick={onMoveUp} disabled={index === 0} className="rounded p-1.5 text-xs text-muted transition hover:text-ink disabled:opacity-25" title="Move up">↑</button>
-        <button type="button" onClick={onMoveDown} disabled={index === total - 1} className="rounded p-1.5 text-xs text-muted transition hover:text-ink disabled:opacity-25" title="Move down">↓</button>
-        <button type="button" onClick={onDelete} className="rounded p-1.5 text-xs text-muted transition hover:text-rose-300" title="Delete block">✕</button>
-        <span className="cursor-grab rounded p-1.5 text-xs text-muted select-none" title="Drag to reorder">⠿</span>
-      </div>
-
-      <div className="px-1 py-1 pr-20">
-        {block.type === "text"      && <TextEditor      block={block} onChange={(b) => onChange(b)} />}
-        {block.type === "heading"   && <HeadingEditor   block={block} onChange={(b) => onChange(b)} />}
-        {block.type === "quote"     && <QuoteEditor     block={block} onChange={(b) => onChange(b)} />}
-        {block.type === "image"     && <ImageEditor     block={block} onChange={(b) => onChange(b)} />}
-        {block.type === "video"     && <VideoEditor     block={block} onChange={(b) => onChange(b)} />}
-        {block.type === "link"      && <LinkEditor      block={block} onChange={(b) => onChange(b)} />}
-        {block.type === "divider"   && <hr className="border-tint/10" />}
-        {block.type === "checklist" && <ChecklistEditor block={block} onChange={(b) => onChange(b)} />}
-      </div>
-    </div>
-  );
-}
-
-// ─── Preview renderer ─────────────────────────────────────────────────────────
-
-function BlockPreview({ blocks }: { blocks: Block[] }) {
-  return (
-    <div className="space-y-4 text-sm leading-6 text-ink">
-      {blocks.map((b) => {
-        switch (b.type) {
-          case "text":
-            return (
-              <p key={b.id} className="whitespace-pre-wrap text-ink/90">
-                {b.content || <span className="text-muted-2">(empty text block)</span>}
-              </p>
-            );
-          case "heading":
-            return b.level === 2
-              ? <h2 key={b.id} className="text-xl font-bold text-ink">{b.content}</h2>
-              : <h3 key={b.id} className="text-base font-semibold text-ink">{b.content}</h3>;
-          case "quote":
-            return (
-              <blockquote key={b.id} className="border-l-2 border-accent/60 pl-3 italic text-ink/80">
-                <p>{b.content}</p>
-                {b.attribution && <footer className="mt-1 not-italic text-xs text-muted">— {b.attribution}</footer>}
-              </blockquote>
-            );
-          case "image":
-            return b.dataUrl ? (
-              <figure key={b.id}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={b.dataUrl} alt={b.name} className="w-full rounded-lg" />
-                {b.caption && <figcaption className="mt-1 text-center text-xs text-muted">{b.caption}</figcaption>}
-              </figure>
-            ) : (
-              <div key={b.id} className="rounded-xl border border-dashed border-tint/10 p-4 text-center text-xs text-muted">[No image uploaded]</div>
-            );
-          case "video": {
-            const ytId = b.source === "url" && b.url ? getYouTubeId(b.url) : null;
-            return (
-              <figure key={b.id}>
-                {ytId ? (
-                  <div className="relative overflow-hidden rounded-lg">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={`https://img.youtube.com/vi/${ytId}/hqdefault.jpg`} alt="Video thumbnail" className="w-full rounded-lg" />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-black/60">
-                        <span className="text-xl text-white">▶</span>
-                      </div>
-                    </div>
-                  </div>
-                ) : b.source === "file" && b.dataUrl ? (
-                  <video src={b.dataUrl} controls className="w-full rounded-lg bg-black" />
-                ) : (
-                  <div className="rounded-xl border border-dashed border-tint/10 p-4 text-center text-xs text-muted">[Video: {b.url ?? "no source"}]</div>
-                )}
-                {b.caption && <figcaption className="mt-1 text-center text-xs text-muted">{b.caption}</figcaption>}
-              </figure>
-            );
-          }
-          case "link":
-            return (
-              <div key={b.id} className="flex items-center gap-2 rounded-lg border border-tint/10 bg-tint/[0.03] px-3 py-2">
-                <span className="text-accent">↗</span>
-                <a href={b.url} target="_blank" rel="noopener noreferrer" className="text-sm text-accent underline-offset-2 hover:underline">
-                  {b.label || b.url}
-                </a>
-              </div>
-            );
-          case "divider":
-            return <hr key={b.id} className="border-tint/10" />;
-          case "checklist":
-            return (
-              <ul key={b.id} className="space-y-1">
-                {b.items.map((item) => (
-                  <li key={item.id} className={cn("flex items-center gap-2 text-sm", item.checked && "text-muted line-through")}>
-                    <span className={cn("flex h-4 w-4 shrink-0 items-center justify-center rounded border", item.checked ? "border-accent bg-accent/80" : "border-tint/20")}>
-                      {item.checked && <span className="text-[10px] font-bold text-white">✓</span>}
-                    </span>
-                    {item.text}
-                  </li>
-                ))}
-              </ul>
-            );
-        }
-      })}
-    </div>
-  );
-}
-
-// ─── Main component ───────────────────────────────────────────────────────────
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export function CommunityWriteStudio({
   initialPostType = "general",
@@ -693,42 +244,33 @@ export function CommunityWriteStudio({
     Question: w.stanceQuestion,
   };
 
-  const blockMenuItems: Array<{ type: Block["type"]; label: string; icon: string }> = [
-    { type: "text",      label: w.blockText,      icon: "¶" },
-    { type: "heading",   label: w.blockHeading,   icon: "H" },
-    { type: "quote",     label: w.blockQuote,     icon: "❝" },
-    { type: "image",     label: w.blockImage,     icon: "⬜" },
-    { type: "video",     label: w.blockVideo,     icon: "▶" },
-    { type: "link",      label: w.blockLink,      icon: "↗" },
-    { type: "divider",   label: w.blockDivider,   icon: "—" },
-    { type: "checklist", label: w.blockChecklist, icon: "✓" },
-  ];
-
   const templateTranslations: Record<string, { label: string; description: string }> = {
     market_analysis:  { label: w.tplMarketAnalysis,  description: w.tplMarketAnalysisDesc },
-    bull_case:        { label: w.tplBullCase,         description: w.tplBullCaseDesc },
-    bear_case:        { label: w.tplBearCase,         description: w.tplBearCaseDesc },
-    trading_review:   { label: w.tplTradingReview,    description: w.tplTradingReviewDesc },
-    news_reaction:    { label: w.tplNewsReaction,     description: w.tplNewsReactionDesc },
-    project_research: { label: w.tplProjectResearch,  description: w.tplProjectResearchDesc },
-    risk_warning:     { label: w.tplRiskWarning,      description: w.tplRiskWarningDesc },
+    bull_case:        { label: w.tplBullCase,        description: w.tplBullCaseDesc },
+    bear_case:        { label: w.tplBearCase,        description: w.tplBearCaseDesc },
+    trading_review:   { label: w.tplTradingReview,   description: w.tplTradingReviewDesc },
+    news_reaction:    { label: w.tplNewsReaction,    description: w.tplNewsReactionDesc },
+    project_research: { label: w.tplProjectResearch, description: w.tplProjectResearchDesc },
+    risk_warning:     { label: w.tplRiskWarning,     description: w.tplRiskWarningDesc },
   };
 
   const supabase = useMemo(() => (hasSupabaseConfig ? createClient() : null), []);
-  const dragIndexRef = useRef<number | null>(null);
+  const editorRef = useRef<HTMLDivElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
+
   const [selectedArticleSlug] = useState(() => getSelectedArticleSlug());
   const [quoteTarget] = useState<CommunityQuoteTarget | null>(() =>
     getInitialQuoteTarget(selectedArticleSlug),
   );
+
+  // Author
   const [authorName, setAuthorName] = useState(() => readAuthorName());
   const [editingAuthor, setEditingAuthor] = useState(false);
   const [authorDraft, setAuthorDraft] = useState("");
 
-  // On mount, resolve the best available author name and save to localStorage
   useEffect(() => {
-    if (readAuthorName()) {
-      return;
-    }
+    if (readAuthorName()) return;
     if (!supabase) return;
     supabase.auth.getUser().then(({ data }) => {
       const user = data.user;
@@ -756,6 +298,7 @@ export function CommunityWriteStudio({
     setEditingAuthor(false);
   }
 
+  // Editor state
   const [title, setTitle] = useState(() =>
     quoteTarget ? `Thoughts on ${quoteTarget.title}` : "",
   );
@@ -771,88 +314,123 @@ export function CommunityWriteStudio({
   const [postType, setPostType] = useState<CommunityPostType>(
     quoteTarget ? "news_interpretation" : initialPostType,
   );
-  const [blocks, setBlocks] = useState<Block[]>(() =>
-    quoteTarget ? buildNewsReactionBlocks(quoteTarget) : [mkText()],
+  const [bodyHtml, setBodyHtml] = useState<string>(() =>
+    quoteTarget ? quoteTargetToHtml(quoteTarget) : "",
   );
   const [activeTemplateId, setActiveTemplateId] = useState<string | null>(
     quoteTarget ? "news_reaction" : null,
   );
-  const [dragOver, setDragOver] = useState<number | null>(null);
-  const [previewMode, setPreviewMode] = useState(false);
   const [templateOpen, setTemplateOpen] = useState(true);
-  const [addMenuOpen, setAddMenuOpen] = useState(false);
+  const [previewMode, setPreviewMode] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [isPublishing, setIsPublishing] = useState(false);
 
-  function applyTemplate(tpl: Template) {
-    setBlocks(tpl.blocks());
+  // Initialise contentEditable with the seed HTML once.
+  useEffect(() => {
+    if (editorRef.current && editorRef.current.innerHTML === "" && bodyHtml) {
+      editorRef.current.innerHTML = bodyHtml;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // When a template is applied, push HTML into the surface (replaces current).
+  const applyTemplate = useCallback((tpl: Template) => {
+    setBodyHtml(tpl.html());
     setPostType(tpl.postType);
     setActiveTemplateId(tpl.id);
-  }
-
-  function updateBlock(index: number, block: Block) {
-    setBlocks((prev) => prev.map((b, i) => (i === index ? block : b)));
-  }
-
-  function deleteBlock(index: number) {
-    setBlocks((prev) => {
-      const next = prev.filter((_, i) => i !== index);
-      return next.length ? next : [mkText()];
-    });
-  }
-
-  function moveBlock(from: number, to: number) {
-    setBlocks((prev) => {
-      const next = [...prev];
-      const [moved] = next.splice(from, 1);
-      next.splice(to, 0, moved);
-      return next;
-    });
-  }
-
-  function insertBlock(afterIndex: number, type: Block["type"]) {
-    setBlocks((prev) => {
-      const next = [...prev];
-      next.splice(afterIndex + 1, 0, newBlock(type));
-      return next;
-    });
-  }
-
-  function addBlockAtEnd(type: Block["type"]) {
-    setBlocks((prev) => [...prev, newBlock(type)]);
-  }
-
-  function handleDragStart(index: number) {
-    dragIndexRef.current = index;
-  }
-
-  function handleDragOver(e: React.DragEvent, index: number) {
-    e.preventDefault();
-    setDragOver(index);
-  }
-
-  function handleDrop(index: number) {
-    if (dragIndexRef.current !== null && dragIndexRef.current !== index) {
-      moveBlock(dragIndexRef.current, index);
+    if (editorRef.current) {
+      editorRef.current.innerHTML = tpl.html();
     }
-    dragIndexRef.current = null;
-    setDragOver(null);
+  }, []);
+
+  const readHtmlFromEditor = useCallback(() => {
+    if (!editorRef.current) return;
+    const html = sanitizeHtml(editorRef.current.innerHTML);
+    setBodyHtml((prev) => (prev === html ? prev : html));
+  }, []);
+
+  function exec(command: string, value?: string) {
+    editorRef.current?.focus();
+    document.execCommand(command, false, value);
+    readHtmlFromEditor();
+  }
+
+  function formatBlock(tag: string) {
+    exec("formatBlock", `<${tag}>`);
+  }
+
+  function insertLink() {
+    const url = window.prompt("Link URL", "https://");
+    if (!url) return;
+    exec("createLink", url);
+  }
+
+  function insertHtmlAtCaret(html: string) {
+    editorRef.current?.focus();
+    document.execCommand("insertHTML", false, html);
+    readHtmlFromEditor();
+  }
+
+  async function handleImagePicked(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = "";
+    if (files.length === 0) return;
+    setUploading(true);
+    setError(null);
+    try {
+      for (const file of files) {
+        if (!file.type.startsWith("image/")) continue;
+        if (file.size > IMAGE_LIMIT_BYTES) {
+          setError("Image is larger than 8 MB.");
+          continue;
+        }
+        const dataUrl = await readFileAsDataUrl(file);
+        insertHtmlAtCaret(
+          `<p><img src="${dataUrl}" alt="" draggable="true" style="max-width:100%;border-radius:8px;cursor:grab" loading="lazy" /></p><p><br/></p>`,
+        );
+      }
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function handleVideoPicked(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("video/")) return;
+    if (file.size > VIDEO_LIMIT_BYTES) {
+      setError("Video is larger than 24 MB.");
+      return;
+    }
+    setUploading(true);
+    setError(null);
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      insertHtmlAtCaret(
+        `<p><video controls src="${dataUrl}" style="max-width:100%;border-radius:8px"></video></p><p><br/></p>`,
+      );
+    } finally {
+      setUploading(false);
+    }
   }
 
   async function publishPost() {
     const trimmedTitle = title.trim();
-    const body = blocksToText(blocks);
+    const html = sanitizeHtml(bodyHtml);
+    const plain = htmlToPlain(html);
     const tags = normalizeTags([topic, tagDraft]);
 
     if (!trimmedTitle) { setError("Please add a title."); return; }
-    if (!body.trim()) { setError("Please add some content."); return; }
+    if (!plain) { setError("Please add some content."); return; }
 
     setIsPublishing(true);
     setError(null);
     setMessage(null);
 
-    const localPost = addOpinionPost(body, topic, {
+    const localPost = addOpinionPost(html, topic, {
       title: trimmedTitle,
       author: authorName,
       stance,
@@ -874,8 +452,9 @@ export function CommunityWriteStudio({
       relatedArticleTitle: quoteTarget?.title,
       relatedArticleSource: quoteTarget?.sourceName,
       relatedArticleUrl: quoteTarget?.originalUrl,
-      attachments: blocksToAttachments(blocks),
+      attachments: [],
       tags,
+      preview: plain,
     });
 
     if (supabase) {
@@ -950,18 +529,21 @@ export function CommunityWriteStudio({
                   <h1 className="mt-3 text-3xl font-semibold tracking-tight text-ink">{w.studioTitle}</h1>
                   <p className="mt-3 text-sm leading-6 text-muted">{w.studioDesc}</p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setPreviewMode((v) => !v)}
-                  className={cn(
-                    "mt-1 shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold transition",
-                    previewMode
-                      ? "border-accent/60 bg-accent/15 text-accent-ink"
-                      : "border-tint/10 text-muted hover:border-accent/50 hover:text-ink",
-                  )}
-                >
-                  {previewMode ? w.editMode : w.preview}
-                </button>
+                <div className="flex items-center gap-2">
+                  {uploading ? <span className="text-xs text-muted">Uploading…</span> : null}
+                  <button
+                    type="button"
+                    onClick={() => setPreviewMode((v) => !v)}
+                    className={cn(
+                      "mt-1 shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold transition",
+                      previewMode
+                        ? "border-accent/60 bg-accent/15 text-accent-ink"
+                        : "border-tint/10 text-muted hover:border-accent/50 hover:text-ink",
+                    )}
+                  >
+                    {previewMode ? w.editMode : w.preview}
+                  </button>
+                </div>
               </div>
 
               <div className="mt-6 grid gap-5">
@@ -983,7 +565,7 @@ export function CommunityWriteStudio({
                 <label className="block">
                   <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">{w.titleLabel}</span>
                   <input
-                    className="mt-2 h-11 w-full rounded-md border border-tint/10 bg-background px-3 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
+                    className="mt-2 w-full rounded-md border border-tint/10 bg-background px-3 py-3 text-2xl font-bold text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder={w.titlePlaceholder}
                     value={title}
@@ -1039,65 +621,81 @@ export function CommunityWriteStudio({
                   </p>
                 </label>
 
-                {/* Writing canvas */}
+                {/* Toolbar + WYSIWYG surface */}
                 <div>
-                  <div className="mb-3 flex items-center justify-between">
-                    <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">{w.contentLabel}</span>
-                    <div className="relative">
-                      <button
-                        type="button"
-                        onClick={() => setAddMenuOpen((v) => !v)}
-                        className="rounded-full border border-tint/10 bg-tint/[0.03] px-3 py-1.5 text-xs font-semibold text-muted transition hover:border-accent/50 hover:text-accent"
+                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">{w.contentLabel}</span>
+
+                  {!previewMode && (
+                    <div className="mt-2 flex flex-wrap items-center gap-1 rounded-md border border-tint/10 bg-tint/[0.03] p-1 text-xs font-semibold text-ink">
+                      <ToolbarButton onClick={() => exec("bold")} title="Bold (Ctrl+B)">
+                        <span className="font-bold">B</span>
+                      </ToolbarButton>
+                      <ToolbarButton onClick={() => exec("italic")} title="Italic (Ctrl+I)">
+                        <em>I</em>
+                      </ToolbarButton>
+                      <ToolbarButton onClick={() => exec("underline")} title="Underline (Ctrl+U)">
+                        <span className="underline">U</span>
+                      </ToolbarButton>
+                      <span className="mx-1 h-5 w-px bg-tint/15" />
+                      <ToolbarButton onClick={() => formatBlock("h2")} title="Heading 2">H2</ToolbarButton>
+                      <ToolbarButton onClick={() => formatBlock("h3")} title="Heading 3">H3</ToolbarButton>
+                      <ToolbarButton onClick={() => formatBlock("p")} title="Paragraph">¶</ToolbarButton>
+                      <span className="mx-1 h-5 w-px bg-tint/15" />
+                      <ToolbarButton onClick={() => exec("insertUnorderedList")} title="Bulleted list">• List</ToolbarButton>
+                      <ToolbarButton onClick={() => exec("insertOrderedList")} title="Numbered list">1. List</ToolbarButton>
+                      <ToolbarButton onClick={() => formatBlock("blockquote")} title="Quote">❝</ToolbarButton>
+                      <span className="mx-1 h-5 w-px bg-tint/15" />
+                      <ToolbarButton onClick={insertLink} title="Insert link">Link</ToolbarButton>
+                      <ToolbarButton
+                        onClick={() => imageInputRef.current?.click()}
+                        title="Insert image"
+                        disabled={uploading}
                       >
-                        {w.addContent}
-                      </button>
-                      {addMenuOpen && (
-                        <>
-                          <div className="fixed inset-0 z-10" onClick={() => setAddMenuOpen(false)} />
-                          <div className="absolute right-0 top-9 z-20 w-52 overflow-hidden rounded-xl border border-tint/10 bg-surface shadow-xl">
-                            {blockMenuItems.map((item) => (
-                              <button
-                                key={item.type}
-                                type="button"
-                                onClick={() => { addBlockAtEnd(item.type); setAddMenuOpen(false); }}
-                                className="flex w-full items-center gap-3 px-3 py-2.5 text-sm font-medium text-ink transition hover:bg-tint/[0.07]"
-                              >
-                                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-tint/10 bg-tint/[0.04] text-xs text-muted">{item.icon}</span>
-                                {item.label}
-                              </button>
-                            ))}
-                          </div>
-                        </>
-                      )}
+                        Image
+                      </ToolbarButton>
+                      <ToolbarButton
+                        onClick={() => videoInputRef.current?.click()}
+                        title="Insert video"
+                        disabled={uploading}
+                      >
+                        Video
+                      </ToolbarButton>
+                      <span className="mx-1 h-5 w-px bg-tint/15" />
+                      <ToolbarButton onClick={() => exec("removeFormat")} title="Clear formatting">Clear</ToolbarButton>
                     </div>
-                  </div>
+                  )}
+
+                  <input
+                    ref={imageInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    hidden
+                    onChange={handleImagePicked}
+                  />
+                  <input
+                    ref={videoInputRef}
+                    type="file"
+                    accept="video/*"
+                    hidden
+                    onChange={handleVideoPicked}
+                  />
 
                   {previewMode ? (
-                    <div className="min-h-40 rounded-xl border border-tint/10 bg-tint/[0.02] p-5">
-                      <BlockPreview blocks={blocks} />
-                    </div>
+                    <div
+                      className="prose-insight mt-3 min-h-40 rounded-md border border-tint/10 bg-tint/[0.02] px-5 py-5 text-[15px] leading-7 text-ink"
+                      dangerouslySetInnerHTML={{ __html: sanitizeHtml(bodyHtml) || `<p class="text-muted-2">Nothing to preview yet.</p>` }}
+                    />
                   ) : (
-                    <div className="min-h-[28rem] rounded-xl border border-tint/10 bg-background px-4 py-4 shadow-inner sm:px-5">
-                      {blocks.map((block, index) => (
-                        <BlockRow
-                          key={block.id}
-                          block={block}
-                          index={index}
-                          total={blocks.length}
-                          onChange={(b) => updateBlock(index, b)}
-                          onDelete={() => deleteBlock(index)}
-                          onMoveUp={() => index > 0 && moveBlock(index, index - 1)}
-                          onMoveDown={() => index < blocks.length - 1 && moveBlock(index, index + 1)}
-                          onInsertAfter={(type) => insertBlock(index, type)}
-                          dragHandlers={{
-                            onDragStart: () => handleDragStart(index),
-                            onDragOver: (e) => handleDragOver(e, index),
-                            onDrop: () => handleDrop(index),
-                            isDragOver: dragOver === index,
-                          }}
-                        />
-                      ))}
-                    </div>
+                    <div
+                      ref={editorRef}
+                      contentEditable
+                      suppressContentEditableWarning
+                      onInput={readHtmlFromEditor}
+                      onBlur={readHtmlFromEditor}
+                      data-placeholder="Share your take. Quote a headline, add a chart, walk through your reasoning…"
+                      className="insights-editor mt-2 min-h-[28rem] rounded-md border border-tint/10 bg-background px-5 py-5 text-[15px] leading-7 text-ink outline-none focus:border-accent/50"
+                    />
                   )}
                 </div>
 
@@ -1129,8 +727,6 @@ export function CommunityWriteStudio({
 
             {/* Sidebar */}
             <aside className="space-y-3 lg:sticky lg:top-24 lg:self-start">
-
-              {/* ── Posting as ── */}
               <Card className="min-w-0 p-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">{w.postingAs}</p>
 
@@ -1223,13 +819,27 @@ export function CommunityWriteStudio({
   );
 }
 
-// ─── Util ─────────────────────────────────────────────────────────────────────
-
-async function readFileAsDataUrl(file: File): Promise<string> {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(new Error("Failed to read file."));
-    reader.onload = () => resolve(String(reader.result ?? ""));
-    reader.readAsDataURL(file);
-  });
+function ToolbarButton({
+  children,
+  onClick,
+  title,
+  disabled,
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+  title?: string;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      title={title}
+      disabled={disabled}
+      onMouseDown={(e) => e.preventDefault()}
+      onClick={onClick}
+      className="rounded px-2 py-1 text-xs hover:bg-tint/[0.08] disabled:opacity-40"
+    >
+      {children}
+    </button>
+  );
 }
