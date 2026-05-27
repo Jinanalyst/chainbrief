@@ -5,7 +5,7 @@ import { Container } from "@/components/ui/container";
 import { InsightReaderHeader } from "@/components/insights/insight-reader-header";
 import { createClient } from "@/lib/supabase/server";
 import { hasSupabaseConfig } from "@/lib/supabase/config";
-import { type Insight } from "@/lib/insights";
+import { type Insight, isLivePublished } from "@/lib/insights";
 import { renderMarkdown } from "@/lib/markdown";
 import { looksLikeHtml, sanitizeHtml } from "@/lib/sanitize-html";
 
@@ -59,7 +59,7 @@ function buildDescription(insight: Insight): string {
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { slug } = await params;
   const insight = await loadInsight(slug);
-  if (!insight || insight.status !== "published") {
+  if (!insight || !isLivePublished(insight)) {
     return {
       title: "Insight not found",
       robots: { index: false, follow: false },
@@ -105,7 +105,7 @@ export default async function InsightReader({ params }: { params: Params }) {
 
   const supabase = await createClient();
 
-  if (insight.status !== "published") {
+  if (!isLivePublished(insight)) {
     const {
       data: { user },
     } = await supabase.auth.getUser();

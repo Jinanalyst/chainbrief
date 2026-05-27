@@ -48,6 +48,7 @@ export async function PATCH(req: NextRequest, ctx: RouteContext) {
     cover_image_url?: string | null;
     status?: string;
     slug?: string;
+    published_at?: string | null;
   };
 
   const update: Record<string, unknown> = {};
@@ -66,10 +67,9 @@ export async function PATCH(req: NextRequest, ctx: RouteContext) {
   if (typeof body.cover_image_url === "string" || body.cover_image_url === null) {
     update.cover_image_url = body.cover_image_url || null;
   }
-  if (body.status === "draft" || body.status === "published") {
+  if (body.status === "draft" || body.status === "published" || body.status === "scheduled") {
     update.status = body.status;
     if (body.status === "published") {
-      // Stamp published_at on first publish; keep existing otherwise (DB column not touched).
       const { data: current } = await supabase
         .from("cb_insights")
         .select("published_at")
@@ -79,6 +79,22 @@ export async function PATCH(req: NextRequest, ctx: RouteContext) {
         update.published_at = new Date().toISOString();
       }
     }
+    if (body.status === "scheduled") {
+      // Caller must provide a future published_at; otherwise reject.
+      const when = typeof body.published_at === "string" ? new Date(body.published_at) : null;
+      if (!when || isNaN(when.getTime())) {
+        return NextResponse.json({ error: "scheduled requires published_at" }, { status: 400 });
+      }
+      if (when.getTime() <= Date.now()) {
+        return NextResponse.json({ error: "published_at must be in the future" }, { status: 400 });
+      }
+      update.published_at = when.toISOString();
+    }
+  } else if (typeof body.published_at === "string") {
+    const when = new Date(body.published_at);
+    if (!isNaN(when.getTime())) update.published_at = when.toISOString();
+  } else if (body.published_at === null) {
+    update.published_at = null;
   }
   if (typeof body.slug === "string" && body.slug.trim()) {
     update.slug = slugify(body.slug);

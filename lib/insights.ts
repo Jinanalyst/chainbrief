@@ -13,7 +13,16 @@ export function isInsightCategory(value: unknown): value is InsightCategory {
   return typeof value === "string" && (INSIGHT_CATEGORY_VALUES as string[]).includes(value);
 }
 
-export type InsightStatus = "draft" | "published";
+export type InsightStatus = "draft" | "published" | "scheduled";
+
+// A scheduled insight whose time has arrived is treated as published.
+export function isLivePublished(insight: Pick<Insight, "status" | "published_at">): boolean {
+  if (insight.status === "published") return true;
+  if (insight.status === "scheduled" && insight.published_at) {
+    return new Date(insight.published_at).getTime() <= Date.now();
+  }
+  return false;
+}
 
 export type Insight = {
   id: string;

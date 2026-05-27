@@ -40,7 +40,7 @@ export function StudioDashboard({ initialInsights }: Props) {
 
   const [items, setItems] = useState<Insight[]>(initialInsights);
   const [filter, setFilter] = useState<InsightCategory | "all">("all");
-  const [statusFilter, setStatusFilter] = useState<"all" | "draft" | "published">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "draft" | "published" | "scheduled">("all");
   const [creating, setCreating] = useState(false);
   const [newCategory, setNewCategory] = useState<InsightCategory>("macro");
   const [error, setError] = useState<string | null>(null);
@@ -53,8 +53,8 @@ export function StudioDashboard({ initialInsights }: Props) {
       case "macro": return i.categoryMacro;
     }
   };
-  const statusLabel = (value: "draft" | "published") =>
-    value === "draft" ? i.statusDraft : i.statusPublished;
+  const statusLabel = (value: "draft" | "published" | "scheduled") =>
+    value === "draft" ? i.statusDraft : value === "scheduled" ? i.statusScheduled : i.statusPublished;
 
   const visible = items.filter((item) => {
     if (filter !== "all" && item.category !== filter) return false;
@@ -152,7 +152,7 @@ export function StudioDashboard({ initialInsights }: Props) {
           );
         })}
         <span className="mx-1 h-6 w-px bg-tint/15" />
-        {(["all", "draft", "published"] as const).map((value) => {
+        {(["all", "draft", "scheduled", "published"] as const).map((value) => {
           const active = statusFilter === value;
           const label = value === "all" ? s.allStatus : statusLabel(value);
           return (
@@ -194,6 +194,8 @@ export function StudioDashboard({ initialInsights }: Props) {
                       "rounded-full px-2 py-0.5 text-[10px] " +
                       (item.status === "published"
                         ? "bg-green-500/15 text-green-400"
+                        : item.status === "scheduled"
+                        ? "bg-amber-500/15 text-amber-400"
                         : "bg-tint/10 text-muted")
                     }
                   >
@@ -201,7 +203,9 @@ export function StudioDashboard({ initialInsights }: Props) {
                   </span>
                   <span className="text-muted">·</span>
                   <span className="text-muted">
-                    {s.updated} {formatDate(item.updated_at, locale)}
+                    {item.status === "scheduled" && item.published_at
+                      ? `→ ${formatDate(item.published_at, locale)}`
+                      : `${s.updated} ${formatDate(item.updated_at, locale)}`}
                   </span>
                 </div>
                 <h2 className="mt-1 truncate text-base font-bold text-ink">{item.title}</h2>

@@ -32,10 +32,11 @@ type SearchParams = Promise<{ category?: string }>;
 async function loadInsights(category: InsightCategory | null): Promise<Insight[]> {
   if (!hasSupabaseConfig) return [];
   const supabase = await createClient();
+  const nowIso = new Date().toISOString();
   let q = supabase
     .from("cb_insights")
     .select("*")
-    .eq("status", "published")
+    .or(`status.eq.published,and(status.eq.scheduled,published_at.lte.${nowIso})`)
     .order("published_at", { ascending: false, nullsFirst: false });
   if (category) q = q.eq("category", category);
   const { data } = await q;

@@ -272,6 +272,62 @@ export function StudioEditor({ initialInsight }: Props) {
     await persist({ status: nextStatus });
   }
 
+  const [scheduleInput, setScheduleInput] = useState<string>(() => {
+    if (initialInsight.status === "scheduled" && initialInsight.published_at) {
+      const d = new Date(initialInsight.published_at);
+      const pad = (n: number) => String(n).padStart(2, "0");
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+    return "";
+  });
+
+  async function scheduleAt() {
+    if (!scheduleInput) {
+      setError(e.scheduleInvalid);
+      return;
+    }
+    const when = new Date(scheduleInput);
+    if (isNaN(when.getTime()) || when.getTime() <= Date.now()) {
+      setError(e.scheduleInvalid);
+      return;
+    }
+    const flushed = await persist();
+    if (!flushed) return;
+    setSaveState("saving");
+    setError(null);
+    const res = await fetch(`/api/insights/${insight.id}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ status: "scheduled", published_at: when.toISOString() }),
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setSaveState("error");
+      setError(json.error ?? "could not schedule");
+      return;
+    }
+    setInsight(json.insight as Insight);
+    setSaveState("saved");
+  }
+
+  async function cancelSchedule() {
+    setSaveState("saving");
+    setError(null);
+    const res = await fetch(`/api/insights/${insight.id}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ status: "draft" }),
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setSaveState("error");
+      setError(json.error ?? "could not cancel");
+      return;
+    }
+    setInsight(json.insight as Insight);
+    setSaveState("saved");
+  }
+
   async function remove() {
     if (!confirm(i.studio.confirmDelete)) return;
     const res = await fetch(`/api/insights/${insight.id}`, { method: "DELETE" });
@@ -284,7 +340,12 @@ export function StudioEditor({ initialInsight }: Props) {
   }
 
   const isPublished = insight.status === "published";
-  const statusBadge = isPublished ? i.statusPublished : i.statusDraft;
+  const isScheduled = insight.status === "scheduled";
+  const statusBadge = isPublished
+    ? i.statusPublished
+    : isScheduled
+    ? i.statusScheduled
+    : i.statusDraft;
   const statusLabel: Record<SaveState, string> = {
     idle: dirty ? e.unsaved : e.upToDate,
     saving: e.saving,
@@ -307,6 +368,8 @@ export function StudioEditor({ initialInsight }: Props) {
               "rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest " +
               (isPublished
                 ? "bg-green-500/15 text-green-400"
+                : isScheduled
+                ? "bg-amber-500/15 text-amber-400"
                 : "bg-tint/10 text-muted")
             }
           >
@@ -489,6 +552,42 @@ export function StudioEditor({ initialInsight }: Props) {
                 className="mt-2 aspect-[16/9] w-full rounded-md object-cover"
               />
             ) : null}
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-muted">
+              {e.scheduleLabel}
+            </label>
+            <input
+              type="datetime-local"
+              value={scheduleInput}
+              onChange={(ev) => setScheduleInput(ev.target.value)}
+              className="w-full rounded-md border border-tint/15 bg-tint/[0.04] px-3 py-2 text-sm text-ink"
+            />
+            <p className="mt-1 text-[11px] text-muted">{e.scheduleHint}</p>
+            {isScheduled && insight.published_at ? (
+              <p className="mt-1 text-[11px] text-amber-400">
+                {e.scheduledFor} {new Date(insight.published_at).toLocaleString(preferences.language === "ko" ? "ko-KR" : "en-US")}
+              </p>
+            ) : null}
+            <div className="mt-2 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={scheduleAt}
+                disabled={!scheduleInput}
+                className="rounded-md border border-tint/15 bg-tint/[0.06] px-3 py-1.5 text-xs font-semibold text-ink hover:border-accent/50 disabled:opacity-40"
+              >
+                {e.schedule}
+              </button>
+              {isScheduled ? (
+                <button
+                  type="button"
+                  onClick={cancelSchedule}
+                  className="rounded-md border border-tint/15 px-3 py-1.5 text-xs font-semibold text-muted hover:text-ink"
+                >
+                  {e.cancelSchedule}
+                </button>
+              ) : null}
+            </div>
           </div>
           <div>
             <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-muted">

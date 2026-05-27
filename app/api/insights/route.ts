@@ -31,9 +31,14 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "sign in required" }, { status: 401 });
     }
     query = query.eq("author_id", user.id);
+  } else if (statusParam === "draft") {
+    query = query.eq("status", "draft");
   } else {
-    // Default public listing returns only published posts.
-    query = query.eq("status", statusParam === "draft" ? "draft" : "published");
+    // Default public listing returns published posts + due scheduled posts.
+    const nowIso = new Date().toISOString();
+    query = query.or(
+      `status.eq.published,and(status.eq.scheduled,published_at.lte.${nowIso})`,
+    );
   }
 
   if (category && isInsightCategory(category)) {

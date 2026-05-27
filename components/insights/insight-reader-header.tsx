@@ -43,8 +43,11 @@ export function InsightReaderHeader({ insight }: Props) {
       </Link>
       <div className="mt-4 mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-widest text-accent">
         <span>{categoryLabel(insight.category)}</span>
-        {insight.status !== "published" ? (
+        {insight.status === "draft" ? (
           <span className="rounded-full bg-tint/10 px-2 py-0.5 text-muted">{i.statusDraft}</span>
+        ) : null}
+        {insight.status === "scheduled" ? (
+          <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-amber-400">{i.statusScheduled}</span>
         ) : null}
         <span className="text-muted">·</span>
         <span className="text-muted">
