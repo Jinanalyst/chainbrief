@@ -373,9 +373,14 @@ export function SNSFeed() {
         style={{ gridTemplateColumns: "260px 1fr", transition: "grid-template-columns 200ms ease-in-out" }}
       >
         {/* Left sidebar */}
-        <aside className="hidden lg:flex lg:flex-col lg:border-r lg:border-tint/10 lg:sticky lg:top-24 lg:h-[calc(100vh-6rem)] lg:overflow-hidden">
-          {/* Inner wrapper always 260px so clipping is smooth during animation */}
-          <div className="flex h-full w-[260px] min-w-[260px] flex-col">
+        <aside className="hidden lg:flex lg:flex-col lg:border-r lg:border-tint/10 lg:sticky lg:top-24 lg:h-[calc(100vh-6rem)] lg:overflow-hidden lg:min-w-0">
+          {/* Inner wrapper matches visible area so the toggle stays clickable when collapsed */}
+          <div
+            className={cn(
+              "flex h-full flex-col",
+              sidebarCollapsed ? "w-11 min-w-11" : "w-[260px] min-w-[260px]",
+            )}
+          >
             {/* Sidebar header with toggle button */}
             <div
               className={cn(
