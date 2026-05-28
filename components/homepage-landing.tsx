@@ -11,11 +11,10 @@ import { usePreferences } from "@/lib/i18n/use-i18n";
 const landingCopy = {
   ko: {
     heroBadge: "뉴스를 검증된 관점으로",
-    heroTitle: "실제 사람들이 금융 시장의 노이즈를 걸러냅니다 — 핵심만, 간결하게.",
-    heroText:
-      "Chain Brief는 단순한 크립토 뉴스 요약 서비스가 아닙니다. 실시간 브리프, Bull/Bear 시그널, 커뮤니티 토론, 애널리스트 평판을 연결해 뉴스를 함께 검증되는 시장 관점으로 전환합니다.",
-    primaryCta: "시장 뉴스에 참여하기",
-    secondaryCta: "애널리스트 신뢰도 쌓기",
+    heroTitle: "금융 시장의 노이즈를 걸러냅니다. 핵심만, 간결하게.",
+    heroSubtitle: "Chain Brief로 시장 노이즈를 걸러내고, 핵심을 얻고, 함께 나누세요.",
+    heroText: "",
+    primaryCta: "시작하기",
     heroStats: [
       { value: "24/7", label: "실시간 마켓 브리프" },
       { value: "78%", label: "Bull/Bear 시그널" },
@@ -38,6 +37,9 @@ const landingCopy = {
         meta: "정확도 추적 - 팔로워 2.1K 도달",
       },
     ],
+    briefLabel: "브리프",
+    briefTagline: "노이즈 없이 핵심만 간결하게.",
+    briefDesc: "",
     progressEyebrow: "핵심 구조",
     progressTitle: "뉴스는 의견이 되고, 의견은 평판이 됩니다.",
     progressText:
@@ -114,11 +116,10 @@ const landingCopy = {
   },
   en: {
     heroBadge: "Market news into verified perspectives",
-    heroTitle: "Real people filtering financial market noise — only the essentials, delivered simply.",
-    heroText:
-      "Chain Brief is not just a crypto news summary site. It connects real-time briefs, Bull/Bear sentiment, community discussion, and analyst reputation so market news becomes shared, verified perspective.",
-    primaryCta: "React to Market News",
-    secondaryCta: "Build Analyst Credibility",
+    heroTitle: "Only the essentials, delivered simply.",
+    heroSubtitle: "Gain, Share, Filter Market Noise with Chain Brief.",
+    heroText: "",
+    primaryCta: "Get started",
     heroStats: [
       { value: "24/7", label: "real-time briefs" },
       { value: "78%", label: "Bull/Bear sentiment" },
@@ -167,6 +168,9 @@ const landingCopy = {
         text: "Verified Analysts earn status through repeated signal quality, prediction accuracy, and community trust.",
       },
     ],
+    briefLabel: "Briefs",
+    briefTagline: "No noise. Just the essentials.",
+    briefDesc: "Verified analysts pick only what you need to know about the market right now.",
     howEyebrow: "Information flow",
     howTitle: "A simple path from headline to trusted analyst.",
     howText:
@@ -226,6 +230,7 @@ export function HomepageLanding() {
   return (
     <>
       <HeroSection copy={copy} />
+
       <ProgressionSection copy={copy} />
       <HowItWorksSection copy={copy} />
       <DashboardSection copy={copy} />
@@ -236,6 +241,7 @@ export function HomepageLanding() {
   );
 }
 
+
 function HeroSection({ copy }: { copy: LandingCopy }) {
   return (
     <section className="relative overflow-hidden border-t border-tint/10 bg-background/72">
@@ -244,18 +250,15 @@ function HeroSection({ copy }: { copy: LandingCopy }) {
         <div className="grid min-w-0 gap-10 lg:grid-cols-[minmax(0,0.9fr)_minmax(22rem,0.82fr)] lg:items-center">
           <div className="min-w-0 max-w-4xl">
             <Badge tone="accent">{copy.heroBadge}</Badge>
-            <h1 className="mt-5 max-w-4xl text-balance break-words text-4xl font-semibold leading-[1.08] text-ink sm:text-6xl lg:text-7xl">
+            <h1 className="mt-5 max-w-4xl text-balance break-words text-4xl font-semibold leading-[1.18] text-ink sm:text-6xl lg:text-7xl">
               {copy.heroTitle}
             </h1>
-            <p className="mt-5 max-w-2xl text-base leading-7 text-muted sm:text-lg sm:leading-8">
-              {copy.heroText}
+            <p className="mt-4 max-w-2xl text-base font-medium text-muted sm:text-lg">
+              {copy.heroSubtitle}
             </p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <div className="mt-8">
               <Button className="w-full sm:w-auto" href="/community">
                 {copy.primaryCta}
-              </Button>
-              <Button className="w-full sm:w-auto" href="/analyst/apply" variant="secondary">
-                {copy.secondaryCta}
               </Button>
             </div>
             <div className="mt-8 grid gap-3 border-t border-tint/[0.08] pt-6 sm:grid-cols-3">
