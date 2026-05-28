@@ -249,11 +249,17 @@ export function NotificationSettings({
     setStatusTone("default");
     setStatusMessage(text.testSending);
 
-    const sent = await sendTestPushNotification(keywordForTest);
+    const result = await sendTestPushNotification(keywordForTest);
 
     setIsSendingTest(false);
-    setStatusTone(sent ? "success" : "warning");
-    setStatusMessage(sent ? text.testSuccess : text.testFailed);
+    setStatusTone(result.ok ? "success" : "warning");
+    setStatusMessage(
+      result.ok
+        ? text.testSuccess
+        : result.detail
+          ? `${text.testFailed} (${result.status}: ${result.detail})`
+          : text.testFailed,
+    );
   }
 
   function addKeyword() {

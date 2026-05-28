@@ -125,7 +125,13 @@ export async function sendTestPushNotification(keyword?: string) {
     body: JSON.stringify({ keyword }),
   });
 
-  return response.ok;
+  if (response.ok) {
+    return { ok: true } as const;
+  }
+
+  const detail = await readErrorDetail(response);
+  console.error("Failed to send test push notification:", response.status, detail);
+  return { ok: false, status: response.status, detail } as const;
 }
 
 async function readErrorDetail(response: Response) {
