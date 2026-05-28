@@ -57,6 +57,48 @@ export const snsSources: SnsSource[] = [
     category: "Solana",
     url: youtubeFeed("UC9AdQPUe4BdVJ8M9X7wxHUA"),
   },
+  {
+    id: "syukaworld",
+    name: "슈카월드",
+    provider: "youtube",
+    category: "Macro",
+    url: youtubeFeed("UCsJ6RuBiTVWRX156FVbeaGg"),
+  },
+  {
+    id: "3protv",
+    name: "삼프로TV",
+    provider: "youtube",
+    category: "Macro",
+    url: youtubeFeed("UChlv4GSd7OQl3js-jkLOnFA"),
+  },
+  {
+    id: "us-stock-crazy",
+    name: "미국주식에 미치다 TV",
+    provider: "youtube",
+    category: "Research",
+    url: youtubeFeed("UCibo107UgpabxGBxEa6ixqA"),
+  },
+  {
+    id: "parkgomhee-tv",
+    name: "박곰희TV",
+    provider: "youtube",
+    category: "Research",
+    url: youtubeFeed("UCr7XsrSrvAn_WcU4kF99bbQ"),
+  },
+  {
+    id: "talent-investment",
+    name: "달란트투자",
+    provider: "youtube",
+    category: "Research",
+    url: youtubeFeed("UCBM86JVoHLqg9irpR2XKvGw"),
+  },
+  {
+    id: "dipie",
+    name: "디피",
+    provider: "youtube",
+    category: "Research",
+    url: youtubeFeed("UCSJELOytOHjywS1ynjNsLDA"),
+  },
 ];
 
 export const SNS_REFRESH_SECONDS = 20 * 60;
