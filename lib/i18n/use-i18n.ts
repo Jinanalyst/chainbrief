@@ -33,11 +33,17 @@ export function readStoredPreferences(): BriefPreferences {
           (keyword: unknown): keyword is string => typeof keyword === "string",
         )
       : defaultPreferences.notificationKeywords;
+    const priorityKeywords = Array.isArray(parsed.priorityKeywords)
+      ? parsed.priorityKeywords.filter(
+          (keyword: unknown): keyword is string => typeof keyword === "string",
+        )
+      : defaultPreferences.priorityKeywords;
 
     return {
       ...defaultPreferences,
       ...parsed,
       notificationKeywords,
+      priorityKeywords,
     };
   } catch {
     return defaultPreferences;
@@ -100,6 +106,13 @@ export function normalizeStoredPreferences(value: unknown): BriefPreferences {
         : defaultPreferences.notificationSoundEnabled,
     notificationKeywords,
     notificationPermission,
+    priorityKeywords: Array.isArray(parsed.priorityKeywords)
+      ? parsed.priorityKeywords.filter(
+          (keyword: unknown): keyword is string => typeof keyword === "string",
+        )
+      : defaultPreferences.priorityKeywords,
+    dateFrom: typeof parsed.dateFrom === "string" ? parsed.dateFrom : null,
+    dateTo: typeof parsed.dateTo === "string" ? parsed.dateTo : null,
   };
 }
 

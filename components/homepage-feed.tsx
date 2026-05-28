@@ -252,7 +252,11 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
   }, [briefSourceOverrides, customBriefCategories, customSources]);
 
   const filteredArticles = useMemo(
-    () => filterArticles(articles, preferences, availableSources, briefSourceOverrides),
+    () =>
+      sortByPriorityKeywords(
+        filterArticles(articles, preferences, availableSources, briefSourceOverrides),
+        preferences.priorityKeywords,
+      ),
     [articles, briefSourceOverrides, preferences, availableSources],
   );
   const visibleArticles = filteredArticles.slice(0, visibleArticleCount);
@@ -1553,6 +1557,12 @@ function filterArticlesWithOptions(
 ) {
   const includeKeywords = parseKeywords(preferences.includeKeywords);
   const excludeKeywords = parseKeywords(preferences.excludeKeywords);
+  const dateFromMs = preferences.dateFrom
+    ? new Date(`${preferences.dateFrom}T00:00:00`).getTime()
+    : null;
+  const dateToMs = preferences.dateTo
+    ? new Date(`${preferences.dateTo}T23:59:59.999`).getTime()
+    : null;
 
   return articles.filter((article) => {
     const searchableText = [
@@ -1600,6 +1610,16 @@ function filterArticlesWithOptions(
     const excludesBlocked = excludeKeywords.some((keyword) =>
       searchableText.includes(keyword),
     );
+    let dateMatches = true;
+    if (dateFromMs !== null || dateToMs !== null) {
+      const publishedAtMs = new Date(article.publishedAt).getTime();
+      if (Number.isNaN(publishedAtMs)) {
+        dateMatches = false;
+      } else {
+        if (dateFromMs !== null && publishedAtMs < dateFromMs) dateMatches = false;
+        if (dateToMs !== null && publishedAtMs > dateToMs) dateMatches = false;
+      }
+    }
 
     return (
       sourceMatches &&
@@ -1607,9 +1627,46 @@ function filterArticlesWithOptions(
       stockRegionMatches &&
       stockTypeMatches &&
       includesRequired &&
-      !excludesBlocked
+      !excludesBlocked &&
+      dateMatches
     );
   });
+}
+
+function sortByPriorityKeywords(articles: Article[], priorityKeywords: string[]) {
+  const keywords = priorityKeywords
+    .map((keyword) => keyword.trim().toLowerCase())
+    .filter(Boolean);
+
+  if (keywords.length === 0) return articles;
+
+  const scored = articles.map((article, index) => {
+    const searchableText = [
+      article.title,
+      article.excerpt,
+      article.briefSummary,
+      article.rawContentSnippet,
+      article.category,
+      article.sourceName,
+      ...article.tags,
+    ]
+      .join(" ")
+      .toLowerCase();
+
+    const score = keywords.reduce(
+      (total, keyword) => (searchableText.includes(keyword) ? total + 1 : total),
+      0,
+    );
+
+    return { article, index, score };
+  });
+
+  scored.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    return a.index - b.index;
+  });
+
+  return scored.map((entry) => entry.article);
 }
 
 function parseKeywords(value: string) {

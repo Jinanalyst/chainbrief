@@ -33,6 +33,9 @@ export type BriefPreferences = {
   notificationSoundEnabled: boolean;
   notificationKeywords: string[];
   notificationPermission: "default" | "granted" | "denied" | "unsupported";
+  priorityKeywords: string[];
+  dateFrom: string | null;
+  dateTo: string | null;
 };
 
 export const defaultPreferences: BriefPreferences = {
@@ -47,6 +50,9 @@ export const defaultPreferences: BriefPreferences = {
   notificationSoundEnabled: true,
   notificationKeywords: [],
   notificationPermission: "default",
+  priorityKeywords: [],
+  dateFrom: null,
+  dateTo: null,
 };
 
 export const PREFERENCES_STORAGE_KEY = "chain-brief-preferences";

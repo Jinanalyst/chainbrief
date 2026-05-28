@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { BriefKeywordSettings } from "@/components/brief-keyword-settings";
 import { BriefPreferenceControls } from "@/components/brief-preference-controls";
 import { CustomBriefSources } from "@/components/custom-brief-sources";
 import { CustomRssSources } from "@/components/custom-rss-sources";
@@ -31,6 +32,7 @@ export function SettingsPanel() {
     <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
       <Card className="min-w-0 p-4 sm:p-6">
         <BriefPreferenceControls preferences={preferences} onChange={setPreferences} />
+        <BriefKeywordSettings preferences={preferences} onChange={setPreferences} />
         <CustomBriefSources language={preferences.language} />
         <CustomRssSources language={preferences.language} />
         <NotificationSettings preferences={preferences} onChange={setPreferences} />
