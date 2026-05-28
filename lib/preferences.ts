@@ -36,6 +36,7 @@ export type BriefPreferences = {
   priorityKeywords: string[];
   dateFrom: string | null;
   dateTo: string | null;
+  refreshIntervalMs: number | null;
 };
 
 export const defaultPreferences: BriefPreferences = {
@@ -53,6 +54,7 @@ export const defaultPreferences: BriefPreferences = {
   priorityKeywords: [],
   dateFrom: null,
   dateTo: null,
+  refreshIntervalMs: 5 * 60 * 1000,
 };
 
 export const PREFERENCES_STORAGE_KEY = "chain-brief-preferences";

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Header } from "@/components/header";
 import { HomepageFeed } from "@/components/homepage-feed";
+import { BriefsFixedSidebar } from "@/components/briefs-fixed-sidebar";
 
 export const metadata: Metadata = {
   title: "Briefs — Crypto, Stocks & Macro News",
@@ -18,7 +19,10 @@ export const metadata: Metadata = {
 
 export default function BriefsPage() {
   return (
-    <main className="site-grid min-h-screen overflow-hidden">
+    <main
+      className="site-grid min-h-screen overflow-hidden lg:[padding-left:var(--briefs-sidebar-width,220px)]"
+    >
+      <BriefsFixedSidebar />
       <Header />
       <HomepageFeed showIntro />
     </main>

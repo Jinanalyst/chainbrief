@@ -61,7 +61,7 @@ type HomepageFeedProps = {
   showIntro?: boolean;
 };
 
-const FEED_REFRESH_MS = 5 * 60 * 1000;
+const DEFAULT_FEED_REFRESH_MS = 5 * 60 * 1000;
 const INITIAL_VISIBLE_ARTICLES = 12;
 const VISIBLE_ARTICLE_STEP = 12;
 
@@ -220,15 +220,23 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
     }
 
     loadArticles();
-    const refreshTimer = window.setInterval(() => {
-      loadArticles("refresh");
-    }, FEED_REFRESH_MS);
+    const intervalMs =
+      preferences.refreshIntervalMs && preferences.refreshIntervalMs > 0
+        ? preferences.refreshIntervalMs
+        : null;
+    const refreshTimer = intervalMs
+      ? window.setInterval(() => {
+          loadArticles("refresh");
+        }, intervalMs)
+      : null;
 
     return () => {
       isMounted = false;
-      window.clearInterval(refreshTimer);
+      if (refreshTimer !== null) {
+        window.clearInterval(refreshTimer);
+      }
     };
-  }, [copy.feed.loadErrorMessage, customSources]);
+  }, [copy.feed.loadErrorMessage, customSources, preferences.refreshIntervalMs]);
 
   const availableSources = useMemo(() => {
     const sourceNames = articles.map((article) => article.sourceName);
@@ -380,14 +388,6 @@ export function HomepageFeed({ showIntro = false }: HomepageFeedProps) {
             </div>
           ) : null}
         </div>
-
-        <CategoryTabs
-          activeCategory={preferences.category}
-          categories={dynamicBriefCategories}
-          counts={categoryCounts}
-          language={preferences.language}
-          onChange={setCategory}
-        />
 
         {preferences.category === "Stock Market" && (
           <StockMarketFilters preferences={preferences} onChange={setPreferences} />
@@ -1243,43 +1243,6 @@ function FeedSidebar({
     <aside className="space-y-3 lg:sticky lg:top-24 lg:self-start">
       <Card className="min-w-0 p-4">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
-          {copy.feed.activeSources}
-        </p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <button
-            aria-pressed={allSourcesSelected}
-            className={cn(
-              "rounded-full border px-3 py-1.5 text-xs font-bold transition",
-              allSourcesSelected
-                ? "border-accent/60 bg-accent/20 text-accent-ink"
-                : "border-tint/10 bg-tint/[0.03] text-muted hover:border-accent/50 hover:text-ink",
-            )}
-            onClick={() => onSourceChange("All")}
-            type="button"
-          >
-            {getCategoryLabel("All", preferences.language)}
-          </button>
-          {sources.map((source) => (
-            <button
-              aria-pressed={!allSourcesSelected && preferences.sources.includes(source)}
-              className={cn(
-                "rounded-full border px-3 py-1.5 text-xs font-bold transition",
-                !allSourcesSelected && preferences.sources.includes(source)
-                  ? "border-accent/60 bg-accent/20 text-accent-ink"
-                  : "border-tint/10 bg-tint/[0.03] text-muted hover:border-accent/50 hover:text-ink",
-              )}
-              key={source}
-              onClick={() => onSourceChange(source)}
-              type="button"
-            >
-              {source}
-            </button>
-          ))}
-        </div>
-      </Card>
-
-      <Card className="min-w-0 p-4">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
           {copy.feed.activeFilters}
         </p>
         <dl className="mt-3 grid gap-2 text-sm">
@@ -1311,60 +1274,6 @@ function FeedSidebar({
         <Button className="mt-4 w-full" href="/settings" variant="secondary">
           {copy.feed.customizeFeed}
         </Button>
-      </Card>
-
-      <Card className="min-w-0 p-4">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
-          {language === "ko" ? "카테고리" : "Categories"}
-        </p>
-        <p className="mt-2 text-xs leading-5 text-muted">
-          {language === "ko"
-            ? "직접 카테고리를 추가해 브리프 소스를 분류해 보세요."
-            : "Add your own categories to group brief sources."}
-        </p>
-        <div className="mt-3 flex gap-2">
-          <input
-            className="min-h-9 w-full rounded-md border border-tint/10 bg-background px-3 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
-            maxLength={40}
-            onChange={(event) => onNewBriefCategoryNameChange(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                event.preventDefault();
-                onAddBriefCategory();
-              }
-            }}
-            placeholder={language === "ko" ? "예: 국내 매크로" : "e.g. Korea Macro"}
-            value={newBriefCategoryName}
-          />
-          <button
-            className="shrink-0 rounded-md border border-accent/50 bg-accent/15 px-3 text-xs font-bold text-accent-ink transition hover:bg-accent/25 disabled:opacity-50"
-            disabled={!newBriefCategoryName.trim()}
-            onClick={onAddBriefCategory}
-            type="button"
-          >
-            +
-          </button>
-        </div>
-        {customBriefCategories.length > 0 ? (
-          <div className="mt-3 flex flex-wrap gap-2">
-            {customBriefCategories.map((name) => (
-              <span
-                className="inline-flex items-center gap-1 rounded-full border border-tint/10 bg-tint/[0.04] px-2.5 py-1 text-xs font-semibold text-muted"
-                key={name}
-              >
-                {name}
-                <button
-                  aria-label={language === "ko" ? `${name} 삭제` : `Remove ${name}`}
-                  className="ml-1 text-muted-2 transition hover:text-ink"
-                  onClick={() => onRemoveBriefCategory(name)}
-                  type="button"
-                >
-                  ×
-                </button>
-              </span>
-            ))}
-          </div>
-        ) : null}
       </Card>
 
       {sourceList.length > 0 ? (

@@ -253,6 +253,12 @@ select {
   margin: 1rem 0;
 }
 
+@media (min-width: 1024px) {
+  aside[data-collapsed] {
+    width: var(--sb-w, 220px) !important;
+  }
+}
+
 @keyframes landing-float {
   0%,
   100% {
