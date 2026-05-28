@@ -11,7 +11,7 @@ import { usePreferences } from "@/lib/i18n/use-i18n";
 const landingCopy = {
   ko: {
     heroBadge: "뉴스를 검증된 관점으로",
-    heroTitle: "시장 뉴스에서 커뮤니티가 검증한 관점까지.",
+    heroTitle: "실제 사람들이 금융 시장의 노이즈를 걸러냅니다 — 핵심만, 간결하게.",
     heroText:
       "Chain Brief는 단순한 크립토 뉴스 요약 서비스가 아닙니다. 실시간 브리프, Bull/Bear 시그널, 커뮤니티 토론, 애널리스트 평판을 연결해 뉴스를 함께 검증되는 시장 관점으로 전환합니다.",
     primaryCta: "시장 뉴스에 참여하기",
@@ -114,7 +114,7 @@ const landingCopy = {
   },
   en: {
     heroBadge: "Market news into verified perspectives",
-    heroTitle: "From market news to community-verified perspectives.",
+    heroTitle: "Real people filtering financial market noise — only the essentials, delivered simply.",
     heroText:
       "Chain Brief is not just a crypto news summary site. It connects real-time briefs, Bull/Bear sentiment, community discussion, and analyst reputation so market news becomes shared, verified perspective.",
     primaryCta: "React to Market News",
