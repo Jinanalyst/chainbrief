@@ -35,7 +35,7 @@ const SNS_CATEGORY_LABELS: Record<Language, Partial<Record<SnsCategory, string>>
   },
 };
 
-function getCategoryLabel(category: string, language: Language) {
+export function getCategoryLabel(category: string, language: Language) {
   return SNS_CATEGORY_LABELS[language][category as SnsCategory] ?? category;
 }
 

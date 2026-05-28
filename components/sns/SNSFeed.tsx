@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { CategoryTabs } from "@/components/sns/CategoryTabs";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { CategoryTabs, getCategoryLabel } from "@/components/sns/CategoryTabs";
 import { SNSCard } from "@/components/sns/SNSCard";
 import { SourceBadge } from "@/components/sns/SourceBadge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Container } from "@/components/ui/container";
+import { cn } from "@/lib/cn";
 import {
   readCustomRssSources,
   type CustomRssSource,
@@ -310,13 +310,288 @@ export function SNSFeed() {
     setVisibleVideoCount((current) => current + VISIBLE_VIDEO_STEP);
   }
 
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const layoutRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = layoutRef.current;
+    if (!el) return;
+    el.style.gridTemplateColumns = sidebarCollapsed ? "44px 1fr" : "260px 1fr";
+  }, [sidebarCollapsed]);
+
   const allSourcesSelected = activeSources.length === 0;
+
+  const allSourceEntries = [
+    ...snsSources.map((s) => ({ id: s.id, name: s.name })),
+    ...enabledCustomSources.map((s) => ({ id: s.id, name: s.name })),
+  ];
+
+  const allSourcesForGrouping = [
+    ...snsSources.map((s) => ({
+      id: s.id,
+      name: s.name,
+      defaultCategory: s.category as string,
+    })),
+    ...enabledCustomSources.map((s) => ({
+      id: s.id,
+      name: s.name,
+      defaultCategory: s.customCategory?.trim() || (s.category as string),
+    })),
+  ];
 
   return (
     <section className="border-t border-tint/10 bg-background/72">
-      <Container className="min-w-0 pb-10 pt-4 sm:pb-12 sm:pt-5 lg:pb-16">
-        <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div className="min-w-0">
+      {/* Mobile top filter bar */}
+      <div className="lg:hidden border-b border-tint/10 bg-background/95">
+        <div className="flex overflow-x-auto gap-1.5 px-4 py-2 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <SourceBadge active={allSourcesSelected} onClick={() => toggleSource(ALL_SOURCES)}>
+            {copy.allSources}
+          </SourceBadge>
+          {allSourceEntries.map((source) => (
+            <SourceBadge
+              active={allSourcesSelected || activeSources.includes(source.name)}
+              key={source.id}
+              onClick={() => toggleSource(source.name)}
+            >
+              {source.name}
+            </SourceBadge>
+          ))}
+        </div>
+        <CategoryTabs
+          activeCategory={activeCategory}
+          categories={dynamicCategories}
+          counts={categoryCounts}
+          language={language}
+          onChange={handleCategoryChange}
+        />
+      </div>
+
+      {/* Desktop layout: CSS grid so column width is authoritative over child content */}
+      <div
+        className="lg:grid"
+        ref={layoutRef}
+        style={{ gridTemplateColumns: "260px 1fr", transition: "grid-template-columns 200ms ease-in-out" }}
+      >
+        {/* Left sidebar */}
+        <aside className="hidden lg:flex lg:flex-col lg:border-r lg:border-tint/10 lg:sticky lg:top-24 lg:h-[calc(100vh-6rem)] lg:overflow-hidden">
+          {/* Inner wrapper always 260px so clipping is smooth during animation */}
+          <div className="flex h-full w-[260px] min-w-[260px] flex-col">
+            {/* Sidebar header with toggle button */}
+            <div
+              className={cn(
+                "flex shrink-0 items-center border-b border-tint/10 px-2 py-3",
+                sidebarCollapsed ? "justify-center" : "justify-between",
+              )}
+            >
+              {!sidebarCollapsed ? (
+                <span className="px-1 text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+                  {language === "ko" ? "필터" : "Filters"}
+                </span>
+              ) : null}
+              <button
+                aria-label={
+                  sidebarCollapsed
+                    ? language === "ko" ? "사이드바 펼치기" : "Expand sidebar"
+                    : language === "ko" ? "사이드바 접기" : "Collapse sidebar"
+                }
+                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-tint/10 bg-tint/[0.04] text-muted transition hover:text-ink"
+                onClick={() => setSidebarCollapsed((v) => !v)}
+                title={sidebarCollapsed
+                  ? language === "ko" ? "펼치기" : "Expand"
+                  : language === "ko" ? "접기" : "Collapse"}
+                type="button"
+              >
+                <span aria-hidden>{sidebarCollapsed ? "›" : "‹"}</span>
+              </button>
+            </div>
+
+            {sidebarCollapsed ? (
+              /* Collapsed: abbreviated icon hints */
+              <div className="flex flex-1 flex-col items-center gap-4 py-4 text-[0.6rem] font-bold uppercase tracking-[0.12em] text-muted">
+                <span aria-hidden title={language === "ko" ? "소스" : "Sources"}>소</span>
+                <span aria-hidden title={language === "ko" ? "카테고리" : "Categories"}>카</span>
+              </div>
+            ) : (
+              /* Expanded: full sidebar content */
+              <>
+                <div className="flex-1 overflow-y-auto [scrollbar-width:thin]">
+                  {/* Sources */}
+                  <div className="p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+                      {copy.sources}
+                    </p>
+                    <div className="mt-3 space-y-0.5">
+                      <SidebarItem
+                        active={allSourcesSelected}
+                        onClick={() => toggleSource(ALL_SOURCES)}
+                      >
+                        {copy.allSources}
+                      </SidebarItem>
+                      {allSourceEntries.map((source) => (
+                        <SidebarItem
+                          active={allSourcesSelected || activeSources.includes(source.name)}
+                          key={source.id}
+                          onClick={() => toggleSource(source.name)}
+                        >
+                          {source.name}
+                        </SidebarItem>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Categories */}
+                  <div className="border-t border-tint/10 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+                      {language === "ko" ? "카테고리" : "Categories"}
+                    </p>
+                    <div className="mt-3 space-y-0.5">
+                      {dynamicCategories.map((category) => (
+                        <button
+                          className={cn(
+                            "flex w-full items-center justify-between rounded-md px-2.5 py-1.5 text-sm font-semibold transition",
+                            activeCategory === category
+                              ? "bg-accent/15 text-accent-ink"
+                              : "text-muted hover:bg-tint/[0.05] hover:text-ink",
+                          )}
+                          key={category}
+                          onClick={() => handleCategoryChange(category)}
+                          type="button"
+                        >
+                          <span>{getCategoryLabel(category, language)}</span>
+                          <span className="text-xs font-medium text-muted-2">
+                            {categoryCounts[category] ?? 0}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Add category */}
+                  <div className="border-t border-tint/10 p-4">
+                    <div className="flex gap-2">
+                      <input
+                        className="min-h-9 w-full rounded-md border border-tint/10 bg-background px-3 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
+                        maxLength={40}
+                        onChange={(event) => setNewCategoryName(event.target.value)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            event.preventDefault();
+                            handleAddCategory();
+                          }
+                        }}
+                        placeholder={language === "ko" ? "+ 카테고리 추가" : "+ Add category"}
+                        value={newCategoryName}
+                      />
+                      <button
+                        className="shrink-0 rounded-md border border-accent/50 bg-accent/15 px-3 text-xs font-bold text-accent-ink transition hover:bg-accent/25 disabled:opacity-50"
+                        disabled={!newCategoryName.trim()}
+                        onClick={handleAddCategory}
+                        type="button"
+                      >
+                        +
+                      </button>
+                    </div>
+                    {customCategories.length > 0 ? (
+                      <div className="mt-3 flex flex-wrap gap-1.5">
+                        {customCategories.map((name) => (
+                          <span
+                            className="inline-flex items-center gap-1 rounded-full border border-tint/10 bg-tint/[0.04] px-2.5 py-1 text-xs font-semibold text-muted"
+                            key={name}
+                          >
+                            {name}
+                            <button
+                              aria-label={language === "ko" ? `${name} 삭제` : `Remove ${name}`}
+                              className="ml-0.5 text-muted-2 transition hover:text-ink"
+                              onClick={() => handleRemoveCategory(name)}
+                              type="button"
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+
+                  {/* Creator grouping */}
+                  <div className="border-t border-tint/10 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+                      {language === "ko" ? "크리에이터 분류" : "Group creators"}
+                    </p>
+                    <div className="mt-3 grid gap-2">
+                      {allSourcesForGrouping.map((source) => {
+                        const current = overrides[source.id] ?? "";
+                        return (
+                          <div
+                            className="flex min-w-0 items-center gap-2 rounded-md border border-tint/10 bg-tint/[0.03] px-2.5 py-1.5"
+                            key={source.id}
+                          >
+                            <span className="min-w-0 flex-1 truncate text-xs font-semibold text-ink">
+                              {source.name}
+                            </span>
+                            <select
+                              className="max-w-[7.5rem] rounded-md border border-tint/10 bg-background px-2 py-1 text-xs font-semibold text-ink outline-none transition focus:border-accent"
+                              onChange={(event) =>
+                                handleAssignSourceCategory(source.id, event.target.value)
+                              }
+                              value={current}
+                            >
+                              <option value="">
+                                {language === "ko"
+                                  ? `기본 (${source.defaultCategory})`
+                                  : `Default (${source.defaultCategory})`}
+                              </option>
+                              {dynamicCategories
+                                .filter((c) => c !== "All")
+                                .map((category) => (
+                                  <option key={category} value={category}>
+                                    {category}
+                                  </option>
+                                ))}
+                            </select>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Future integrations */}
+                  <div className="border-t border-tint/10 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+                      {copy.futureIntegrations}
+                    </p>
+                    <div className="mt-3 grid gap-1.5">
+                      {["Telegram", "Twitter/X", "Mirror", "Substack"].map((item) => (
+                        <div
+                          className="rounded-md border border-tint/10 bg-tint/[0.03] px-3 py-2 text-sm font-semibold text-muted"
+                          key={item}
+                        >
+                          {item}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bottom: 소스 관리 */}
+                <div className="shrink-0 border-t border-tint/10 p-4">
+                  <Button className="w-full" href="/settings" variant="secondary">
+                    {language === "ko" ? "소스 관리" : "Manage sources"}
+                  </Button>
+                  <p className="mt-2 text-center text-xs text-muted-2">
+                    {enabledCustomSources.length} / {customSources.length}{" "}
+                    {language === "ko" ? "커스텀 소스 활성화" : "custom sources active"}
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
+        </aside>
+
+        {/* Main content */}
+        <div className="min-w-0 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+          {/* Page header */}
+          <div className="mb-6">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">
               {copy.sectionLabel}
             </p>
@@ -332,257 +607,98 @@ export function SNSFeed() {
                 : copy.refreshWaiting}
             </p>
           </div>
-        </div>
 
-        <CategoryTabs
-          activeCategory={activeCategory}
-          categories={dynamicCategories}
-          counts={categoryCounts}
-          language={language}
-          onChange={handleCategoryChange}
-        />
-
-        <div className="mt-5 grid min-w-0 gap-5 lg:grid-cols-[minmax(0,1fr)_18rem]">
-          <div className="min-w-0">
-            <div className="mb-4 min-w-0 rounded-lg border border-tint/10 bg-surface/78 p-3 sm:p-4">
-              <label className="block">
-                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
-                  {copy.searchLabel}
-                </span>
-                <input
-                  className="mt-2 min-h-11 w-full rounded-md border border-tint/10 bg-background px-4 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
-                  onChange={(event) => handleSearchChange(event.target.value)}
-                  placeholder={copy.searchPlaceholder}
-                  value={searchQuery}
-                />
-              </label>
-            </div>
-
-            {isLoading ? <LoadingState /> : null}
-            {!isLoading && error ? (
-              <ErrorState message={error} title={copy.errorTitle} />
-            ) : null}
-            {!isLoading && !error && videos.length === 0 ? (
-              <EmptyState
-                description={copy.emptyDescription}
-                title={copy.emptyTitle}
+          {/* Search */}
+          <div className="mb-4 rounded-lg border border-tint/10 bg-surface/78 p-3 sm:p-4">
+            <label className="block">
+              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
+                {copy.searchLabel}
+              </span>
+              <input
+                className="mt-2 min-h-11 w-full rounded-md border border-tint/10 bg-background px-4 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
+                onChange={(event) => handleSearchChange(event.target.value)}
+                placeholder={copy.searchPlaceholder}
+                value={searchQuery}
               />
-            ) : null}
-            {!isLoading && !error && videos.length > 0 && filteredVideos.length === 0 ? (
-              <NoMatchesState
-                description={copy.noMatchesDescription}
-                title={copy.noMatchesTitle}
-              />
-            ) : null}
-
-            {!isLoading && !error && filteredVideos.length > 0 ? (
-              <div className="overflow-hidden rounded-lg border border-tint/10 bg-surface/78">
-                <div className="flex min-w-0 items-center justify-between gap-3 border-b border-tint/10 px-3 py-3 sm:px-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
-                    {copy.researchFeed}
-                  </p>
-                  <span className="shrink-0 text-xs font-medium text-muted-2">
-                    {copy.videoCount(filteredVideos.length)}
-                  </span>
-                </div>
-                <div className="divide-y divide-tint/10">
-                  {visibleVideos.map((video) => (
-                    <SNSCard key={video.id} language={language} video={video} />
-                  ))}
-                </div>
-                {hasMoreVideos ? (
-                  <div className="border-t border-tint/10 p-3 sm:p-4">
-                    <Button
-                      className="w-full"
-                      onClick={showMoreVideos}
-                      type="button"
-                      variant="secondary"
-                    >
-                      {copy.showMore}
-                    </Button>
-                  </div>
-                ) : null}
-              </div>
-            ) : null}
+            </label>
           </div>
 
-          <aside className="space-y-3 lg:sticky lg:top-24 lg:self-start">
-            <Card className="min-w-0 p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
-                {copy.sources}
-              </p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <SourceBadge
-                  active={allSourcesSelected}
-                  onClick={() => toggleSource(ALL_SOURCES)}
-                >
-                  {copy.allSources}
-                </SourceBadge>
-                {snsSources.map((source) => (
-                  <SourceBadge
-                    active={allSourcesSelected || activeSources.includes(source.name)}
-                    key={source.id}
-                    onClick={() => toggleSource(source.name)}
-                  >
-                    {source.name}
-                  </SourceBadge>
-                ))}
-                {enabledCustomSources.map((source) => (
-                  <SourceBadge
-                    active={allSourcesSelected || activeSources.includes(source.name)}
-                    key={source.id}
-                    onClick={() => toggleSource(source.name)}
-                  >
-                    {source.name}
-                  </SourceBadge>
+          {/* Feed states */}
+          {isLoading ? <LoadingState /> : null}
+          {!isLoading && error ? (
+            <ErrorState message={error} title={copy.errorTitle} />
+          ) : null}
+          {!isLoading && !error && videos.length === 0 ? (
+            <EmptyState
+              description={copy.emptyDescription}
+              title={copy.emptyTitle}
+            />
+          ) : null}
+          {!isLoading && !error && videos.length > 0 && filteredVideos.length === 0 ? (
+            <NoMatchesState
+              description={copy.noMatchesDescription}
+              title={copy.noMatchesTitle}
+            />
+          ) : null}
+
+          {/* Feed cards */}
+          {!isLoading && !error && filteredVideos.length > 0 ? (
+            <div className="overflow-hidden rounded-lg border border-tint/10 bg-surface/78">
+              <div className="flex min-w-0 items-center justify-between gap-3 border-b border-tint/10 px-3 py-3 sm:px-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+                  {copy.researchFeed}
+                </p>
+                <span className="shrink-0 text-xs font-medium text-muted-2">
+                  {copy.videoCount(filteredVideos.length)}
+                </span>
+              </div>
+              <div className="divide-y divide-tint/10">
+                {visibleVideos.map((video) => (
+                  <SNSCard key={video.id} language={language} video={video} />
                 ))}
               </div>
-            </Card>
-
-            <Card className="min-w-0 p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
-                {copy.customSources}
-              </p>
-              <p className="mt-3 text-sm leading-6 text-muted">
-                {enabledCustomSources.length} / {customSources.length}
-              </p>
-              <Button className="mt-4 w-full" href="/settings" variant="secondary">
-                {language === "ko" ? "소스 관리" : "Manage sources"}
-              </Button>
-            </Card>
-
-            <Card className="min-w-0 p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
-                {language === "ko" ? "카테고리" : "Categories"}
-              </p>
-              <p className="mt-2 text-xs leading-5 text-muted">
-                {language === "ko"
-                  ? "직접 카테고리를 추가해 크리에이터를 분류해 보세요."
-                  : "Add your own categories to group creators."}
-              </p>
-              <div className="mt-3 flex gap-2">
-                <input
-                  className="min-h-9 w-full rounded-md border border-tint/10 bg-background px-3 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
-                  maxLength={40}
-                  onChange={(event) => setNewCategoryName(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") {
-                      event.preventDefault();
-                      handleAddCategory();
-                    }
-                  }}
-                  placeholder={
-                    language === "ko" ? "예: 한국 크리에이터" : "e.g. Korean Creators"
-                  }
-                  value={newCategoryName}
-                />
-                <button
-                  className="shrink-0 rounded-md border border-accent/50 bg-accent/15 px-3 text-xs font-bold text-accent-ink transition hover:bg-accent/25 disabled:opacity-50"
-                  disabled={!newCategoryName.trim()}
-                  onClick={handleAddCategory}
-                  type="button"
-                >
-                  +
-                </button>
-              </div>
-              {customCategories.length > 0 ? (
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {customCategories.map((name) => (
-                    <span
-                      className="inline-flex items-center gap-1 rounded-full border border-tint/10 bg-tint/[0.04] px-2.5 py-1 text-xs font-semibold text-muted"
-                      key={name}
-                    >
-                      {name}
-                      <button
-                        aria-label={language === "ko" ? `${name} 삭제` : `Remove ${name}`}
-                        className="ml-1 text-muted-2 transition hover:text-ink"
-                        onClick={() => handleRemoveCategory(name)}
-                        type="button"
-                      >
-                        ×
-                      </button>
-                    </span>
-                  ))}
+              {hasMoreVideos ? (
+                <div className="border-t border-tint/10 p-3 sm:p-4">
+                  <Button
+                    className="w-full"
+                    onClick={showMoreVideos}
+                    type="button"
+                    variant="secondary"
+                  >
+                    {copy.showMore}
+                  </Button>
                 </div>
               ) : null}
-            </Card>
-
-            <Card className="min-w-0 p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
-                {language === "ko" ? "크리에이터 분류" : "Group creators"}
-              </p>
-              <p className="mt-2 text-xs leading-5 text-muted">
-                {language === "ko"
-                  ? "각 채널을 원하는 카테고리로 옮길 수 있어요."
-                  : "Reassign any channel to a category you choose."}
-              </p>
-              <div className="mt-3 grid gap-2">
-                {[
-                  ...snsSources.map((s) => ({
-                    id: s.id,
-                    name: s.name,
-                    defaultCategory: s.category as string,
-                  })),
-                  ...enabledCustomSources.map((s) => ({
-                    id: s.id,
-                    name: s.name,
-                    defaultCategory: s.customCategory?.trim() || (s.category as string),
-                  })),
-                ].map((source) => {
-                  const current = overrides[source.id] ?? "";
-                  return (
-                    <div
-                      className="flex min-w-0 items-center gap-2 rounded-md border border-tint/10 bg-tint/[0.03] px-2.5 py-1.5"
-                      key={source.id}
-                    >
-                      <span className="min-w-0 flex-1 truncate text-xs font-semibold text-ink">
-                        {source.name}
-                      </span>
-                      <select
-                        className="max-w-[8.5rem] rounded-md border border-tint/10 bg-background px-2 py-1 text-xs font-semibold text-ink outline-none transition focus:border-accent"
-                        onChange={(event) =>
-                          handleAssignSourceCategory(source.id, event.target.value)
-                        }
-                        value={current}
-                      >
-                        <option value="">
-                          {language === "ko"
-                            ? `기본 (${source.defaultCategory})`
-                            : `Default (${source.defaultCategory})`}
-                        </option>
-                        {dynamicCategories
-                          .filter((c) => c !== "All")
-                          .map((category) => (
-                            <option key={category} value={category}>
-                              {category}
-                            </option>
-                          ))}
-                      </select>
-                    </div>
-                  );
-                })}
-              </div>
-            </Card>
-
-            <Card className="min-w-0 p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
-                {copy.futureIntegrations}
-              </p>
-              <div className="mt-3 grid gap-2">
-                {["Telegram", "Twitter/X", "Mirror", "Substack"].map((item) => (
-                  <div
-                    className="rounded-md border border-tint/10 bg-tint/[0.03] px-3 py-2 text-sm font-semibold text-muted"
-                    key={item}
-                  >
-                    {item}
-                  </div>
-                ))}
-              </div>
-            </Card>
-          </aside>
+            </div>
+          ) : null}
         </div>
-      </Container>
+      </div>
     </section>
+  );
+}
+
+function SidebarItem({
+  active,
+  children,
+  onClick,
+}: {
+  active: boolean;
+  children: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      className={cn(
+        "flex w-full items-center rounded-md px-2.5 py-1.5 text-sm font-semibold transition",
+        active
+          ? "bg-accent/15 text-accent-ink"
+          : "text-muted hover:bg-tint/[0.05] hover:text-ink",
+      )}
+      onClick={onClick}
+      type="button"
+    >
+      {children}
+    </button>
   );
 }
 
