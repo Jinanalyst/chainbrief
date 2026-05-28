@@ -7,6 +7,7 @@ import { cn } from "@/lib/cn";
 import { ProfileTab } from "./_components/ProfileTab";
 import { MembershipTab } from "./_components/MembershipTab";
 import { AnalyticsTab } from "./_components/AnalyticsTab";
+import { SettingsPanel } from "@/components/settings-panel";
 
 // ── Toast ────────────────────────────────────────────────────────────────────
 
@@ -29,6 +30,7 @@ const TABS = [
   { id: "profile",    label: "Profile" },
   { id: "membership", label: "Membership" },
   { id: "analytics",  label: "Analytics" },
+  { id: "settings",   label: "Settings" },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
@@ -73,6 +75,7 @@ export default function DashboardPage() {
         {activeTab === "profile"    && <ProfileTab    showToast={showToast} />}
         {activeTab === "membership" && <MembershipTab showToast={showToast} />}
         {activeTab === "analytics"  && <AnalyticsTab />}
+        {activeTab === "settings"   && <SettingsPanel />}
       </Container>
 
       <Toast visible={toast.visible} message={toast.message} />

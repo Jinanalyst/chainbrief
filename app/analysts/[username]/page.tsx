@@ -60,7 +60,7 @@ export default async function AnalystRootPage() {
   }
 
   if (shouldOpenDashboard) {
-    redirect("/analyst/dashboard");
+    redirect("/analytics/dashboard");
   }
 
   return (
@@ -84,7 +84,7 @@ export default async function AnalystRootPage() {
                 profile built for audience growth and paid memberships.
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <Button className="min-w-48" href="/analyst/apply">
+                <Button className="min-w-48" href="/analytics/apply">
                   Start building
                 </Button>
                 <Button className="min-w-48" href="/analysts" variant="secondary">
@@ -196,8 +196,8 @@ export default async function AnalystRootPage() {
                 with an audience and a revenue engine behind it.
               </p>
               <div className="mt-7 flex flex-wrap gap-3">
-                <Button href="/analyst/apply">Become an analyst</Button>
-                <Button href="/analyst/status" variant="secondary">
+                <Button href="/analytics/apply">Become an analyst</Button>
+                <Button href="/analytics/status" variant="secondary">
                   Check status
                 </Button>
               </div>

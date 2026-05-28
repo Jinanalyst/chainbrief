@@ -410,7 +410,7 @@ export function AnalystDashboardView({ snapshot }: { snapshot: DashboardSnapshot
             <p className="mt-3 text-sm leading-6 text-muted">{d.nextStepsText}</p>
             <div className="mt-4 flex flex-wrap gap-2">
               <Button href="/community/write">{d.writeNow}</Button>
-              <Button href="/analyst/status" variant="secondary">{d.status}</Button>
+              <Button href="/analytics/status" variant="secondary">{d.status}</Button>
             </div>
           </Card>
 

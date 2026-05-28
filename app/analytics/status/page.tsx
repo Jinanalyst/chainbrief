@@ -27,13 +27,13 @@ export default async function AnalystStatusPage() {
     const ctx = await getCurrentUserContext();
     user = ctx.user;
   } catch { /* Supabase unreachable */ }
-  if (!user) redirect("/login?next=/analyst/status");
+  if (!user) redirect("/login?next=/analytics/status");
 
   let application = null;
   try {
     application = await getLatestApplicationForUser(user.id);
   } catch { /* table may not exist */ }
-  if (!application) redirect("/analyst/apply");
+  if (!application) redirect("/analytics/apply");
 
   const reapplyAt = new Date(application.applied_at);
   reapplyAt.setDate(reapplyAt.getDate() + 30);
@@ -74,7 +74,7 @@ export default async function AnalystStatusPage() {
 
               {application.status === "approved" ? (
                 <div className="mt-6 flex flex-wrap gap-2">
-                  <Button href="/analyst/dashboard">Open dashboard</Button>
+                  <Button href="/analytics/dashboard">Open dashboard</Button>
                   <Button href="/community/write" variant="secondary">
                     Write as analyst
                   </Button>
@@ -94,13 +94,13 @@ export default async function AnalystStatusPage() {
 
                   <div className="flex flex-wrap gap-2">
                     {canReapply ? (
-                      <Button href="/analyst/apply">재신청하기</Button>
+                      <Button href="/analytics/apply">재신청하기</Button>
                     ) : (
                       <Button disabled type="button">
                         재신청하기
                       </Button>
                     )}
-                    <Button href="/analyst/apply" variant="secondary">
+                    <Button href="/analytics/apply" variant="secondary">
                       Back to application
                     </Button>
                   </div>

@@ -34,13 +34,13 @@ export default async function AnalystDashboardPage() {
     const ctx = await getCurrentUserContext();
     user = ctx.user;
   } catch { /* Supabase unreachable */ }
-  if (!user) redirect("/login?next=/analyst/dashboard");
+  if (!user) redirect("/login?next=/analytics/dashboard");
 
   let approved = null;
   try {
     approved = await getApprovedAnalystProfile(user.id);
   } catch { /* table may not exist */ }
-  if (!approved) redirect("/analyst/status");
+  if (!approved) redirect("/analytics/status");
 
   let snapshot: DashboardSnapshot;
   try {

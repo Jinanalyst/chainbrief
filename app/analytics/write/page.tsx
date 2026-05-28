@@ -49,7 +49,7 @@ export default function AnalystWritePage() {
   // Fetch live subscriber count from API when analystId changes
   useEffect(() => {
     if (!analystId || analystId === "analyst") return;
-    fetch(`/api/analyst/subscribers?analystId=${encodeURIComponent(analystId)}`)
+    fetch(`/api/analytics/subscribers?analystId=${encodeURIComponent(analystId)}`)
       .then((r) => r.ok ? r.json() : null)
       .then((data: { count?: number } | null) => {
         if (data && typeof data.count === "number") {
@@ -142,7 +142,7 @@ export default function AnalystWritePage() {
     // Notify subscribers via API (fire-and-forget)
     if (notifySubscribers && subscriberCount > 0) {
       try {
-        await fetch("/api/analyst/subscribe", {
+        await fetch("/api/analytics/subscribe", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -310,7 +310,7 @@ export default function AnalystWritePage() {
                 <Button disabled={isPublishing} onClick={publish} type="button">
                   {isPublishing ? "Publishing…" : "Publish post"}
                 </Button>
-                <Button href="/analyst/dashboard" variant="secondary">Cancel</Button>
+                <Button href="/analytics/dashboard" variant="secondary">Cancel</Button>
                 {subscriberCount > 0 && (
                   <label className="flex items-center gap-2 text-xs text-muted cursor-pointer">
                     <input

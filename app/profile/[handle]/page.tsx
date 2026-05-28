@@ -503,7 +503,7 @@ export default function MembershipPage() {
                     <Button onClick={publishToCommunity} type="button">
                       Publish to Community
                     </Button>
-                    <Button href="/analyst/write" variant="secondary">
+                    <Button href="/analytics/write" variant="secondary">
                       Open analyst writer
                     </Button>
                   </div>

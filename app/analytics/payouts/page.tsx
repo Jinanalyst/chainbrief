@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
 export default function AnalystPayoutsRedirectPage() {
-  redirect("/analyst/dashboard");
+  redirect("/analytics/dashboard");
 }

@@ -25,9 +25,7 @@ export function Header() {
     { href: "/insights", label: copy.nav.insights },
     { href: "/community", label: copy.nav.community },
     { href: "/market", label: copy.nav.market },
-    { href: "/analyst", label: copy.nav.analyst },
     { href: "/sns", label: copy.nav.sns },
-    { href: "/settings", label: copy.nav.settings },
   ];
 
   function setLanguage(language: typeof preferences.language) {

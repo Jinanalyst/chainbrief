@@ -32,7 +32,7 @@ export default async function AdminAnalystApplicationsPage() {
 
   const { profile } = await getCurrentUserContext();
   if (profile?.role !== "admin") {
-    redirect("/analyst/apply");
+    redirect("/analytics/apply");
   }
 
   const applications = await listAnalystApplicationsForAdmin();

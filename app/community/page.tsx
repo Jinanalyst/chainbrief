@@ -918,8 +918,8 @@ function AnalystScoreCard({ compact = false, userId }: { compact?: boolean; user
   useEffect(() => {
     let cancelled = false;
     const url = userId
-      ? `/api/analyst/score?userId=${encodeURIComponent(userId)}`
-      : `/api/analyst/score`;
+      ? `/api/analytics/score?userId=${encodeURIComponent(userId)}`
+      : `/api/analytics/score`;
     fetch(url, { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {

@@ -47,7 +47,7 @@ export async function submitAnalystApplicationAction(
     const { supabase, user } = await getCurrentUserContext();
 
     if (!user) {
-      redirect("/login?next=/analyst/apply");
+      redirect("/login?next=/analytics/apply");
     }
 
     await ensureProfileRow(supabase, user.id, {
@@ -92,14 +92,14 @@ export async function submitAnalystApplicationAction(
 
     const latest = await getLatestApplicationForUser(user.id);
     if (latest?.status === "pending" || latest?.status === "approved") {
-      redirect("/analyst/status");
+      redirect("/analytics/status");
     }
 
     if (latest?.status === "rejected") {
       const reapplyAt = new Date(latest.applied_at);
       reapplyAt.setDate(reapplyAt.getDate() + 30);
       if (new Date() < reapplyAt) {
-        redirect("/analyst/status");
+        redirect("/analytics/status");
       }
     }
 
@@ -153,9 +153,9 @@ export async function submitAnalystApplicationAction(
       });
     }
 
-    revalidatePath("/analyst/apply");
-    revalidatePath("/analyst/dashboard");
-    redirect("/analyst/dashboard");
+    revalidatePath("/analytics/apply");
+    revalidatePath("/analytics/dashboard");
+    redirect("/analytics/dashboard");
   } catch (err) {
     // redirect() throws internally in Next.js — let it propagate
     if (isRedirectError(err)) throw err;
@@ -179,7 +179,7 @@ export async function saveAnalystDashboardSettingsAction(formData: FormData) {
 
     const snapshot = await getApprovedAnalystProfile(user.id);
     if (!snapshot) {
-      redirect("/analyst/apply");
+      redirect("/analytics/apply");
     }
 
     const membershipEnabled = formData.get("membership_enabled") === "on";
@@ -193,7 +193,7 @@ export async function saveAnalystDashboardSettingsAction(formData: FormData) {
       membershipPriceUsd < 1 ||
       membershipPriceUsd > 50
     ) {
-      redirect("/analyst/dashboard?error=price");
+      redirect("/analytics/dashboard?error=price");
     }
 
     // Derive slug from display name so the webhook can map slug → UUID
@@ -212,11 +212,11 @@ export async function saveAnalystDashboardSettingsAction(formData: FormData) {
   } catch (err) {
     if (isRedirectError(err)) throw err;
     console.error("saveAnalystDashboardSettingsAction error:", err);
-    redirect("/analyst/dashboard?error=save");
+    redirect("/analytics/dashboard?error=save");
   }
 
-  revalidatePath("/analyst/dashboard");
-  redirect("/analyst/dashboard?saved=1");
+  revalidatePath("/analytics/dashboard");
+  redirect("/analytics/dashboard?saved=1");
 }
 
 export async function approveAnalystApplicationAction(formData: FormData) {
@@ -228,7 +228,7 @@ export async function approveAnalystApplicationAction(formData: FormData) {
     }
 
     if (profile?.role !== "admin") {
-      redirect("/analyst/apply");
+      redirect("/analytics/apply");
     }
 
     const applicationId = optionalString(formData.get("application_id"));
@@ -250,7 +250,7 @@ export async function approveAnalystApplicationAction(formData: FormData) {
           subject: "Your Chain Brief analyst application has been approved!",
           html: buildApprovalEmailHtml({
             fullName,
-            dashboardUrl: `${BASE_URL}/analyst/dashboard`,
+            dashboardUrl: `${BASE_URL}/analytics/dashboard`,
           }),
         }).catch(() => {});
       }
@@ -261,8 +261,8 @@ export async function approveAnalystApplicationAction(formData: FormData) {
   }
 
   revalidatePath("/admin/analyst-applications");
-  revalidatePath("/analyst/status");
-  revalidatePath("/analyst/dashboard");
+  revalidatePath("/analytics/status");
+  revalidatePath("/analytics/dashboard");
   redirect("/admin/analyst-applications");
 }
 
@@ -275,7 +275,7 @@ export async function rejectAnalystApplicationAction(formData: FormData) {
     }
 
     if (profile?.role !== "admin") {
-      redirect("/analyst/apply");
+      redirect("/analytics/apply");
     }
 
     const applicationId = optionalString(formData.get("application_id"));
@@ -304,7 +304,7 @@ export async function rejectAnalystApplicationAction(formData: FormData) {
             html: buildRejectionEmailHtml({
               fullName: (rejectedApp as { full_name?: string }).full_name ?? "Analyst",
               reason,
-              applyUrl: `${BASE_URL}/analyst/status`,
+              applyUrl: `${BASE_URL}/analytics/status`,
             }),
           }).catch(() => {});
         }
@@ -316,7 +316,7 @@ export async function rejectAnalystApplicationAction(formData: FormData) {
   }
 
   revalidatePath("/admin/analyst-applications");
-  revalidatePath("/analyst/status");
+  revalidatePath("/analytics/status");
   redirect("/admin/analyst-applications");
 }
 
@@ -326,7 +326,7 @@ export async function saveWithdrawAddressAction(formData: FormData) {
     if (!user) redirect("/login");
 
     const snapshot = await getApprovedAnalystProfile(user.id);
-    if (!snapshot) redirect("/analyst/apply");
+    if (!snapshot) redirect("/analytics/apply");
 
     const tronAddress = optionalString(formData.get("tron_usdt_address")).slice(0, 200);
 
@@ -339,11 +339,11 @@ export async function saveWithdrawAddressAction(formData: FormData) {
   } catch (err) {
     if (isRedirectError(err)) throw err;
     console.error("saveWithdrawAddressAction error:", err);
-    redirect("/analyst/dashboard?error=withdraw");
+    redirect("/analytics/dashboard?error=withdraw");
   }
 
-  revalidatePath("/analyst/dashboard");
-  redirect("/analyst/dashboard?saved=1");
+  revalidatePath("/analytics/dashboard");
+  redirect("/analytics/dashboard?saved=1");
 }
 
 // ── helpers ────────────────────────────────────────────────────────────────────

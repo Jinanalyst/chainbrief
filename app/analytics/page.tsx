@@ -13,12 +13,12 @@ export default async function AnalystRootPage() {
       const { user } = await getCurrentUserContext();
       if (user) {
         const approved = await getApprovedAnalystProfile(user.id);
-        if (approved) redirect("/analyst/dashboard");
+        if (approved) redirect("/analytics/dashboard");
       }
     } catch {
       // Supabase unreachable — fall through to apply page
     }
   }
 
-  redirect("/analyst/apply");
+  redirect("/analytics/apply");
 }

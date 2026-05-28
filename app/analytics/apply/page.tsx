@@ -74,7 +74,7 @@ export default async function AnalystApplyPage() {
   }
 
   if (!user) {
-    redirect("/login?next=/analyst/apply");
+    redirect("/login?next=/analytics/apply");
   }
 
   try {
@@ -85,12 +85,12 @@ export default async function AnalystApplyPage() {
 
   // Already approved → go to dashboard
   if (latestApplication?.status === "approved") {
-    redirect("/analyst/dashboard");
+    redirect("/analytics/dashboard");
   }
 
   // Pending → go to status
   if (latestApplication?.status === "pending") {
-    redirect("/analyst/status");
+    redirect("/analytics/status");
   }
 
   return (

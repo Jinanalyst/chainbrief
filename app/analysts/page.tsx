@@ -108,8 +108,8 @@ export default function AnalystsDirectoryPage() {
               Subscribe to verified analysts and get their research delivered to your inbox. Free and premium newsletters, all in one place.
             </p>
             <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-              <Button href="/analyst/apply">Become an analyst</Button>
-              <Button href="/analyst/dashboard" variant="secondary">My dashboard</Button>
+              <Button href="/analytics/apply">Become an analyst</Button>
+              <Button href="/analytics/dashboard" variant="secondary">My dashboard</Button>
             </div>
           </div>
         </Container>
@@ -242,8 +242,8 @@ function EmptyState() {
         Be the first to publish research on Chain Brief. Apply to become a verified analyst and start your newsletter.
       </p>
       <div className="mt-6 flex flex-wrap justify-center gap-3">
-        <Button href="/analyst/apply">Apply now</Button>
-        <Button href="/analyst/write" variant="secondary">Write your first post</Button>
+        <Button href="/analytics/apply">Apply now</Button>
+        <Button href="/analytics/write" variant="secondary">Write your first post</Button>
       </div>
     </div>
   );
