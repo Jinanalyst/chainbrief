@@ -510,9 +510,6 @@ function FinalCtaSection({ copy }: { copy: LandingCopy }) {
               <Button className="w-full sm:w-auto" href="/community/write">
                 {copy.writeCta}
               </Button>
-              <Button className="w-full sm:w-auto" href="/analytics/apply" variant="secondary">
-                {copy.applyCta}
-              </Button>
             </div>
           </div>
         </div>
