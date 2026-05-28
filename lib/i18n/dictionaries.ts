@@ -38,7 +38,7 @@ export const dictionaries = {
       community: "커뮤니티",
       market: "마켓",
       analyst: "애널리스트",
-      sns: "Creators",
+      sns: "크리에이터",
       settings: "설정",
       about: "소개",
       readBriefs: "브리프 읽기",
