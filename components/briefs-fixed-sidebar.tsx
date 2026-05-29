@@ -8,6 +8,12 @@ import {
   type BriefPreferences,
 } from "@/lib/preferences";
 import { usePreferences } from "@/lib/i18n/use-i18n";
+import {
+  CUSTOM_BRIEF_CATEGORIES_CHANGED_EVENT,
+  addCustomBriefCategory,
+  readCustomBriefCategories,
+  removeCustomBriefCategory,
+} from "@/lib/custom-brief-categories";
 
 const SOURCE_GROUPS: { id: string; labelKo: string; labelEn: string; sources: string[] }[] = [
   {
@@ -61,6 +67,9 @@ export function BriefsFixedSidebar() {
   const [preferences, setPreferences] = usePreferences();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [customCategories, setCustomCategories] = useState<string[]>([]);
+  const [showAddCategory, setShowAddCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
 
   useEffect(() => {
     const width = collapsed ? "44px" : "220px";
@@ -69,6 +78,17 @@ export function BriefsFixedSidebar() {
       document.documentElement.style.removeProperty("--briefs-sidebar-width");
     };
   }, [collapsed]);
+
+  useEffect(() => {
+    function sync() {
+      setCustomCategories(readCustomBriefCategories());
+    }
+    sync();
+    window.addEventListener(CUSTOM_BRIEF_CATEGORIES_CHANGED_EVENT, sync);
+    return () => {
+      window.removeEventListener(CUSTOM_BRIEF_CATEGORIES_CHANGED_EVENT, sync);
+    };
+  }, []);
   const lang: LanguagePref = preferences.language;
 
   const allKnownSources = useMemo(
@@ -80,6 +100,29 @@ export function BriefsFixedSidebar() {
 
   function selectCategory(category: string) {
     setPreferences({ ...preferences, category });
+  }
+
+  const allCategories = useMemo(() => {
+    const base = BRIEF_CATEGORIES;
+    return [...base, ...customCategories.filter((c) => !base.includes(c))];
+  }, [customCategories]);
+
+  function handleAddCategory() {
+    const trimmed = newCategoryName.trim();
+    if (!trimmed) return;
+    const next = addCustomBriefCategory(trimmed);
+    setCustomCategories(next);
+    setNewCategoryName("");
+    setShowAddCategory(false);
+    setPreferences({ ...preferences, category: trimmed });
+  }
+
+  function handleRemoveCategory(name: string) {
+    const next = removeCustomBriefCategory(name);
+    setCustomCategories(next);
+    if (preferences.category === name) {
+      setPreferences({ ...preferences, category: "All" });
+    }
   }
 
   function toggleSource(source: string) {
@@ -200,13 +243,14 @@ export function BriefsFixedSidebar() {
                   {labelOf("카테고리", "Categories")}
                 </h3>
                 <div role="radiogroup" className="grid gap-1">
-                  {BRIEF_CATEGORIES.map((category) => {
+                  {allCategories.map((category) => {
                     const active = preferences.category === category;
+                    const isCustom = !BRIEF_CATEGORIES.includes(category);
                     return (
                       <label
                         key={category}
                         className={cn(
-                          "flex cursor-pointer items-center gap-2 rounded-md border px-2 py-1.5 text-sm font-medium transition",
+                          "group flex cursor-pointer items-center gap-2 rounded-md border px-2 py-1.5 text-sm font-medium transition",
                           active
                             ? "border-accent/60 bg-accent/15 text-accent-ink"
                             : "border-transparent text-muted hover:border-tint/10 hover:bg-tint/[0.04] hover:text-ink",
@@ -219,11 +263,68 @@ export function BriefsFixedSidebar() {
                           checked={active}
                           onChange={() => selectCategory(category)}
                         />
-                        <span>{categoryLabel(category, lang)}</span>
+                        <span className="flex-1 truncate">
+                          {isCustom ? category : categoryLabel(category, lang)}
+                        </span>
+                        {isCustom ? (
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.preventDefault();
+                              handleRemoveCategory(category);
+                            }}
+                            className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded text-xs text-muted-2 opacity-0 transition hover:bg-tint/10 hover:text-ink group-hover:opacity-100"
+                            aria-label={labelOf(`${category} 삭제`, `Remove ${category}`)}
+                            title={labelOf("삭제", "Remove")}
+                          >
+                            <span aria-hidden>×</span>
+                          </button>
+                        ) : null}
                       </label>
                     );
                   })}
                 </div>
+
+                {showAddCategory ? (
+                  <div className="mt-2 flex items-center gap-1.5">
+                    <input
+                      autoFocus
+                      type="text"
+                      value={newCategoryName}
+                      onChange={(event) => setNewCategoryName(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.preventDefault();
+                          handleAddCategory();
+                        } else if (event.key === "Escape") {
+                          event.preventDefault();
+                          setNewCategoryName("");
+                          setShowAddCategory(false);
+                        }
+                      }}
+                      placeholder={labelOf("새 카테고리", "New category")}
+                      className="min-w-0 flex-1 rounded-md border border-tint/15 bg-background px-2 py-1.5 text-xs font-medium text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/25"
+                      maxLength={40}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddCategory}
+                      disabled={!newCategoryName.trim()}
+                      className="inline-flex h-7 items-center justify-center rounded-md border border-accent/40 bg-accent/15 px-2.5 text-xs font-bold text-accent-ink transition hover:bg-accent/25 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {labelOf("추가", "Add")}
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setShowAddCategory(true)}
+                    className="mt-2 flex w-full items-center gap-2 rounded-md border border-dashed border-tint/20 px-2 py-1.5 text-xs font-semibold text-muted transition hover:border-accent/40 hover:bg-accent/5 hover:text-accent-ink"
+                  >
+                    <span aria-hidden className="text-base leading-none">+</span>
+                    <span>{labelOf("카테고리 추가", "Add category")}</span>
+                  </button>
+                )}
               </section>
 
               {/* Sources */}
