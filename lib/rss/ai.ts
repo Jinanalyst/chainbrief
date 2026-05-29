@@ -50,12 +50,25 @@ function stripByline(text: string) {
       .replace(/^\s*[A-Z][\p{L}.'\- ]{1,40}\s*(?:,|·|\||–|—|-)\s*(?:reporter|correspondent|staff|editor|writer)\b[^.!?。！？]*[.!?。！？]?\s*/iu, "")
       // Korean byline: "홍길동 기자" / "홍길동 기자 ="
       .replace(/^\s*[\p{L}]{2,5}\s*기자\s*(?:=|·|\||-|–|—)?\s*/u, "")
-      // Dateline: "SEOUL, May 29 (Reuters) -" / "[서울=뉴스1]"
+      // Dateline: "SEOUL, May 29 (Reuters) -" / "[서울=뉴스1]" / "(세종=연합뉴스)"
       .replace(/^\s*\[[^\]]{1,60}\]\s*/, "")
+      .replace(/^\s*\([^)]{1,60}=[^)]{1,60}\)\s*/, "")
       .replace(/^\s*[A-Z][A-Z\s,]{1,40},\s*[A-Z][a-z]+\s*\d{1,2}\s*\([^)]+\)\s*[-–—:]\s*/, "")
-      .replace(/^\s*\(?[A-Z][A-Z]+\)?\s*[-–—:]\s*/, "");
+      .replace(/^\s*\(?[A-Z][A-Z]+\)?\s*[-–—:]\s*/, "")
+      // Korean reporter line that may follow the dateline: "오진송 기자 =" / "홍길동 기자 ·"
+      .replace(/^\s*[\p{Script=Hangul}]{2,5}\s*기자\s*[=·:|\-–—]?\s*/u, "");
     if (out === before) break;
   }
+  // Global passes: strip reporter mentions and contact lines anywhere in the brief.
+  out = out
+    // "홍길동 기자 = " anywhere (the "=" is a hard byline marker)
+    .replace(/[\p{Script=Hangul}]{2,5}\s*기자\s*=\s*/gu, "")
+    // Email contact like "reporter@news.com" or "기자 email@x.com"
+    .replace(/\s*[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}\s*/g, " ")
+    // Trailing reporter sign-off: "... 김철수 기자.", "... 김철수 기자 / 연합뉴스"
+    .replace(/[\p{Script=Hangul}]{2,5}\s*기자(?:\s*[\/|·]\s*[^.!?。！？]{1,30})?\s*[.。]?\s*$/u, "")
+    // Collapse any double-spaces we introduced
+    .replace(/\s{2,}/g, " ");
   return out.trim();
 }
 
