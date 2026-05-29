@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { hasSupabaseConfig } from "@/lib/supabase/config";
@@ -157,13 +158,14 @@ export function PostOwnerMenu({
         </div>
       ) : null}
 
-      {editing ? (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) setEditing(false);
-          }}
-        >
+      {editing && typeof document !== "undefined"
+        ? createPortal(
+            <div
+              className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4"
+              onMouseDown={(event) => {
+                if (event.target === event.currentTarget) setEditing(false);
+              }}
+            >
           <div className="w-full max-w-lg rounded-xl border border-tint/15 bg-background p-5 shadow-xl">
             <h2 className="text-base font-semibold text-ink">
               {t("글 수정", "Edit post")}
@@ -225,8 +227,10 @@ export function PostOwnerMenu({
               </button>
             </div>
           </div>
-        </div>
-      ) : null}
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }
