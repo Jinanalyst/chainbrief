@@ -12,7 +12,7 @@ export async function createAiBrief(article: Article) {
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
     const message = await client.messages.create({
       model: MODEL,
-      max_tokens: 180,
+      max_tokens: 320,
       temperature: 0.2,
       system:
         "You write concise Korean financial news briefs for Chain Brief. Return exactly two sentences that summarize the overall information of the article, like the opening lines of a news report. Ignore and strip any journalist byline, reporter name, dateline (e.g. 'By Jane Doe', '홍길동 기자', '[서울=뉴스1]', 'SEOUL (Reuters) -') from the input — the two sentences must contain only the actual story content. No markdown, no bullet points, no tags, no source/title prefix, no investment advice.",
@@ -31,7 +31,10 @@ export async function createAiBrief(article: Article) {
     });
     const text =
       message.content[0]?.type === "text" ? message.content[0].text.trim() : "";
-    return text || createRuleBasedBrief(article);
+    // Guard against a response the token limit cut mid-sentence: keep only the
+    // sentences that actually close with terminal punctuation.
+    const clean = takeLeadSentences(text);
+    return clean || createRuleBasedBrief(article);
   } catch (error) {
     console.error("[rss/ai] AI brief generation failed", error);
     return createRuleBasedBrief(article);
@@ -72,10 +75,32 @@ function stripByline(text: string) {
   return out.trim();
 }
 
+// Terminal punctuation that genuinely closes a sentence (latin + CJK).
+const SENTENCE_RE = /[^.!?。！？]+[.!?。！？]/g;
+
+/**
+ * Return the first `max` sentences that actually close with terminal
+ * punctuation. Any trailing fragment the source truncated — including the
+ * common "…" / "..." cut-off marker — is dropped rather than emitted as a
+ * half-finished statement. Returns "" when no complete sentence exists.
+ */
+function takeLeadSentences(text: string, max = 2) {
+  const normalized = text
+    // Collapse ellipsis (a truncation marker, not a sentence end) so the tail
+    // it sits on is treated as an unterminated fragment and dropped below.
+    .replace(/…|\.{2,}/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const sentences = (normalized.match(SENTENCE_RE) ?? [])
+    .map((sentence) => sentence.trim())
+    .filter(Boolean);
+  return sentences.slice(0, max).join(" ").trim();
+}
+
 export function createRuleBasedBrief(article: Article) {
   const raw = (article.rawContentSnippet || article.excerpt || article.title).replace(/\s+/g, " ").trim();
   const summary = stripByline(raw) || raw;
-  const sentences = summary.match(/[^.!?。！？]+[.!?。！？]?/g) ?? [summary];
-  const twoSentences = sentences.slice(0, 2).join(" ").trim();
-  return twoSentences.length > 280 ? `${twoSentences.slice(0, 277).trim()}...` : twoSentences;
+  // Prefer complete sentences from the article; fall back to the headline
+  // (already a self-contained statement) when the snippet has none.
+  return takeLeadSentences(summary) || article.title.trim();
 }
