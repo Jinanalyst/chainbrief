@@ -1230,336 +1230,172 @@ function CommunityPostCard({
     input?: { body?: string; value?: "bull" | "bear" },
   ) => Promise<void>;
 }) {
-  const [quoteOpen, setQuoteOpen] = useState(false);
-  const [quoteBody, setQuoteBody] = useState("");
-  const [quoteStance, setQuoteStance] = useState<CommunityStance>("Neutral");
-  const [reposted, setReposted] = useState(false);
-  const [replyOpen, setReplyOpen] = useState(false);
-  const [replyBody, setReplyBody] = useState("");
-  const [rebriefOpen, setRebriefOpen] = useState(false);
-  const [rebriefBody, setRebriefBody] = useState("");
-  const [scoreOpen, setScoreOpen] = useState(false);
-
   const isRepost = post.kind === "thread_repost";
   const isThreadQuote = post.kind === "thread_quote";
-  const canThread = !isRepost;
-
-  function handleRepost() {
-    if (reposted) return;
-    setRebriefOpen((open) => !open);
-  }
-
-  async function handleQuoteSubmit() {
-    const trimmed = quoteBody.trim();
-    if (!trimmed) return;
-    await onEngagementAction(post, "quote_analysis", { body: trimmed });
-    setQuoteOpen(false);
-    setQuoteBody("");
-    setQuoteStance("Neutral");
-  }
-
-  async function handleLike() {
-    await onEngagementAction(post, "like");
-  }
-
-  async function handleReplySubmit() {
-    if (!replyBody.trim()) return;
-    await onEngagementAction(post, "comment", { body: replyBody });
-    setReplyBody("");
-    setReplyOpen(false);
-  }
-
-  async function handleSave() {
-    await onEngagementAction(post, "save");
-  }
-
-  async function handleReaction(value: "bull" | "bear") {
-    await onEngagementAction(post, "reaction", { value });
-  }
-
-  async function handleRebriefSubmit() {
-    const trimmed = rebriefBody.trim();
-    if (!trimmed) return;
-    await onEngagementAction(post, "rebrief", { body: trimmed });
-    setRebriefBody("");
-    setRebriefOpen(false);
-    setReposted(true);
-  }
+  const quoted = post.quotedCommunityPost;
+  const displayAuthor = isRepost && quoted ? quoted.author : post.author;
+  const title = isRepost && quoted ? quoted.title : post.title;
+  const preview = isRepost && quoted ? quoted.preview : post.preview;
+  const avatar = isRepost && quoted ? undefined : post.avatar;
 
   const views = metrics?.views ?? post.views;
   const likes = metrics?.likes ?? post.likes;
   const comments = metrics?.comments ?? post.commentsCount;
-  const saves = metrics?.saves ?? 0;
-  const bull = metrics?.bull ?? 0;
-  const bear = metrics?.bear ?? 0;
-  const sentimentTotal = bull + bear;
-  const bullShare = sentimentTotal ? Math.round((bull / sentimentTotal) * 100) : 0;
-  const rebriefCount = (metrics?.rebriefs ?? 0) + (metrics?.quoteAnalyses ?? 0);
+  const reposts = (metrics?.rebriefs ?? 0) + (metrics?.quoteAnalyses ?? 0);
+  const reputation = Math.round(likes * 2 + comments * 3 + views * 0.1);
 
+  const isBull = post.stance === "Bullish";
+  const isBear = post.stance === "Bearish";
+  const stanceText = isBull ? "Bull" : isBear ? "Bear" : null;
+
+  const coinTags = post.tags
+    .filter((tag) => /^\$?[A-Za-z]{2,6}$/.test(tag))
+    .slice(0, 3)
+    .map((tag) => (tag.startsWith("$") ? tag : `$${tag}`));
+
+  const tierLabel =
+    post.analystTier && post.analystTier !== "user" ? formatAnalystTier(post.analystTier) : null;
+  const tierClass =
+    post.analystTier === "verified_analyst" || post.analystTier === "partner_expert"
+      ? "bg-emerald-400/15 text-emerald-300"
+      : post.analystTier === "rising_analyst"
+        ? "bg-sky-400/15 text-sky-300"
+        : post.analystTier === "rookie_analyst"
+          ? "bg-amber-400/15 text-amber-300"
+          : "bg-tint/[0.06] text-muted";
+
+  const detailHref = isDatabasePostId(post.id) ? `/community/${post.id}` : null;
+  const avatarIsUrl = typeof avatar === "string" && /^(https?:\/\/|\/)/i.test(avatar);
+
+  // Card mirrors the analyst-feed layout: identity + stance, headline, body,
+  // chart/media, then a compact real-metrics footer. The whole card links to the
+  // post detail page where like / comment / debate / share happen. No mock data.
   return (
-    <Card className="min-w-0 p-4 sm:p-5">
+    <article className="group relative min-w-0 rounded-xl border border-tint/10 bg-tint/[0.02] p-4 transition hover:border-accent/40 hover:bg-tint/[0.04] sm:p-5">
+      {detailHref ? (
+        <Link href={detailHref} className="absolute inset-0 z-0 rounded-xl" aria-label={title} />
+      ) : null}
+
       {isRepost ? (
-        <p className="mb-3 flex items-center gap-1.5 text-xs font-semibold text-muted-2">
-          <span>↺</span>
+        <p className="pointer-events-none relative z-[1] mb-2 flex items-center gap-1.5 text-xs font-semibold text-muted-2">
+          <span aria-hidden>↺</span>
           <span>{language === "ko" ? "회원님이 리포스트했습니다" : "You reposted"}</span>
         </p>
       ) : null}
 
-      <div className="flex min-w-0 items-start gap-3">
+      <header className="pointer-events-none relative z-[1] flex items-start gap-3">
         <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-tint/10 bg-tint/[0.04] text-sm font-bold text-ink">
-          {(() => {
-            const displayAuthor =
-              isRepost && post.quotedCommunityPost ? post.quotedCommunityPost.author : post.author;
-            const rawAvatar =
-              isRepost && post.quotedCommunityPost ? undefined : post.avatar;
-            const isUrl = typeof rawAvatar === "string" && /^(https?:\/\/|\/)/i.test(rawAvatar);
-            if (isUrl) {
-              // eslint-disable-next-line @next/next/no-img-element
-              return <img src={rawAvatar!} alt={displayAuthor} className="h-full w-full object-cover" />;
-            }
-            return rawAvatar ?? avatarFromName(displayAuthor);
-          })()}
+          {avatarIsUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={avatar!} alt={displayAuthor} className="h-full w-full object-cover" />
+          ) : (
+            avatar ?? avatarFromName(displayAuthor)
+          )}
         </div>
 
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-            <p className="text-sm font-semibold text-ink">
-              {isRepost && post.quotedCommunityPost ? post.quotedCommunityPost.author : post.author}
-            </p>
+            <span className="truncate text-sm font-semibold text-ink">{displayAuthor}</span>
+            {tierLabel ? (
+              <span className={cn("rounded-full px-2 py-0.5 text-[0.65rem] font-bold", tierClass)}>
+                {tierLabel}
+              </span>
+            ) : null}
             {!isRepost && post.authorId ? (
-              <FollowButton language={language} targetId={post.authorId} />
-            ) : null}
-            <span className="text-xs text-muted-2">
-              {formatRelativeTime(post.publishedAt, language)}
-            </span>
-            <Badge tone="muted">{getCategoryLabel(post.category, language)}</Badge>
-            <Badge tone={getBadgeTone(post.stance)}>{stanceLabel(post.stance, copy, language)}</Badge>
-            {post.analystTier ? (
-              <Badge tone="accent">{formatAnalystTier(post.analystTier)}</Badge>
-            ) : null}
-            {post.postType ? <Badge tone="muted">{formatPostType(post.postType)}</Badge> : null}
-          </div>
-
-          <h3 className="mt-3 break-words text-lg font-semibold text-ink">
-            {isRepost && post.quotedCommunityPost ? post.quotedCommunityPost.title : post.title}
-          </h3>
-          <p
-            className="mt-2 break-words text-sm leading-6 text-muted"
-            style={{
-              display: "-webkit-box",
-              WebkitBoxOrient: "vertical",
-              WebkitLineClamp: 2,
-              overflow: "hidden",
-            }}
-          >
-            {isRepost && post.quotedCommunityPost ? post.quotedCommunityPost.preview : post.preview}
-          </p>
-
-          {post.relatedArticleTitle ? (
-            <div className="mt-4 rounded-xl border border-tint/10 bg-tint/[0.03] p-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-2">
-                {copy.community.discussing}: {post.relatedArticleTitle}
-              </p>
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                {post.relatedArticleSource ? (
-                  <Badge tone="accent">{post.relatedArticleSource}</Badge>
-                ) : null}
-                {post.relatedArticleUrl ? (
-                  <Button
-                    href={post.relatedArticleUrl}
-                    rel="noreferrer"
-                    target="_blank"
-                    variant="secondary"
-                  >
-                    {copy.community.readOriginal}
-                  </Button>
-                ) : null}
-              </div>
-            </div>
-          ) : null}
-
-          {post.attachments?.length ? (
-            <div className="mt-4">
-              <MediaCarousel
-                items={post.attachments.map<MediaItem>((a) => ({
-                  id: a.id,
-                  kind: a.kind,
-                  src: a.dataUrl,
-                  alt: a.name,
-                }))}
-              />
-            </div>
-          ) : null}
-
-          {(isThreadQuote || (!isRepost && post.quotedCommunityPost)) ? (
-            <QuotedPostEmbed language={language} snapshot={post.quotedCommunityPost!} />
-          ) : null}
-
-          <CommunityPostLiveFooter
-            postId={post.id}
-            initial={{
-              views: post.views,
-              likes: post.likes,
-              comments: post.commentsCount,
-            }}
-            tag={post.tags[0]}
-          />
-
-          {post.replies?.length ? (
-            <div className="mt-4 space-y-3 border-l border-tint/10 pl-3">
-              {post.replies.slice(-3).map((reply) => (
-                <div key={reply.id} className="rounded-lg border border-tint/10 bg-tint/[0.03] p-3">
-                  <div className="flex flex-wrap items-center gap-2 text-xs text-muted-2">
-                    <span className="font-semibold text-ink">{reply.author}</span>
-                    <span>{formatRelativeTime(reply.createdAt, language)}</span>
-                  </div>
-                  <p className="mt-1 break-words text-sm leading-6 text-muted">{reply.body}</p>
-                </div>
-              ))}
-            </div>
-          ) : null}
-
-          {replyOpen ? (
-            <div className="mt-4 rounded-xl border border-tint/10 bg-background/70 p-3">
-              <textarea
-                autoFocus
-                className="min-h-20 w-full rounded-md border border-tint/10 bg-background px-3 py-2 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/25"
-                maxLength={240}
-                onChange={(event) => setReplyBody(event.target.value)}
-                placeholder="Reply with your market take"
-                value={replyBody}
-              />
-              <div className="mt-2 flex justify-end gap-2">
-                <button
-                  className="h-9 rounded-md border border-tint/10 px-3 text-xs font-bold text-muted transition hover:text-ink"
-                  onClick={() => {
-                    setReplyOpen(false);
-                    setReplyBody("");
-                  }}
-                  type="button"
-                >
-                  Cancel
-                </button>
-                <button
-                  className="h-9 rounded-md border border-accent/40 bg-accent/15 px-3 text-xs font-bold text-accent-ink transition hover:bg-accent/20"
-                  onClick={handleReplySubmit}
-                  type="button"
-                >
-                  Reply
-                </button>
-              </div>
-            </div>
-          ) : null}
-
-          {post.analystTier ? (
-            <div className="mt-4 rounded-xl border border-tint/10 bg-tint/[0.03] p-3">
-              <button
-                aria-expanded={scoreOpen}
-                className="flex w-full items-center justify-between gap-3 text-left"
-                onClick={() => setScoreOpen((o) => !o)}
-                type="button"
-              >
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
-                  Analyst Score
-                </p>
-                <span className="flex items-center gap-2 text-xs font-semibold text-accent-ink">
-                  {formatAnalystTier(post.analystTier)}
-                  <span className="text-muted-2">{scoreOpen ? "Hide" : "Details"}</span>
-                  <span className={cn("transition-transform", scoreOpen ? "rotate-180" : "")}>▾</span>
-                </span>
-              </button>
-              {scoreOpen ? (
-                <div className="mt-3">
-                  <AnalystScoreCard compact />
-                </div>
-              ) : null}
-            </div>
-          ) : null}
-
-          {isAnalysisPost(post) ? <div className="mt-4"><RiskNotice /></div> : null}
-
-          <div className="hidden">
-            <IconButton label={language === "ko" ? "북마크" : "Bookmark"} glyph="⌁" />
-            <IconButton
-              label={language === "ko" ? "공유" : "Share"}
-              glyph="↗"
-              onClick={() => sharePost(post)}
-            />
-            {canThread ? (
-              <>
-                <IconButton
-                  active={reposted}
-                  glyph="↺"
-                  label={
-                    reposted
-                      ? (language === "ko" ? "리포스트됨" : "Reposted")
-                      : (language === "ko" ? "리포스트" : "Repost")
-                  }
-                  onClick={handleRepost}
-                />
-                <IconButton
-                  active={quoteOpen}
-                  glyph="❝"
-                  label={language === "ko" ? "인용" : "Quote"}
-                  onClick={() => setQuoteOpen((o) => !o)}
-                />
-              </>
+              <span className="pointer-events-auto relative z-[2]">
+                <FollowButton language={language} targetId={post.authorId} />
+              </span>
             ) : null}
           </div>
-
-          {quoteOpen ? (
-            <div className="mt-4 rounded-xl border border-accent/20 bg-accent/[0.06] p-4">
-              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-accent">
-                {language === "ko" ? "인용 의견 작성" : "Add your quote"}
-              </p>
-              <textarea
-                autoFocus
-                className="min-h-24 w-full rounded-md border border-tint/10 bg-background px-4 py-3 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
-                onChange={(e) => setQuoteBody(e.target.value)}
-                placeholder={
-                  language === "ko"
-                    ? "이 글에 대한 생각을 적어주세요…"
-                    : "Share your take on this post…"
-                }
-                value={quoteBody}
-              />
-              <div className="mt-3 flex flex-wrap gap-2">
-                {STANCES.map((s) => (
-                  <button
-                    key={s}
-                    type="button"
-                    aria-pressed={quoteStance === s}
-                    onClick={() => setQuoteStance(s)}
-                    className={cn(
-                      "rounded-full border px-3 py-1.5 text-xs font-bold transition",
-                      quoteStance === s
-                        ? "border-accent/60 bg-accent/20 text-accent-ink"
-                        : "border-tint/10 bg-tint/[0.03] text-muted hover:border-accent/50 hover:text-ink",
-                    )}
-                  >
-                    {language === "ko"
-                      ? s === "Bullish" ? "상승" : s === "Bearish" ? "하락" : s === "Neutral" ? "중립" : "질문"
-                      : s}
-                  </button>
-                ))}
-              </div>
-              <div className="mt-3 flex gap-2">
-                <Button onClick={handleQuoteSubmit} type="button">
-                  {language === "ko" ? "인용 게시" : "Post quote"}
-                </Button>
-                <Button
-                  onClick={() => { setQuoteOpen(false); setQuoteBody(""); }}
-                  type="button"
-                  variant="secondary"
-                >
-                  {language === "ko" ? "취소" : "Cancel"}
-                </Button>
-              </div>
-            </div>
-          ) : null}
+          <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-2">
+            {coinTags.map((tag) => (
+              <span key={tag} className="font-semibold text-accent-ink">{tag}</span>
+            ))}
+            <span>{getCategoryLabel(post.category, language)}</span>
+            <span aria-hidden>·</span>
+            <span>{formatRelativeTime(post.publishedAt, language)}</span>
+          </div>
         </div>
-      </div>
-    </Card>
+
+        {stanceText ? (
+          <span
+            className={cn(
+              "shrink-0 rounded-md px-2.5 py-1 text-xs font-bold",
+              isBull ? "bg-emerald-400/15 text-emerald-300" : "bg-rose-400/15 text-rose-300",
+            )}
+          >
+            {stanceText}
+          </span>
+        ) : null}
+      </header>
+
+      <h3 className="pointer-events-none relative z-[1] mt-3 break-words text-base font-semibold leading-snug text-ink sm:text-lg">
+        {title}
+      </h3>
+      {preview ? (
+        <p
+          className="pointer-events-none relative z-[1] mt-1.5 break-words text-sm leading-6 text-muted"
+          style={{
+            display: "-webkit-box",
+            WebkitBoxOrient: "vertical",
+            WebkitLineClamp: 2,
+            overflow: "hidden",
+          }}
+        >
+          {preview}
+        </p>
+      ) : null}
+
+      {post.attachments?.length ? (
+        <div className="pointer-events-auto relative z-[2] mt-3">
+          <MediaCarousel
+            items={post.attachments.map<MediaItem>((a) => ({
+              id: a.id,
+              kind: a.kind,
+              src: a.dataUrl,
+              alt: a.name,
+            }))}
+          />
+        </div>
+      ) : null}
+
+      {isThreadQuote || (!isRepost && quoted) ? (
+        <div className="pointer-events-auto relative z-[2]">
+          <QuotedPostEmbed language={language} snapshot={quoted!} />
+        </div>
+      ) : null}
+
+      <footer className="pointer-events-none relative z-[1] mt-4 flex items-center gap-4 border-t border-tint/10 pt-3 text-xs font-semibold text-muted-2">
+        <span className="inline-flex items-center gap-1.5">
+          <span aria-hidden>♡</span> {formatCount(likes)}
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span aria-hidden>💬</span> {formatCount(comments)}
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span aria-hidden>↻</span> {formatCount(reposts)}
+        </span>
+        {detailHref ? (
+          <span className="pointer-events-auto relative z-[2] ml-auto inline-flex items-center gap-3">
+            {reputation > 0 ? (
+              <span className="rounded-md bg-emerald-400/12 px-2 py-1 text-[0.7rem] font-bold text-emerald-300">
+                {language === "ko" ? "평판" : "Rep"} +{formatCount(reputation)}
+              </span>
+            ) : null}
+            <Link
+              href={detailHref}
+              className="rounded-md border border-tint/15 bg-tint/[0.04] px-3 py-1.5 text-xs font-bold text-ink transition hover:border-accent/50 hover:text-accent-ink"
+            >
+              {language === "ko" ? "토론 참여" : "Join discussion"}
+            </Link>
+          </span>
+        ) : reputation > 0 ? (
+          <span className="ml-auto rounded-md bg-emerald-400/12 px-2 py-1 text-[0.7rem] font-bold text-emerald-300">
+            {language === "ko" ? "평판" : "Rep"} +{formatCount(reputation)}
+          </span>
+        ) : null}
+      </footer>
+    </article>
   );
 }
 

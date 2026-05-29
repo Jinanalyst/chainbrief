@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
 import { createClient } from "@/lib/supabase/server";
 import { looksLikeHtml, sanitizeHtml } from "@/lib/sanitize-html";
+import { PostDetailActions } from "@/components/post/post-detail-actions";
 
 type PageProps = {
   params: Promise<{ postId: string }>;
@@ -93,22 +94,19 @@ export default async function CommunityPostDetailPage({ params }: PageProps) {
                     {post.coin_tags.map((tag: string) => <Badge key={tag} tone="muted">#{tag}</Badge>)}
                   </div>
                 ) : null}
-              </Card>
 
-              <DetailSection title="Related Comments">
-                {(comments.data ?? []).length ? (
-                  (comments.data ?? []).map((comment) => (
-                    <InteractionRow
-                      key={comment.id}
-                      body={comment.body}
-                      meta={formatDate(comment.created_at)}
-                      user={profiles[comment.user_id]?.username}
-                    />
-                  ))
-                ) : (
-                  <EmptyDetail>No comments yet.</EmptyDetail>
-                )}
-              </DetailSection>
+                <div className="mt-6 border-t border-tint/10 pt-5">
+                  <PostDetailActions
+                    postId={post.id}
+                    initial={{
+                      views: Number(post.view_count ?? 0),
+                      likes: (likes.data ?? []).length,
+                      comments: (comments.data ?? []).length,
+                      saves: (saves.data ?? []).length,
+                    }}
+                  />
+                </div>
+              </Card>
 
               <DetailSection title="Rebriefs">
                 {(rebriefs.data ?? []).length ? (
