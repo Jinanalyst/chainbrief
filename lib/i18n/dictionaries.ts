@@ -198,6 +198,10 @@ export const dictionaries = {
       tags: "태그",
     },
     dashboard: {
+      tabProfile: "프로필",
+      tabMembership: "멤버십",
+      tabAnalytics: "애널리틱스",
+      tabSettings: "설정",
       eyebrow: "애널리스트 대시보드",
       verifiedBadge: "인증 애널리스트",
       title: "애널리스트 멤버십과 수익을 관리하세요.",
@@ -554,6 +558,10 @@ export const dictionaries = {
       tags: "Tags",
     },
     dashboard: {
+      tabProfile: "Profile",
+      tabMembership: "Membership",
+      tabAnalytics: "Analytics",
+      tabSettings: "Settings",
       eyebrow: "Analyst Dashboard",
       verifiedBadge: "Verified Analyst",
       title: "Manage your analyst membership and revenue.",

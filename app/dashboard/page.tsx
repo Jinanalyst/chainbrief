@@ -8,6 +8,7 @@ import { ProfileTab } from "./_components/ProfileTab";
 import { MembershipTab } from "./_components/MembershipTab";
 import { AnalyticsTab } from "./_components/AnalyticsTab";
 import { SettingsPanel } from "@/components/settings-panel";
+import { useI18n } from "@/lib/i18n/use-i18n";
 
 // ── Toast ────────────────────────────────────────────────────────────────────
 
@@ -26,20 +27,23 @@ function Toast({ message, visible }: { message: string; visible: boolean }) {
 
 // ── Tabs ─────────────────────────────────────────────────────────────────────
 
-const TABS = [
-  { id: "profile",    label: "Profile" },
-  { id: "membership", label: "Membership" },
-  { id: "analytics",  label: "Analytics" },
-  { id: "settings",   label: "Settings" },
-] as const;
+const TAB_IDS = ["profile", "membership", "analytics", "settings"] as const;
 
-type TabId = (typeof TABS)[number]["id"];
+type TabId = (typeof TAB_IDS)[number];
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
+  const { t } = useI18n();
   const [activeTab, setActiveTab] = useState<TabId>("profile");
   const [toast, setToast] = useState({ visible: false, message: "" });
+
+  const TABS: { id: TabId; label: string }[] = [
+    { id: "profile",    label: t.dashboard.tabProfile },
+    { id: "membership", label: t.dashboard.tabMembership },
+    { id: "analytics",  label: t.dashboard.tabAnalytics },
+    { id: "settings",   label: t.dashboard.tabSettings },
+  ];
 
   const showToast = useCallback((message: string) => {
     setToast({ visible: true, message });
