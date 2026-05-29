@@ -8,6 +8,7 @@ import { Container } from "@/components/ui/container";
 import { createClient } from "@/lib/supabase/server";
 import { looksLikeHtml, sanitizeHtml } from "@/lib/sanitize-html";
 import { PostDetailActions } from "@/components/post/post-detail-actions";
+import { PostOwnerControls } from "@/components/post/post-owner-menu";
 
 type PageProps = {
   params: Promise<{ postId: string }>;
@@ -79,6 +80,16 @@ export default async function CommunityPostDetailPage({ params }: PageProps) {
                   <span>/</span>
                   <span>{profiles[post.author_id]?.username ?? "Chain Brief member"}</span>
                   <Badge tone="muted">{post.category}</Badge>
+                  <span className="ml-auto">
+                    <PostOwnerControls
+                      postId={post.id}
+                      authorId={post.author_id ?? null}
+                      initialTitle={post.title}
+                      initialBody={post.body ?? ""}
+                      initialTags={post.coin_tags ?? []}
+                      initialCategory={post.category}
+                    />
+                  </span>
                 </div>
                 <h1 className="mt-4 break-words text-3xl font-semibold tracking-tight text-ink">{post.title}</h1>
                 {looksLikeHtml(post.body ?? "") ? (

@@ -448,6 +448,122 @@ export function persistPostToSupabase(post: CommunityPost): void {
   }).catch(() => undefined);
 }
 
+// Distinguishes a Supabase-backed post (UUID id) from a localStorage-only one
+// (createPostId() ids look like "community-…"). Only the former can be synced to
+// or deleted from Supabase.
+export function isDatabaseCommunityPostId(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
+// Fields a user may change when editing a post. Limited to values that map to
+// dedicated public.posts columns so the Supabase sync never clobbers the
+// metadata jsonb (author, stance, kind, related article, …).
+export type CommunityPostEdit = {
+  title?: string;
+  body?: string;
+  category?: string;
+  tags?: string[];
+};
+
+// Edit an existing community post: update the localStorage copy optimistically
+// (a no-op when the post lives only in Supabase) and sync the change to the API
+// for database-backed posts. Returns the updated local post, or null if none.
+export function updateCommunityPost(
+  postId: string,
+  edits: CommunityPostEdit,
+): CommunityPost | null {
+  let updated: CommunityPost | null = null;
+
+  const nextPosts = readCommunityPosts().map((post) => {
+    if (post.id !== postId) return post;
+
+    const title = edits.title?.trim() || post.title;
+    const body = edits.body?.trim() ?? post.body;
+    const tags = edits.tags ? normalizeTags(edits.tags) : post.tags;
+
+    const next: CommunityPost = {
+      ...post,
+      title,
+      body,
+      preview: previewFromBody(body),
+      category: edits.category?.trim() || post.category,
+      tags,
+    };
+    updated = next;
+    return next;
+  });
+
+  if (updated) {
+    writeCommunityPosts(nextPosts);
+  }
+  // Database-backed posts must sync even when absent from this browser's storage.
+  if (isDatabaseCommunityPostId(postId)) {
+    void persistPostEditToSupabase(postId, edits);
+  }
+  return updated;
+}
+
+// Delete a community post: drop it from the localStorage copy and, for
+// database-backed posts, ask Supabase to remove it too. Returns true when a
+// local copy was removed.
+export function deleteCommunityPost(postId: string): boolean {
+  const posts = readCommunityPosts();
+  const nextPosts = posts.filter((post) => post.id !== postId);
+  const removed = nextPosts.length !== posts.length;
+
+  if (removed) {
+    writeCommunityPosts(nextPosts);
+  }
+  if (isDatabaseCommunityPostId(postId)) {
+    void deletePostFromSupabase(postId);
+  }
+  return removed;
+}
+
+// Fire-and-forget PATCH so an edited post round-trips through Supabase. Only
+// column-mapped fields are sent, so the post's metadata jsonb is left intact.
+// No-ops server-side or when the request fails; the localStorage copy already
+// reflects the edit optimistically in the current browser.
+function persistPostEditToSupabase(postId: string, edits: CommunityPostEdit): void {
+  if (typeof window === "undefined") return;
+
+  const payload: Record<string, unknown> = {};
+  if (typeof edits.title === "string" && edits.title.trim()) {
+    payload.title = edits.title.trim();
+  }
+  if (typeof edits.body === "string" && edits.body.trim()) {
+    payload.body = edits.body.trim();
+  }
+  if (typeof edits.category === "string" && edits.category.trim()) {
+    payload.category = edits.category.trim();
+  }
+  if (Array.isArray(edits.tags)) {
+    payload.coin_tags = normalizeTags(edits.tags);
+  }
+  if (Object.keys(payload).length === 0) return;
+
+  void fetch(`/api/community/posts/${encodeURIComponent(postId)}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+    credentials: "same-origin",
+  }).catch(() => undefined);
+}
+
+// Fire-and-forget DELETE to remove the post from Supabase.
+function deletePostFromSupabase(postId: string): void {
+  if (typeof window === "undefined") return;
+  void fetch(`/api/community/posts/${encodeURIComponent(postId)}`, {
+    method: "DELETE",
+    credentials: "same-origin",
+  }).catch(() => undefined);
+}
+
+// Plain-text preview from a body that may contain editor HTML.
+function previewFromBody(body: string): string {
+  return truncate(body.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim(), 120);
+}
+
 export function communityPostFromDatabase(row: DatabaseCommunityPostRow): CommunityPost {
   const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
   const postType = normalizePostType(row.post_type);

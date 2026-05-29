@@ -20,11 +20,13 @@ import {
   toggleCommunityPostLike,
   type CommunityEngagementMetrics,
   type CommunityPost,
+  type CommunityPostEdit,
   type DatabaseCommunityPostRow,
   type CommunityQuoteTarget,
   type CommunityStance,
   type QuotedCommunityPostSnapshot,
 } from "@/lib/community";
+import { PostOwnerMenu } from "@/components/post/post-owner-menu";
 import { cn } from "@/lib/cn";
 import { formatLocalDateTime, formatRelativeTime, getCategoryLabel } from "@/lib/i18n";
 import { useI18n, usePreferences } from "@/lib/i18n/use-i18n";
@@ -337,6 +339,29 @@ export default function CommunityPage() {
     }
   }
 
+  function handlePostDeleted(deleted: CommunityPost) {
+    setRemotePosts((prev) => prev.filter((p) => p.id !== deleted.id));
+    setLocalPosts(readCommunityPosts());
+  }
+
+  function handlePostEdited(edited: CommunityPost, edits: CommunityPostEdit) {
+    const apply = (p: CommunityPost): CommunityPost => {
+      if (p.id !== edited.id) return p;
+      const body = edits.body ?? p.body;
+      const stripped = body.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+      return {
+        ...p,
+        title: edits.title?.trim() || p.title,
+        body,
+        preview: stripped.length > 120 ? `${stripped.slice(0, 119).trim()}…` : stripped,
+        category: edits.category?.trim() || p.category,
+        tags: edits.tags ?? p.tags,
+      };
+    };
+    setRemotePosts((prev) => prev.map(apply));
+    setLocalPosts(readCommunityPosts());
+  }
+
   return (
     <>
       <div className="cb-community cb-community-desktop-only">
@@ -415,9 +440,12 @@ export default function CommunityPage() {
                     <CommunityPostCard
                       authorName={authorName}
                       copy={copy}
+                      currentUserId={authUser?.id ?? null}
                       language={language}
                       metrics={engagementMetrics[post.id]}
                       onEngagementAction={handleEngagementAction}
+                      onPostDeleted={handlePostDeleted}
+                      onPostEdited={handlePostEdited}
                       post={post}
                     />
                   </div>
@@ -1216,19 +1244,25 @@ function CommunityPostCard({
   language,
   copy,
   authorName,
+  currentUserId,
   metrics,
   onEngagementAction,
+  onPostDeleted,
+  onPostEdited,
 }: {
   post: CommunityPost;
   language: "ko" | "en";
   copy: ReturnType<typeof useI18n>["t"];
   authorName: string;
+  currentUserId?: string | null;
   metrics?: CommunityEngagementMetrics;
   onEngagementAction: (
     post: CommunityPost,
     action: "like" | "save" | "reaction" | "comment" | "rebrief" | "quote_analysis",
     input?: { body?: string; value?: "bull" | "bear" },
   ) => Promise<void>;
+  onPostDeleted?: (post: CommunityPost) => void;
+  onPostEdited?: (post: CommunityPost, edits: CommunityPostEdit) => void;
 }) {
   const isRepost = post.kind === "thread_repost";
   const isThreadQuote = post.kind === "thread_quote";
@@ -1266,6 +1300,14 @@ function CommunityPostCard({
 
   const detailHref = isDatabasePostId(post.id) ? `/community/${post.id}` : null;
   const avatarIsUrl = typeof avatar === "string" && /^(https?:\/\/|\/)/i.test(avatar);
+
+  // Owner controls: localStorage-only posts belong to this browser; database
+  // posts are manageable only by their author. Reposts mirror someone else's
+  // post, so they're excluded from editing.
+  const canManage =
+    !isRepost &&
+    (!isDatabasePostId(post.id) ||
+      (currentUserId != null && post.authorId === currentUserId));
 
   // Card mirrors the analyst-feed layout: identity + stance, headline, body,
   // chart/media, then a compact real-metrics footer. The whole card links to the
@@ -1326,6 +1368,21 @@ function CommunityPostCard({
           >
             {stanceText}
           </span>
+        ) : null}
+
+        {canManage ? (
+          <PostOwnerMenu
+            postId={post.id}
+            initialTitle={post.title}
+            initialBody={post.body}
+            initialTags={post.tags}
+            initialCategory={post.category}
+            language={language}
+            canManage
+            variant="card"
+            onDeleted={() => onPostDeleted?.(post)}
+            onEdited={(edits) => onPostEdited?.(post, edits)}
+          />
         ) : null}
       </header>
 
