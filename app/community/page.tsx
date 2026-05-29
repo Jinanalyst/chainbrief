@@ -45,7 +45,6 @@ type CommunityTab =
   | "Loss Review"
   | "Rookie Analyst"
   | "Verified Analyst";
-type SidebarAction = "guide" | "btc" | "news" | "analysis" | "macro" | "privacy" | "rules";
 
 const TABS: CommunityTab[] = [
   "Latest",
@@ -90,38 +89,6 @@ const ANALYST_PATH = [
 ];
 
 const STANCES: CommunityStance[] = ["Bullish", "Bearish", "Neutral", "Question"];
-
-const EXPLORE_ITEMS: Array<{
-  action: SidebarAction;
-  en: string;
-  ko: string;
-}> = [
-  { action: "guide", en: "Chain Brief Guide", ko: "Chain Brief 가이드" },
-  { action: "btc", en: "BTC Market Thoughts", ko: "BTC 시장 의견" },
-  { action: "news", en: "Real-Time News Reactions", ko: "실시간 뉴스 반응" },
-  { action: "analysis", en: "Bitcoin Analysis", ko: "비트코인 분석" },
-  { action: "macro", en: "Macro Alerts", ko: "매크로 알림" },
-  { action: "privacy", en: "Privacy & Safety", ko: "개인정보 및 안전" },
-  { action: "rules", en: "Community Rules", ko: "커뮤니티 규칙" },
-];
-
-const SEARCH_NAV_ITEMS = [
-  { label: "Analyst profiles", href: "/analysts" },
-  { label: "Posts", href: "/community" },
-  { label: "Coin & stock tickers", href: "/market" },
-  { label: "Trending analysts", href: "/analysts" },
-  { label: "Rising creators", href: "/community" },
-  { label: "Verified analysts", href: "/analysts" },
-];
-
-const LIBRARY_NAV_ITEMS = [
-  { label: "Saved posts", href: "/library?tab=saved" },
-  { label: "Liked posts", href: "/library?tab=liked" },
-  { label: "Rebriefed posts", href: "/library?tab=rebriefed" },
-  { label: "Comment history", href: "/library?tab=comments" },
-  { label: "Reading history", href: "/library?tab=reading" },
-  { label: "Followed analysts", href: "/library?tab=following" },
-];
 
 export default function CommunityPage() {
   const [preferences] = usePreferences();
@@ -574,53 +541,6 @@ function CbSectionLabel({ children }: { children: React.ReactNode }) {
   return <span className="cb-section-label">{children}</span>;
 }
 
-function CbMenuCluster({
-  href,
-  icon,
-  label,
-  items,
-}: {
-  href: string;
-  icon?: React.ReactNode;
-  label: string;
-  items: Array<{ label: string; href: string }>;
-}) {
-  return (
-    <div className="cb-nav-cluster">
-      <CbMenuLink href={href} label={label} icon={icon} />
-      <div className="cb-subnav" aria-label={`${label} shortcuts`}>
-        {items.map((item) => (
-          <Link key={item.label} href={item.href} className="cb-subnav-link">
-            {item.label}
-          </Link>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function CbMenuLink({
-  href,
-  icon,
-  label,
-  active,
-}: {
-  href: string;
-  icon?: React.ReactNode;
-  label: string;
-  active?: boolean;
-}) {
-  return (
-    <Link
-      href={href}
-      className={cn("cb-nav-link", active && "is-active")}
-    >
-      {icon ? <span className="cb-nav-icon">{icon}</span> : null}
-      <span>{label}</span>
-    </Link>
-  );
-}
-
 function CbDivider() {
   return <div className="cb-nav-divider" />;
 }
@@ -713,78 +633,6 @@ function MobileFallback({ language }: { language: "ko" | "en" }) {
         {language === "ko" ? "홈으로" : "Home"}
       </Link>
     </div>
-  );
-}
-
-function HomeIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-      <polyline points="9 22 9 12 15 12 15 22" />
-    </svg>
-  );
-}
-function BoltIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-    </svg>
-  );
-}
-function PulseIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-    </svg>
-  );
-}
-function SearchIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <circle cx="11" cy="11" r="7" />
-      <path d="m20 20-3.5-3.5" />
-    </svg>
-  );
-}
-function BookmarkIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M19 21 12 17 5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
-    </svg>
-  );
-}
-function InfoIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <circle cx="12" cy="12" r="10" />
-      <path d="M12 16v-4" />
-      <path d="M12 8h.01" />
-    </svg>
-  );
-}
-function AwardIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <circle cx="12" cy="8" r="6" />
-      <path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11" />
-    </svg>
-  );
-}
-function ChatIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-    </svg>
-  );
-}
-function UsersIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-      <circle cx="9" cy="7" r="4" />
-      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-    </svg>
   );
 }
 
@@ -2498,13 +2346,4 @@ function sharePost(post: CommunityPost) {
   if (nav.clipboard) {
     void nav.clipboard.writeText(targetUrl);
   }
-}
-
-function scrollToSection(id: string) {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  const element = document.getElementById(id);
-  element?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
