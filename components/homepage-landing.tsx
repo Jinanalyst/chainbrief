@@ -71,11 +71,26 @@ const landingCopy = {
     howText:
       "각 브리프는 시작점입니다. Chain Brief는 뉴스를 해석하는 사람들 위에 시그널, 토론, 평판, 검증의 레이어를 더합니다.",
     steps: [
-      "뉴스",
-      "의견",
-      "토론",
-      "평판",
-      "Verified Analyst",
+      {
+        title: "뉴스",
+        text: "실시간 크립토 헤드라인과 시장 이벤트가 모든 브리프의 출발점이 됩니다.",
+      },
+      {
+        title: "의견",
+        text: "유저는 뉴스에 Bull/Bear 시그널과 자신의 관점으로 반응합니다.",
+      },
+      {
+        title: "토론",
+        text: "커뮤니티가 관점을 검증하고 반박하며 가장 설득력 있는 해석을 가려냅니다.",
+      },
+      {
+        title: "평판",
+        text: "정확도와 참여가 쌓이며 시장 의견이 눈에 보이는 신뢰 기록이 됩니다.",
+      },
+      {
+        title: "Verified Analyst",
+        text: "반복적으로 증명된 시그널 품질과 커뮤니티 신뢰가 검증된 애널리스트 지위로 이어집니다.",
+      },
     ],
     dashboardEyebrow: "평판 레이어",
     dashboardTitle: "커뮤니티 반응이 신뢰도를 측정합니다.",
@@ -176,11 +191,26 @@ const landingCopy = {
     howText:
       "Each brief is a starting point. The platform adds sentiment, discussion, reputation, and verification around the people interpreting the market.",
     steps: [
-      "News",
-      "Opinion",
-      "Discussion",
-      "Reputation",
-      "Verified Analyst",
+      {
+        title: "News",
+        text: "Real-time crypto headlines and market events are the starting point for every brief.",
+      },
+      {
+        title: "Opinion",
+        text: "Users react to the news with Bull/Bear signals and their own market view.",
+      },
+      {
+        title: "Discussion",
+        text: "The community tests and challenges views, surfacing the most convincing interpretations.",
+      },
+      {
+        title: "Reputation",
+        text: "Accuracy and engagement compound into a visible record of trust.",
+      },
+      {
+        title: "Verified Analyst",
+        text: "Repeatedly proven signal quality and community trust earn verified analyst status.",
+      },
     ],
     dashboardEyebrow: "Reputation layer",
     dashboardTitle: "Credibility is measured as the community reacts.",
@@ -357,13 +387,16 @@ function HowItWorksSection({ copy }: { copy: LandingCopy }) {
           {copy.steps.map((step, index) => (
             <div
               className="group min-w-0 rounded-lg border border-tint/[0.08] bg-background/65 p-4 transition hover:border-accent/40 hover:bg-accent-soft/20"
-              key={step}
+              key={step.title}
             >
               <span className="text-[0.65rem] font-bold uppercase tracking-[0.18em] text-accent/70">
                 0{index + 1}
               </span>
               <p className="mt-4 break-words text-sm font-semibold leading-6 text-ink">
-                {step}
+                {step.title}
+              </p>
+              <p className="mt-2 break-words text-xs leading-5 text-muted">
+                {step.text}
               </p>
             </div>
           ))}
