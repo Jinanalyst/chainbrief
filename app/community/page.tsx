@@ -1365,15 +1365,15 @@ function CommunityPostCard({
         </div>
       ) : null}
 
-      <footer className="pointer-events-none relative z-[1] mt-4 flex items-center gap-4 border-t border-tint/10 pt-3 text-xs font-semibold text-muted-2">
-        <span className="inline-flex items-center gap-1.5">
-          <span aria-hidden>♡</span> {formatCount(likes)}
+      <footer className="pointer-events-none relative z-[1] mt-4 flex items-center gap-1.5 border-t border-tint/10 pt-3">
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-tint/10 bg-tint/[0.03] px-2.5 py-1 text-xs font-medium text-muted">
+          <span aria-hidden>👍</span> {formatCount(likes)}
         </span>
-        <span className="inline-flex items-center gap-1.5">
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-tint/10 bg-tint/[0.03] px-2.5 py-1 text-xs font-medium text-muted">
           <span aria-hidden>💬</span> {formatCount(comments)}
         </span>
-        <span className="inline-flex items-center gap-1.5">
-          <span aria-hidden>↻</span> {formatCount(reposts)}
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-tint/10 bg-tint/[0.03] px-2.5 py-1 text-xs font-medium text-muted">
+          <span aria-hidden>↺</span> {formatCount(reposts)}
         </span>
         {detailHref ? (
           <span className="pointer-events-auto relative z-[2] ml-auto inline-flex items-center gap-3">
