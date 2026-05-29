@@ -10,6 +10,7 @@ import { hasSupabaseConfig } from "@/lib/supabase/config";
 import { readCommunityPosts, readAuthorName, COMMUNITY_POSTS_CHANGED_EVENT, type CommunityPost } from "@/lib/community";
 import { looksLikeHtml, sanitizeHtml } from "@/lib/sanitize-html";
 import { cn } from "@/lib/cn";
+import { useI18n } from "@/lib/i18n/use-i18n";
 import {
   ANALYSIS_STYLES,
   DEFAULT_SOCIAL_LINKS,
@@ -162,6 +163,8 @@ function FormSection({
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function ProfileSection() {
+  const { t } = useI18n();
+  const tp = t.profile;
   const supabase = useMemo(() => (hasSupabaseConfig ? createClient() : null), []);
   const [user, setUser] = useState<User | null>(null);
   const [displayName, setDisplayName] = useState("");
@@ -307,7 +310,7 @@ export function ProfileSection() {
       setPostCount(posts.filter((p) => authorKeys.includes(p.author) && p.kind === "opinion").length);
     }
 
-    setMessage("Profile saved. Your Chain Brief identity is ready.");
+    setMessage(tp.profileSaved);
   }
 
   async function uploadAvatar(file: File) {
@@ -364,7 +367,7 @@ export function ProfileSection() {
   if (isLoading) {
     return (
       <Card className="p-6">
-        <p className="text-sm font-semibold text-muted">Loading profile...</p>
+        <p className="text-sm font-semibold text-muted">{tp.loadingProfile}</p>
       </Card>
     );
   }
@@ -373,12 +376,12 @@ export function ProfileSection() {
     return (
       <Card className="grid gap-4 p-6">
         <div>
-          <p className="text-lg font-semibold text-ink">Log in to create a profile.</p>
+          <p className="text-lg font-semibold text-ink">{tp.loginToCreate}</p>
           <p className="mt-2 text-sm leading-6 text-muted">
-            Use Google login to connect your Chain Brief account before joining community discussions.
+            {tp.loginDesc}
           </p>
         </div>
-        <Button className="w-full sm:w-auto" href="/login">Log in with Google</Button>
+        <Button className="w-full sm:w-auto" href="/login">{tp.loginWithGoogle}</Button>
       </Card>
     );
   }
@@ -412,7 +415,7 @@ export function ProfileSection() {
               type="button"
               onClick={() => fileInputRef.current?.click()}
               className="group relative h-14 w-14 overflow-hidden rounded-full"
-              title="Upload profile picture"
+              title={tp.uploadPicture}
               disabled={isUploadingAvatar}
             >
               {avatarUrl ? (
@@ -425,25 +428,25 @@ export function ProfileSection() {
               )}
               <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/60 opacity-0 transition group-hover:opacity-100 group-disabled:opacity-100">
                 <span className="text-[10px] font-semibold text-white">
-                  {isUploadingAvatar ? "..." : "Upload"}
+                  {isUploadingAvatar ? "..." : tp.upload}
                 </span>
               </div>
             </button>
             {avatarError && <p className="mt-1 w-14 text-center text-[10px] text-rose-300">{avatarError}</p>}
           </div>
           <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">Chain Brief Profile</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">{tp.eyebrow}</p>
             <h2 className="mt-2 break-words text-2xl font-semibold text-ink">
-              {profile?.displayName || displayName || "Create your profile"}
+              {profile?.displayName || displayName || tp.createHeading}
             </h2>
             <p className="mt-2 break-words text-sm leading-6 text-muted">{user.email}</p>
           </div>
         </div>
 
         <form className="mt-6 grid gap-3" onSubmit={saveProfile}>
-          <FormSection title="Basic Info" defaultOpen={true}>
+          <FormSection title={tp.basicInfo} defaultOpen={true}>
             <label className="block">
-              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Display name</span>
+              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">{tp.displayName}</span>
               <input
                 className="mt-2 min-h-11 w-full rounded-md border border-tint/10 bg-background px-4 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
                 onChange={(e) => setDisplayName(e.target.value)}
@@ -454,7 +457,7 @@ export function ProfileSection() {
             </label>
 
             <label className="block">
-              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Role</span>
+              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">{tp.role}</span>
               <select
                 className="mt-2 min-h-11 w-full rounded-md border border-tint/10 bg-background px-4 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
                 onChange={(e) => setRole(e.target.value)}
@@ -465,7 +468,7 @@ export function ProfileSection() {
             </label>
 
             <label className="block">
-              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Topics</span>
+              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">{tp.topics}</span>
               <input
                 className="mt-2 min-h-11 w-full rounded-md border border-tint/10 bg-background px-4 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
                 onChange={(e) => setInterests(e.target.value)}
@@ -475,7 +478,7 @@ export function ProfileSection() {
             </label>
 
             <label className="block">
-              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Bio</span>
+              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">{tp.bio}</span>
               <textarea
                 className="mt-2 min-h-28 w-full rounded-md border border-tint/10 bg-background px-4 py-3 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
                 maxLength={240}
@@ -486,9 +489,9 @@ export function ProfileSection() {
             </label>
           </FormSection>
 
-          <FormSection title="Analyst Profile" defaultOpen={true}>
+          <FormSection title={tp.analystProfile} defaultOpen={true}>
             <div>
-              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Market interests</span>
+              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">{tp.marketInterests}</span>
               <ChipGroup
                 options={MARKET_INTERESTS as readonly string[]}
                 selected={marketInterests}
@@ -499,7 +502,7 @@ export function ProfileSection() {
             </div>
 
             <div>
-              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Analysis style</span>
+              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">{tp.analysisStyle}</span>
               <ChipGroup
                 options={ANALYSIS_STYLES as readonly string[]}
                 selected={analysisStyle ? [analysisStyle] : []}
@@ -508,7 +511,7 @@ export function ProfileSection() {
             </div>
 
             <div>
-              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Experience level</span>
+              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">{tp.experienceLevel}</span>
               <ChipGroup
                 options={EXPERIENCE_LEVELS as readonly string[]}
                 selected={experienceLevel ? [experienceLevel] : []}
@@ -517,7 +520,7 @@ export function ProfileSection() {
             </div>
 
             <div>
-              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Preferred post types</span>
+              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">{tp.preferredPostTypes}</span>
               <ChipGroup
                 options={PREFERRED_POST_TYPES as readonly string[]}
                 selected={preferredPostTypes}
@@ -528,7 +531,7 @@ export function ProfileSection() {
             </div>
 
             <label className="block">
-              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Public analyst bio</span>
+              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">{tp.publicAnalystBio}</span>
               <textarea
                 className="mt-2 min-h-24 w-full rounded-md border border-tint/10 bg-background px-4 py-3 text-sm text-ink outline-none transition placeholder:text-muted-2 focus:border-accent focus:ring-2 focus:ring-accent/30"
                 maxLength={280}
@@ -536,11 +539,11 @@ export function ProfileSection() {
                 placeholder="A short bio shown under your name on every post."
                 value={analystBio}
               />
-              <span className="mt-1 block text-[10px] text-muted-2">{280 - analystBio.length} characters left</span>
+              <span className="mt-1 block text-[10px] text-muted-2">{tp.charactersLeft(280 - analystBio.length)}</span>
             </label>
           </FormSection>
 
-          <FormSection title="Social Links" defaultOpen={false}>
+          <FormSection title={tp.socialLinks} defaultOpen={false}>
             <SocialLinkField label="X / Twitter" placeholder="https://x.com/your-handle" value={socialLinks.x} onChange={(v) => setSocialLinks((c) => ({ ...c, x: v }))} />
             <SocialLinkField label="Telegram" placeholder="https://t.me/your-handle" value={socialLinks.telegram} onChange={(v) => setSocialLinks((c) => ({ ...c, telegram: v }))} />
             <SocialLinkField label="Discord" placeholder="discord.gg/your-server" value={socialLinks.discord} onChange={(v) => setSocialLinks((c) => ({ ...c, discord: v }))} />
@@ -548,7 +551,7 @@ export function ProfileSection() {
           </FormSection>
 
           <Button disabled={isSaving} type="submit">
-            {isSaving ? "Saving..." : profile ? "Update profile" : "Create profile"}
+            {isSaving ? tp.saving : profile ? tp.updateProfile : tp.createProfile}
           </Button>
         </form>
 
@@ -559,37 +562,37 @@ export function ProfileSection() {
       {/* ── Right: sidebar ── */}
       <aside className="space-y-3">
         {/* Analyst Score — live */}
-        <CollapsibleCard title="Analyst Score" defaultOpen={true}>
+        <CollapsibleCard title={tp.analystScore} defaultOpen={true}>
           {postCount === 0 ? (
             <p className="text-xs leading-5 text-muted-2">
-              Post your first analysis in Community to start building your score.
+              {tp.scoreEmpty}
             </p>
           ) : (
             <>
-              <p className="mb-3 text-xs text-muted-2">Based on {postCount} post{postCount !== 1 ? "s" : ""} · live</p>
+              <p className="mb-3 text-xs text-muted-2">{tp.scoreBasedOn(postCount)}</p>
               <div className="grid gap-3">
-                <ScoreRow label="근거 충실도" value={scores.evidence} hint="Analysis depth & body length" />
-                <ScoreRow label="리스크 설명" value={scores.risk} hint="Risk posts & explicit stance" />
-                <ScoreRow label="독자 반응" value={scores.reaction} hint="Views, likes & comments" />
-                <ScoreRow label="꾸준함" value={scores.consistency} hint="Post volume & recency" />
-                <ScoreRow label="신뢰도" value={scores.credibility} hint="Bull/bear balance & volume" />
+                <ScoreRow label={tp.scoreEvidence} value={scores.evidence} hint={tp.hintEvidence} />
+                <ScoreRow label={tp.scoreRisk} value={scores.risk} hint={tp.hintRisk} />
+                <ScoreRow label={tp.scoreReaction} value={scores.reaction} hint={tp.hintReaction} />
+                <ScoreRow label={tp.scoreConsistency} value={scores.consistency} hint={tp.hintConsistency} />
+                <ScoreRow label={tp.scoreCredibility} value={scores.credibility} hint={tp.hintCredibility} />
               </div>
             </>
           )}
         </CollapsibleCard>
 
         {/* Community Readiness */}
-        <CollapsibleCard title="Community Readiness" defaultOpen={true}>
+        <CollapsibleCard title={tp.communityReadiness} defaultOpen={true}>
           <div className="grid gap-2 text-sm">
-            <ProfileCheck complete={Boolean(displayName.trim())} label="Display name" />
-            <ProfileCheck complete={parseInterests(interests).length > 0} label="Topics" />
-            <ProfileCheck complete={Boolean(bio.trim())} label="Bio" />
-            <ProfileCheck complete={hasAnySocialLink(socialLinks)} label="Social links" />
+            <ProfileCheck complete={Boolean(displayName.trim())} label={tp.displayName} />
+            <ProfileCheck complete={parseInterests(interests).length > 0} label={tp.topics} />
+            <ProfileCheck complete={Boolean(bio.trim())} label={tp.bio} />
+            <ProfileCheck complete={hasAnySocialLink(socialLinks)} label={tp.socialLinks} />
           </div>
         </CollapsibleCard>
 
         {/* Social Preview */}
-        <CollapsibleCard title="Social Preview" defaultOpen={false}>
+        <CollapsibleCard title={tp.socialPreview} defaultOpen={false}>
           <div className="grid gap-2 text-sm">
             <SocialPreviewRow label="X" value={socialLinks.x} />
             <SocialPreviewRow label="Telegram" value={socialLinks.telegram} />
@@ -599,17 +602,17 @@ export function ProfileSection() {
         </CollapsibleCard>
 
         {/* Membership */}
-        <CollapsibleCard title="Membership" id="membership" defaultOpen={false}>
+        <CollapsibleCard title={tp.membership} id="membership" defaultOpen={false}>
           <p className="text-sm leading-6 text-muted">
-            Configure your plan ladder, write member-aware analysis, and publish into Community as a Verified Analyst.
+            {tp.membershipDesc}
           </p>
           <Button className="mt-4 w-full" href="/membership" variant="secondary">
-            Open Membership Studio
+            {tp.openMembershipStudio}
           </Button>
         </CollapsibleCard>
 
         {/* Verified Analyst */}
-        <CollapsibleCard title="Verified Analyst" accent id="verified-analyst" defaultOpen={false}>
+        <CollapsibleCard title={tp.verifiedAnalyst} accent id="verified-analyst" defaultOpen={false}>
           <h3 className="text-base font-semibold text-ink">콘텐츠 기반 시장 분석가 신청</h3>
           <p className="mt-2 text-sm leading-6 text-muted">
             투자 리딩이 아니라 근거, 리스크 설명, 꾸준함으로 신뢰를 쌓는 분석가 신청입니다.
@@ -656,11 +659,11 @@ export function ProfileSection() {
         </CollapsibleCard>
 
         {/* Next Step */}
-        <CollapsibleCard title="Next Step" defaultOpen={false}>
+        <CollapsibleCard title={tp.nextStep} defaultOpen={false}>
           <p className="text-sm leading-6 text-muted">
-            After creating a profile, jump into Community and post your market take on the latest brief.
+            {tp.nextStepDesc}
           </p>
-          <Button className="mt-4 w-full" href="/community" variant="secondary">Open community</Button>
+          <Button className="mt-4 w-full" href="/community" variant="secondary">{tp.openCommunity}</Button>
         </CollapsibleCard>
       </aside>
     </div>
@@ -674,6 +677,8 @@ export function ProfileSection() {
 // ─── Post history ─────────────────────────────────────────────────────────────
 
 function PostHistorySection({ posts, authorKeys }: { posts: CommunityPost[]; authorKeys: string[] }) {
+  const { t } = useI18n();
+  const tp = t.profile;
   const keySet = new Set(authorKeys);
   const mine = posts
     .filter((p) => keySet.has(p.author))
@@ -683,18 +688,18 @@ function PostHistorySection({ posts, authorKeys }: { posts: CommunityPost[]; aut
     <div className="mt-8">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">Post History</p>
-          <h2 className="mt-1 text-xl font-semibold text-ink">Your written posts</h2>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">{tp.postHistory}</p>
+          <h2 className="mt-1 text-xl font-semibold text-ink">{tp.yourWrittenPosts}</h2>
         </div>
-        <span className="text-xs text-muted-2">{mine.length} post{mine.length !== 1 ? "s" : ""}</span>
+        <span className="text-xs text-muted-2">{tp.postCount(mine.length)}</span>
       </div>
 
       {mine.length === 0 ? (
         <Card className="p-6">
           <p className="text-sm leading-6 text-muted">
-            You haven&apos;t posted anything yet.{" "}
+            {tp.noPostsYet}{" "}
             <a href="/community/write" className="text-accent underline-offset-2 hover:underline">
-              Write your first post →
+              {tp.writeFirstPost}
             </a>
           </p>
         </Card>
@@ -726,6 +731,8 @@ const STANCE_COLORS: Record<string, string> = {
 };
 
 function PostHistoryCard({ post }: { post: CommunityPost }) {
+  const { t } = useI18n();
+  const tp = t.profile;
   const [expanded, setExpanded] = useState(false);
 
   const exactTime = new Date(post.publishedAt).toLocaleString(undefined, {
@@ -776,7 +783,7 @@ function PostHistoryCard({ post }: { post: CommunityPost }) {
 
           {/* Title */}
           <p className="mt-2 break-words text-sm font-semibold text-ink leading-snug">
-            {post.title || <span className="italic text-muted-2">(untitled)</span>}
+            {post.title || <span className="italic text-muted-2">{tp.untitled}</span>}
           </p>
 
           {/* Preview line */}
@@ -801,7 +808,7 @@ function PostHistoryCard({ post }: { post: CommunityPost }) {
         <div className="border-t border-tint/[0.06] px-4 pb-5 pt-4">
           {/* Exact timestamp */}
           <p className="mb-3 text-xs font-semibold text-muted-2">
-            Posted: <span className="text-ink">{exactTime}</span>
+            {tp.posted}: <span className="text-ink">{exactTime}</span>
           </p>
 
           {/* Full body */}
@@ -817,7 +824,7 @@ function PostHistoryCard({ post }: { post: CommunityPost }) {
               </div>
             )
           ) : (
-            <div className="text-sm italic text-muted-2">(no body)</div>
+            <div className="text-sm italic text-muted-2">{tp.noBody}</div>
           )}
 
           {/* Attachments */}
@@ -839,14 +846,14 @@ function PostHistoryCard({ post }: { post: CommunityPost }) {
 
           {/* Engagement stats */}
           <div className="mt-4 flex flex-wrap gap-4 text-xs text-muted-2">
-            <span>{post.views} views</span>
-            <span>{post.likes} likes</span>
-            <span>{post.commentsCount} comments</span>
+            <span>{post.views} {tp.views}</span>
+            <span>{post.likes} {tp.likes}</span>
+            <span>{post.commentsCount} {tp.comments}</span>
           </div>
 
           <div className="mt-4">
             <a href="/community/write" className="text-xs font-semibold text-accent underline-offset-2 hover:underline">
-              Write another post →
+              {tp.writeAnotherPost}
             </a>
           </div>
         </div>
@@ -876,10 +883,11 @@ function ScoreRow({ label, value, hint }: { label: string; value: number; hint: 
 }
 
 function ProfileCheck({ complete, label }: { complete: boolean; label: string }) {
+  const { t } = useI18n();
   return (
     <div className="flex items-center justify-between gap-3 rounded-md border border-tint/10 bg-tint/[0.03] px-3 py-2">
       <span className="text-muted">{label}</span>
-      <span className={complete ? "text-emerald-300" : "text-muted-2"}>{complete ? "Ready" : "Missing"}</span>
+      <span className={complete ? "text-emerald-300" : "text-muted-2"}>{complete ? t.profile.ready : t.profile.missing}</span>
     </div>
   );
 }
@@ -903,6 +911,7 @@ function SocialLinkField({
 }
 
 function SocialPreviewRow({ label, value }: { label: string; value: string }) {
+  const { t } = useI18n();
   const trimmed = value.trim();
   return (
     <div className="flex items-center justify-between gap-3 rounded-md border border-tint/10 bg-tint/[0.03] px-3 py-2">
@@ -912,7 +921,7 @@ function SocialPreviewRow({ label, value }: { label: string; value: string }) {
           {trimmed}
         </a>
       ) : (
-        <span className="text-muted-2">Not added</span>
+        <span className="text-muted-2">{t.profile.notAdded}</span>
       )}
     </div>
   );
