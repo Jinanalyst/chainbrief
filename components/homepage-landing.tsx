@@ -257,7 +257,7 @@ function HeroSection({ copy }: { copy: LandingCopy }) {
               {copy.heroSubtitle}
             </p>
             <div className="mt-8">
-              <Button className="w-full sm:w-auto" href="/community">
+              <Button className="w-full sm:w-auto" href="/login">
                 {copy.primaryCta}
               </Button>
             </div>
