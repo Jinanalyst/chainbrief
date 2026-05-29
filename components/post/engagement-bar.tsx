@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
 
 type Aggregate = {
@@ -22,6 +22,8 @@ type Props = {
   endpoint: string;
   shareUrl?: string;
   onCommentClick?: () => void;
+  // Called when the server rejects a write with 401 (not signed in).
+  onAuthRequired?: () => void;
 };
 
 // Primary actions always visible; secondary actions reveal on hover (desktop)
@@ -35,6 +37,7 @@ export function EngagementBar({
   endpoint,
   shareUrl,
   onCommentClick,
+  onAuthRequired,
 }: Props) {
   const [counts, setCounts] = useState<Aggregate>(initial);
   const [liked, setLiked] = useState(!!initialLiked);
@@ -42,49 +45,91 @@ export function EngagementBar({
   const [reposted, setReposted] = useState(!!initialReposted);
   const [showMore, setShowMore] = useState(false);
 
-  async function call(action: string, extra?: Record<string, unknown>) {
+  // Resync with server-provided values whenever the parent refreshes them
+  // (e.g. after the live aggregate fetch or a posted comment). This keeps the
+  // optimistic state honest — a failed/unauthenticated write reverts here.
+  useEffect(() => {
+    setCounts(initial);
+  }, [initial.views, initial.likes, initial.comments, initial.saves, initial.reposts, initial.shares]);
+  useEffect(() => {
+    setLiked(!!initialLiked);
+  }, [initialLiked]);
+  useEffect(() => {
+    setSaved(!!initialSaved);
+  }, [initialSaved]);
+  useEffect(() => {
+    setReposted(!!initialReposted);
+  }, [initialReposted]);
+
+  // Returns true when the write succeeded. On 401 it triggers the auth prompt
+  // so callers can revert their optimistic update.
+  async function call(action: string, extra?: Record<string, unknown>): Promise<boolean> {
     try {
-      await fetch(endpoint, {
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action, ...extra }),
+        credentials: "same-origin",
       });
+      if (res.status === 401) {
+        onAuthRequired?.();
+        return false;
+      }
+      return res.ok;
     } catch {
-      /* swallow — UI already updated */
+      return false;
     }
   }
 
-  function toggleLike() {
+  async function toggleLike() {
     if (liked) {
       setLiked(false);
       setCounts((c) => ({ ...c, likes: Math.max(0, c.likes - 1) }));
-      void call("unlike");
+      if (!(await call("unlike"))) {
+        setLiked(true);
+        setCounts((c) => ({ ...c, likes: c.likes + 1 }));
+      }
     } else {
       setLiked(true);
       setCounts((c) => ({ ...c, likes: c.likes + 1 }));
-      void call("like");
+      if (!(await call("like"))) {
+        setLiked(false);
+        setCounts((c) => ({ ...c, likes: Math.max(0, c.likes - 1) }));
+      }
     }
   }
-  function toggleSave() {
+  async function toggleSave() {
     if (saved) {
       setSaved(false);
       setCounts((c) => ({ ...c, saves: Math.max(0, c.saves - 1) }));
-      void call("unsave");
+      if (!(await call("unsave"))) {
+        setSaved(true);
+        setCounts((c) => ({ ...c, saves: c.saves + 1 }));
+      }
     } else {
       setSaved(true);
       setCounts((c) => ({ ...c, saves: c.saves + 1 }));
-      void call("save");
+      if (!(await call("save"))) {
+        setSaved(false);
+        setCounts((c) => ({ ...c, saves: Math.max(0, c.saves - 1) }));
+      }
     }
   }
-  function toggleRepost() {
+  async function toggleRepost() {
     if (reposted) {
       setReposted(false);
       setCounts((c) => ({ ...c, reposts: Math.max(0, c.reposts - 1) }));
-      void call("unrepost");
+      if (!(await call("unrepost"))) {
+        setReposted(true);
+        setCounts((c) => ({ ...c, reposts: c.reposts + 1 }));
+      }
     } else {
       setReposted(true);
       setCounts((c) => ({ ...c, reposts: c.reposts + 1 }));
-      void call("repost");
+      if (!(await call("repost"))) {
+        setReposted(false);
+        setCounts((c) => ({ ...c, reposts: Math.max(0, c.reposts - 1) }));
+      }
     }
   }
   async function share() {

@@ -39,6 +39,21 @@ export async function GET(
   const me = userRes.data.user?.id ?? null;
   const myReaction = me ? rs.find((r) => r.user_id === me) ?? null : null;
 
+  // Per-user engagement state so the action buttons reflect reality on load.
+  let liked = false;
+  let saved = false;
+  let reposted = false;
+  if (me) {
+    const [likedRes, savedRes, repostedRes] = await Promise.all([
+      supabase.from("cb_brief_likes").select("user_id").eq("brief_id", postId).eq("user_id", me).maybeSingle(),
+      supabase.from("cb_brief_saves").select("user_id").eq("brief_id", postId).eq("user_id", me).maybeSingle(),
+      supabase.from("cb_post_reposts").select("user_id").eq("post_id", postId).eq("user_id", me).maybeSingle(),
+    ]);
+    liked = Boolean(likedRes.data);
+    saved = Boolean(savedRes.data);
+    reposted = Boolean(repostedRes.data);
+  }
+
   const commentRows = comments.data ?? [];
   const commentUserIds = Array.from(
     new Set(commentRows.map((c) => c.user_id).filter(Boolean)),
@@ -81,5 +96,8 @@ export async function GET(
     topBull: rs.filter((r) => r.reaction === "bullish" && r.reasoning).slice(0, 3),
     topBear: rs.filter((r) => r.reaction === "bearish" && r.reasoning).slice(0, 3),
     myReaction,
+    liked,
+    saved,
+    reposted,
   });
 }

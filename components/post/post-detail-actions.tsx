@@ -26,6 +26,9 @@ type Aggregate = {
   reposts: number;
   shares: number;
   myReaction: { reaction: ReactionKind; reasoning?: string | null } | null;
+  liked: boolean;
+  saved: boolean;
+  reposted: boolean;
   topBull: { reasoning: string; user_id?: string }[];
   topBear: { reasoning: string; user_id?: string }[];
   commentList: CommentItem[];
@@ -60,12 +63,20 @@ export function PostDetailActions({ postId, shareUrl, language = "en", initial }
     reposts: initial?.reposts ?? 0,
     shares: initial?.shares ?? 0,
     myReaction: null,
+    liked: false,
+    saved: false,
+    reposted: false,
     topBull: [],
     topBear: [],
     commentList: [],
   });
   const [commentDraft, setCommentDraft] = useState("");
   const [commentSubmitting, setCommentSubmitting] = useState(false);
+  const [authNotice, setAuthNotice] = useState(false);
+
+  const requireAuth = useCallback(() => {
+    setAuthNotice(true);
+  }, []);
 
   const refresh = useCallback(async () => {
     try {
@@ -87,6 +98,9 @@ export function PostDetailActions({ postId, shareUrl, language = "en", initial }
         reposts: data.reposts ?? 0,
         shares: data.shares ?? 0,
         myReaction: data.myReaction,
+        liked: Boolean(data.liked),
+        saved: Boolean(data.saved),
+        reposted: Boolean(data.reposted),
         topBull: data.topBull ?? [],
         topBear: data.topBear ?? [],
       }));
@@ -111,6 +125,10 @@ export function PostDetailActions({ postId, shareUrl, language = "en", initial }
           body: JSON.stringify({ action: "comment", body: text }),
           credentials: "same-origin",
         });
+        if (res.status === 401) {
+          requireAuth();
+          return;
+        }
         if (res.ok) {
           setCommentDraft("");
           await refresh();
@@ -119,7 +137,7 @@ export function PostDetailActions({ postId, shareUrl, language = "en", initial }
         setCommentSubmitting(false);
       }
     },
-    [commentDraft, commentSubmitting, postId, refresh],
+    [commentDraft, commentSubmitting, postId, refresh, requireAuth],
   );
 
   const t = (ko: string, en: string) => (language === "ko" ? ko : en);
@@ -128,6 +146,20 @@ export function PostDetailActions({ postId, shareUrl, language = "en", initial }
 
   return (
     <div className="space-y-4">
+      {authNotice ? (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-accent/30 bg-accent/10 px-3 py-2 text-xs">
+          <span className="font-semibold text-accent-ink">
+            {t("반응과 댓글을 남기려면 로그인하세요.", "Sign in to react and comment.")}
+          </span>
+          <a
+            className="rounded-md border border-accent/40 bg-accent/15 px-3 py-1 font-bold text-accent-ink transition hover:bg-accent/25"
+            href="/login"
+          >
+            {t("로그인", "Log in")}
+          </a>
+        </div>
+      ) : null}
+
       <StanceBar
         bullish={agg.percentages.bullish}
         bearish={agg.percentages.bearish}
@@ -181,6 +213,10 @@ export function PostDetailActions({ postId, shareUrl, language = "en", initial }
             reposts: agg.reposts,
             shares: agg.shares,
           }}
+          initialLiked={agg.liked}
+          initialSaved={agg.saved}
+          initialReposted={agg.reposted}
+          onAuthRequired={requireAuth}
           shareUrl={resolvedShareUrl}
           onCommentClick={() => {
             const el = document.getElementById("detail-comment-input");
