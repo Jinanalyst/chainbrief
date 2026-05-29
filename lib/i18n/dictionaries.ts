@@ -63,7 +63,7 @@ export const dictionaries = {
       emptyTitle: "사용 가능한 브리프가 없습니다.",
       errorTitle: "RSS 가져오기에 실패했습니다.",
       exclude: "제외",
-      headline: "Market News Simplified",
+      headline: "복잡한 시장, 한눈에",
       hideBrief: "브리프 숨기기",
       homeLabel: "홈",
       include: "포함",
