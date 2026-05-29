@@ -255,6 +255,51 @@ export default function CommunityPage() {
       .slice(0, 5);
   }, [posts]);
 
+  // Real per-category counts for the sidebar feed/filter nav (no mock numbers).
+  const tabCounts = useMemo(() => {
+    const compute = (tab: CommunityTab) => filterPostsByTab(posts, tab).length;
+    return {
+      Latest: posts.length,
+      "News Reactions": compute("News Reactions"),
+      Lounge: compute("Lounge"),
+      "Chart Analysis": compute("Chart Analysis"),
+      "Trade Review": compute("Trade Review"),
+      "Loss Review": compute("Loss Review"),
+      "Rookie Analyst": compute("Rookie Analyst"),
+      "Verified Analyst": compute("Verified Analyst"),
+    } as Record<CommunityTab, number>;
+  }, [posts]);
+
+  // Hottest discussion = highest engagement + comment weighted score, using live
+  // metrics where available. Only surfaces when there is genuine engagement.
+  const hottestPost = useMemo(() => {
+    let best: CommunityPost | null = null;
+    let bestScore = 0;
+    for (const post of posts) {
+      const metric = engagementMetrics[post.id];
+      const likes = metric?.likes ?? post.likes;
+      const comments = metric?.comments ?? post.commentsCount;
+      const views = metric?.views ?? post.views;
+      const score = likes * 2 + comments * 3 + views * 0.1;
+      if (score > bestScore) {
+        bestScore = score;
+        best = post;
+      }
+    }
+    return best;
+  }, [posts, engagementMetrics]);
+
+  // Aggregate bull/bear sentiment from whatever live metrics are loaded.
+  const sentiment = useMemo(() => {
+    let bull = 0;
+    let bear = 0;
+    for (const metric of Object.values(engagementMetrics)) {
+      bull += metric.bull;
+      bear += metric.bear;
+    }
+    return { bull, bear, total: bull + bear };
+  }, [engagementMetrics]);
+
   const visiblePostIds = useMemo(
     () => visiblePosts.filter((post) => isDatabasePostId(post.id)).map((post) => post.id),
     [visiblePosts],
@@ -325,40 +370,17 @@ export default function CommunityPage() {
     }
   }
 
-  function handleSidebarAction(action: SidebarAction) {
-    switch (action) {
-      case "guide":
-        scrollToSection("community-banner");
-        break;
-      case "btc":
-        setActiveTab("Lounge");
-        scrollToSection("community-feed");
-        break;
-      case "news":
-        setActiveTab("News Reactions");
-        scrollToSection("community-feed");
-        break;
-      case "analysis":
-        setActiveTab("Chart Analysis");
-        scrollToSection("community-feed");
-        break;
-      case "macro":
-        setActiveTab("News Reactions");
-        scrollToSection("community-feed");
-        break;
-      case "privacy":
-      case "rules":
-        scrollToSection("community-guidelines");
-        break;
-    }
-  }
-
   return (
     <>
       <div className="cb-community cb-community-desktop-only">
         <Header />
         <div className="cb-wrap">
-          <CommunityLeftNav language={language} onAction={handleSidebarAction} />
+          <CommunityLeftNav
+            language={language}
+            activeTab={activeTab}
+            counts={tabCounts}
+            onSelect={setActiveTab}
+          />
 
           <main className="cb-main">
             <CommunityHeader language={language} />
@@ -368,6 +390,25 @@ export default function CommunityPage() {
             {focusedTarget ? (
               <div style={{ padding: "16px 24px" }}>
                 <RelatedNewsCard copy={copy} language={language} target={focusedTarget} />
+              </div>
+            ) : null}
+
+            {!focusedTarget && activeTab === "Latest" && (sentiment.total > 0 || hottestPost) ? (
+              <div className="grid gap-3" style={{ padding: "16px 24px 0" }}>
+                {sentiment.total > 0 ? (
+                  <CommunitySentimentBar
+                    bull={sentiment.bull}
+                    bear={sentiment.bear}
+                    language={language}
+                  />
+                ) : null}
+                {hottestPost ? (
+                  <HotDiscussionCard
+                    post={hottestPost}
+                    metrics={engagementMetrics[hottestPost.id]}
+                    language={language}
+                  />
+                ) : null}
               </div>
             ) : null}
 
@@ -457,43 +498,74 @@ function CommunityHeader({ language }: { language: "ko" | "en" }) {
   );
 }
 
+const FEED_NAV_ITEMS: Array<{ tab: CommunityTab; ko: string; en: string }> = [
+  { tab: "Latest", ko: "전체", en: "All" },
+  { tab: "News Reactions", ko: "뉴스토론", en: "News" },
+  { tab: "Lounge", ko: "라운지", en: "Lounge" },
+  { tab: "Chart Analysis", ko: "차트분석", en: "Charts" },
+  { tab: "Trade Review", ko: "매매복기", en: "Trade Review" },
+  { tab: "Loss Review", ko: "손실복기", en: "Loss Review" },
+];
+
+const TIER_NAV_ITEMS: Array<{ tab: CommunityTab; label: string; badge: string; verified?: boolean }> = [
+  { tab: "Rookie Analyst", label: "Rookie Analyst", badge: "R" },
+  { tab: "Verified Analyst", label: "Verified Analyst", badge: "V", verified: true },
+];
+
 function CommunityLeftNav({
   language,
-  onAction,
+  activeTab,
+  counts,
+  onSelect,
 }: {
   language: "ko" | "en";
-  onAction: (action: SidebarAction) => void;
+  activeTab: CommunityTab;
+  counts: Record<CommunityTab, number>;
+  onSelect: (tab: CommunityTab) => void;
 }) {
   return (
     <aside className="cb-leftnav">
-      <CbSectionLabel>{language === "ko" ? "둘러보기" : "Explore"}</CbSectionLabel>
-      <CbMenuLink href="/" label={language === "ko" ? "홈" : "Home"} icon={<HomeIcon />} />
-      <CbMenuLink href="/briefs" label={language === "ko" ? "브리프" : "Briefs"} icon={<BoltIcon />} />
-      <CbMenuLink href="/market" label={language === "ko" ? "마켓" : "Market"} icon={<PulseIcon />} />
-      <CbMenuCluster href="/analysts" label="Search" icon={<SearchIcon />} items={SEARCH_NAV_ITEMS} />
-      <CbMenuCluster href="/library" label="Library" icon={<BookmarkIcon />} items={LIBRARY_NAV_ITEMS} />
-
-      <CbDivider />
-      <CbSectionLabel>{language === "ko" ? "커뮤니티" : "Community"}</CbSectionLabel>
-      <CbMenuLink
-        href="/community"
-        label={language === "ko" ? "커뮤니티" : "Community"}
-        icon={<UsersIcon />}
-        active
-      />
-      <CbDivider />
-      <CbSectionLabel>Policy & Info</CbSectionLabel>
-      {EXPLORE_ITEMS.filter((item) => ["guide", "privacy", "rules"].includes(item.action)).map((item) => (
+      <CbSectionLabel>{language === "ko" ? "피드" : "Feed"}</CbSectionLabel>
+      {FEED_NAV_ITEMS.map((item) => (
         <button
-          key={item.action}
+          key={item.tab}
           type="button"
-          onClick={() => onAction(item.action)}
-          className="cb-nav-link cb-nav-button"
+          aria-pressed={activeTab === item.tab}
+          onClick={() => onSelect(item.tab)}
+          className={cn("cb-nav-link cb-nav-button", activeTab === item.tab && "is-active")}
         >
-          <span className="cb-nav-icon"><InfoIcon /></span>
-          {language === "ko" ? item.ko : item.en}
+          <span style={{ flex: 1, minWidth: 0, textAlign: "left" }}>
+            {language === "ko" ? item.ko : item.en}
+          </span>
+          <span className="cb-nav-count">{formatCount(counts[item.tab])}</span>
         </button>
       ))}
+
+      <CbDivider />
+      <CbSectionLabel>{language === "ko" ? "등급 필터" : "Rating filter"}</CbSectionLabel>
+      {TIER_NAV_ITEMS.map((item) => (
+        <button
+          key={item.tab}
+          type="button"
+          aria-pressed={activeTab === item.tab}
+          onClick={() => onSelect(item.tab)}
+          className={cn("cb-nav-link cb-nav-button", activeTab === item.tab && "is-active")}
+        >
+          <span className={cn("cb-tier-badge", item.verified && "is-verified")}>{item.badge}</span>
+          <span style={{ flex: 1, minWidth: 0, textAlign: "left" }}>{item.label}</span>
+          <span className="cb-nav-count">{formatCount(counts[item.tab])}</span>
+        </button>
+      ))}
+
+      <div className="cb-leftnav-foot">
+        <Link href="/community/write" className="cb-write-btn">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+          {language === "ko" ? "글쓰기" : "Write"}
+        </Link>
+      </div>
     </aside>
   );
 }
@@ -829,7 +901,7 @@ function CommunityTabs({
   void tabGlyphs;
   return (
     <div
-      className="flex"
+      className="cb-mobile-tabs flex"
       style={{
         padding: "0 24px",
         borderBottom: "1px solid var(--cb-b1)",
@@ -1814,6 +1886,134 @@ function TrendingWidget({
 function formatViewCount(n: number): string {
   if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
   return String(n);
+}
+
+function formatCount(n: number): string {
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}K`;
+  return String(n);
+}
+
+// Compact, theme-aware aggregate of the community's live bull/bear reactions.
+function CommunitySentimentBar({
+  bull,
+  bear,
+  language,
+}: {
+  bull: number;
+  bear: number;
+  language: "ko" | "en";
+}) {
+  const total = bull + bear;
+  const bullPct = total ? Math.round((bull / total) * 100) : 0;
+  const bearPct = total ? 100 - bullPct : 0;
+
+  return (
+    <div className="cb-sentiment">
+      <div className="cb-sentiment-head">
+        <span className="cb-sentiment-title">
+          {language === "ko" ? "커뮤니티 마켓 센티먼트" : "Community market sentiment"}
+        </span>
+        <span className="cb-sentiment-total">
+          {total.toLocaleString()} {language === "ko" ? "표" : "votes"}
+        </span>
+      </div>
+      <div className="cb-sentiment-track" role="img" aria-label={`Bull ${bullPct}% / Bear ${bearPct}%`}>
+        <div className="cb-sent-bull" style={{ width: `${Math.max(bullPct, total ? 6 : 0)}%` }}>
+          <span>▲ {bullPct}%</span>
+        </div>
+        <div className="cb-sent-bear" style={{ width: `${Math.max(bearPct, total ? 6 : 0)}%` }}>
+          <span>Bear {bearPct}% ▼</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// The single hottest discussion, ranked by engagement + comments. The whole
+// card links through to the full post; a share button copies its permalink.
+function HotDiscussionCard({
+  post,
+  metrics,
+  language,
+}: {
+  post: CommunityPost;
+  metrics?: CommunityEngagementMetrics;
+  language: "ko" | "en";
+}) {
+  const likes = metrics?.likes ?? post.likes;
+  const comments = metrics?.comments ?? post.commentsCount;
+  const takes = (metrics?.rebriefs ?? 0) + (metrics?.quoteAnalyses ?? 0);
+  const ticker =
+    post.tags.find((tag) => /^\$?[A-Za-z]{2,6}$/.test(tag)) ?? post.tags[0] ?? null;
+  const tickerLabel = ticker ? (ticker.startsWith("$") ? ticker : `$${ticker}`) : null;
+  const detailHref = isDatabasePostId(post.id) ? `/community/${post.id}` : "#community-feed";
+  const isBull = post.stance === "Bullish";
+  const isBear = post.stance === "Bearish";
+
+  return (
+    <div className="cb-hot-card">
+      <Link href={detailHref} className="cb-hot-body">
+        <div className="cb-hot-head">
+          <span className="cb-hot-flag">🚀 {language === "ko" ? "오늘의 핫토론" : "Hottest discussion"}</span>
+          {tickerLabel ? <span className="cb-hot-ticker">{tickerLabel}</span> : null}
+          {post.stance ? (
+            <span className={cn("cb-hot-stance", isBull && "is-bull", isBear && "is-bear")}>
+              {isBull ? "Bull" : isBear ? "Bear" : post.stance}
+            </span>
+          ) : null}
+        </div>
+        <h3 className="cb-hot-title">{post.title}</h3>
+        {post.preview ? <p className="cb-hot-desc">{post.preview}</p> : null}
+        <div className="cb-hot-meta">
+          <span className="cb-hot-author">{post.author}</span>
+          <span className="cb-hot-stats">
+            {language === "ko" ? "반응" : "Reactions"} {formatCount(likes)} · {language === "ko" ? "댓글" : "Comments"}{" "}
+            {formatCount(comments)} · {language === "ko" ? "관점" : "Takes"} {formatCount(takes)}
+          </span>
+        </div>
+      </Link>
+      <div className="cb-hot-actions">
+        <Link href={detailHref} className="cb-hot-join">
+          {language === "ko" ? "토론 참여" : "Join discussion"}
+        </Link>
+        <button
+          type="button"
+          className="cb-hot-share"
+          onClick={() => shareHotPost(post)}
+          aria-label={language === "ko" ? "공유" : "Share"}
+          title={language === "ko" ? "공유" : "Share"}
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="18" cy="5" r="3" />
+            <circle cx="6" cy="12" r="3" />
+            <circle cx="18" cy="19" r="3" />
+            <line x1="8.6" y1="13.5" x2="15.4" y2="17.5" />
+            <line x1="15.4" y1="6.5" x2="8.6" y2="10.5" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function shareHotPost(post: CommunityPost) {
+  if (typeof window === "undefined") return;
+
+  const url = isDatabasePostId(post.id)
+    ? `${window.location.origin}/community/${post.id}`
+    : `${window.location.origin}/community`;
+  const nav = window.navigator as Navigator & {
+    share?: (data: { title?: string; text?: string; url?: string }) => Promise<void>;
+  };
+
+  if (typeof nav.share === "function") {
+    void nav.share({ title: post.title, text: post.preview, url });
+    return;
+  }
+
+  if (nav.clipboard) {
+    void nav.clipboard.writeText(url);
+  }
 }
 
 function isDatabasePostId(value: string) {
