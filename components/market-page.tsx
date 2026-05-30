@@ -25,11 +25,11 @@ export function MarketPage() {
     <>
       <div className="border-b border-tint/10 bg-surface/60">
         <Container>
-          <div className="flex gap-1 pt-4">
+          <div className="flex gap-1 overflow-x-auto pt-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {TABS.map((item) => (
               <button
                 className={cn(
-                  "inline-flex h-10 items-center gap-2 rounded-t-md border-b-2 px-5 text-sm font-semibold transition",
+                  "inline-flex h-10 shrink-0 items-center gap-2 whitespace-nowrap rounded-t-md border-b-2 px-3 text-sm font-semibold transition sm:px-5",
                   tab === item.id
                     ? "border-accent text-ink"
                     : "border-transparent text-muted hover:text-ink",

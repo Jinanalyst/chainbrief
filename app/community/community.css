@@ -462,9 +462,20 @@
     min-height: auto;
   }
 
-  .cb-leftnav,
-  .cb-rightnav {
+  /* Left nav is redundant on mobile — the scrollable tab row drives navigation. */
+  .cb-leftnav {
     display: none;
+  }
+
+  /* Right rail (trending) drops below the feed as a normal full-width block
+     instead of disappearing, so mobile readers still get it. */
+  .cb-rightnav {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    padding: 16px 14px 24px;
+    border-top: 1px solid var(--cb-b1);
   }
 
   .cb-main {

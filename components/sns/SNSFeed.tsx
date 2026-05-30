@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CategoryTabs, getCategoryLabel } from "@/components/sns/CategoryTabs";
+import { getCategoryLabel } from "@/components/sns/CategoryTabs";
 import { SNSCard } from "@/components/sns/SNSCard";
-import { SourceBadge } from "@/components/sns/SourceBadge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/cn";
@@ -311,6 +310,7 @@ export function SNSFeed() {
   }
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const layoutRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -341,30 +341,26 @@ export function SNSFeed() {
 
   return (
     <section className="border-t border-tint/10 bg-background/72">
-      {/* Mobile top filter bar */}
-      <div className="lg:hidden border-b border-tint/10 bg-background/95">
-        <div className="flex overflow-x-auto gap-1.5 px-4 py-2 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <SourceBadge active={allSourcesSelected} onClick={() => toggleSource(ALL_SOURCES)}>
-            {copy.allSources}
-          </SourceBadge>
-          {allSourceEntries.map((source) => (
-            <SourceBadge
-              active={allSourcesSelected || activeSources.includes(source.name)}
-              key={source.id}
-              onClick={() => toggleSource(source.name)}
-            >
-              {source.name}
-            </SourceBadge>
-          ))}
-        </div>
-        <CategoryTabs
-          activeCategory={activeCategory}
-          categories={dynamicCategories}
-          counts={categoryCounts}
-          language={language}
-          onChange={handleCategoryChange}
+      {/* Mobile filter trigger — opens the sidebar as a drawer */}
+      <button
+        type="button"
+        onClick={() => setMobileFilterOpen(true)}
+        className="fixed bottom-4 left-4 z-40 inline-flex h-11 items-center gap-2 rounded-full border border-tint/15 bg-surface/95 px-4 text-xs font-bold text-ink shadow-lg backdrop-blur lg:hidden"
+        aria-label={language === "ko" ? "필터 열기" : "Open filters"}
+      >
+        <span aria-hidden>☰</span>
+        <span>{language === "ko" ? "필터" : "Filters"}</span>
+      </button>
+
+      {/* Mobile drawer backdrop */}
+      {mobileFilterOpen ? (
+        <button
+          type="button"
+          className="fixed inset-0 z-40 bg-background/60 backdrop-blur-sm lg:hidden"
+          onClick={() => setMobileFilterOpen(false)}
+          aria-label={language === "ko" ? "닫기" : "Close"}
         />
-      </div>
+      ) : null}
 
       {/* Desktop layout: CSS grid so column width is authoritative over child content */}
       <div
@@ -373,7 +369,13 @@ export function SNSFeed() {
         style={{ gridTemplateColumns: "260px 1fr", transition: "grid-template-columns 200ms ease-in-out" }}
       >
         {/* Left sidebar */}
-        <aside className="hidden lg:flex lg:flex-col lg:border-r lg:border-tint/10 lg:sticky lg:top-24 lg:h-[calc(100vh-6rem)] lg:overflow-hidden lg:min-w-0">
+        <aside
+          className={cn(
+            "fixed inset-y-0 left-0 z-50 flex w-[18rem] max-w-[85vw] flex-col overflow-y-auto border-r border-tint/10 bg-surface/95 backdrop-blur transition-transform duration-200 ease-in-out",
+            "lg:sticky lg:top-24 lg:z-auto lg:h-[calc(100vh-6rem)] lg:w-auto lg:max-w-none lg:translate-x-0 lg:overflow-hidden lg:border-tint/10 lg:bg-transparent lg:backdrop-blur-none lg:min-w-0",
+            mobileFilterOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
+          )}
+        >
           {/* Inner wrapper matches visible area so the toggle stays clickable when collapsed */}
           <div
             className={cn(
@@ -399,7 +401,7 @@ export function SNSFeed() {
                     ? language === "ko" ? "사이드바 펼치기" : "Expand sidebar"
                     : language === "ko" ? "사이드바 접기" : "Collapse sidebar"
                 }
-                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-tint/10 bg-tint/[0.04] text-muted transition hover:text-ink"
+                className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-md border border-tint/10 bg-tint/[0.04] text-muted transition hover:text-ink lg:inline-flex"
                 onClick={() => setSidebarCollapsed((v) => !v)}
                 title={sidebarCollapsed
                   ? language === "ko" ? "펼치기" : "Expand"
@@ -407,6 +409,14 @@ export function SNSFeed() {
                 type="button"
               >
                 <span aria-hidden>{sidebarCollapsed ? "›" : "‹"}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setMobileFilterOpen(false)}
+                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-tint/10 bg-tint/[0.04] text-muted lg:hidden"
+                aria-label={language === "ko" ? "닫기" : "Close"}
+              >
+                <span aria-hidden>✕</span>
               </button>
             </div>
 
