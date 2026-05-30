@@ -133,4 +133,12 @@ export const rssSources: RssSource[] = [
     enabledByDefault: true,
     defaultCategory: "가상자산",
   },
+  {
+    id: "cnbc-finance",
+    name: "CNBC",
+    url: "https://www.cnbc.com/id/10000664/device/rss/rss.html",
+    description: "글로벌 증시, 경제, 금융 시장 속보.",
+    enabledByDefault: true,
+    defaultCategory: "매크로",
+  },
 ];
