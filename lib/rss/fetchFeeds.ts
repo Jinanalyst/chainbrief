@@ -101,12 +101,7 @@ export async function fetchFeeds(options: { withAiSummaries?: boolean } = {}): P
     ...sourceResults.flatMap((result) => result.articles),
   ];
 
-  return removeDuplicateArticles(articles)
-    .sort(
-      (a, b) =>
-        new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime(),
-    )
-    .slice(0, MAX_ARTICLES);
+  return pickDiverseArticles(removeDuplicateArticles(articles), MAX_ARTICLES);
 }
 
 export async function fetchPersonalizedFeeds(
@@ -131,12 +126,7 @@ export async function fetchPersonalizedFeeds(
     throw new AllRssSourcesFailedError();
   }
 
-  return removeDuplicateArticles(articles)
-    .sort(
-      (a, b) =>
-        new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime(),
-    )
-    .slice(0, MAX_ARTICLES);
+  return pickDiverseArticles(removeDuplicateArticles(articles), MAX_ARTICLES);
 }
 
 async function fetchSourceFeed(
@@ -586,6 +576,61 @@ function createNewsApiSourceId(sourceName: string) {
 
 function stripNewsApiTruncation(value?: string | null) {
   return value?.replace(/\s*\[\+\d+\schars\]\s*$/i, "");
+}
+
+function sortByPublishedDesc(articles: Article[]) {
+  return [...articles].sort(
+    (a, b) =>
+      new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime(),
+  );
+}
+
+// Select the final set round-robin across sources so every source is
+// represented before any single high-volume source (e.g. 연합뉴스, crypto
+// wires) can fill the cap. A pure date-sort + slice otherwise starves slower
+// English feeds like CNBC, whose latest items lag a few hours behind the
+// fast-publishing Korean sources, dropping them from the feed — and from the
+// source filter — entirely. The result is returned in date order for display.
+function pickDiverseArticles(articles: Article[], max: number): Article[] {
+  if (articles.length <= max) {
+    return sortByPublishedDesc(articles);
+  }
+
+  const groups = new Map<string, Article[]>();
+  for (const article of articles) {
+    const key = article.sourceId || article.sourceName;
+    const group = groups.get(key);
+    if (group) {
+      group.push(article);
+    } else {
+      groups.set(key, [article]);
+    }
+  }
+
+  for (const group of groups.values()) {
+    group.sort(
+      (a, b) =>
+        new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime(),
+    );
+  }
+
+  const selected: Article[] = [];
+  const cursors = new Map<string, number>();
+  let progressed = true;
+  while (selected.length < max && progressed) {
+    progressed = false;
+    for (const [key, group] of groups) {
+      const index = cursors.get(key) ?? 0;
+      if (index < group.length) {
+        selected.push(group[index]);
+        cursors.set(key, index + 1);
+        progressed = true;
+        if (selected.length >= max) break;
+      }
+    }
+  }
+
+  return sortByPublishedDesc(selected);
 }
 
 function removeDuplicateArticles(articles: Article[]) {

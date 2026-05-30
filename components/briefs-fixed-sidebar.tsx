@@ -29,6 +29,12 @@ const SOURCE_GROUPS: { id: string; labelKo: string; labelEn: string; sources: st
     sources: ["매일경제", "한국경제", "이투데이", "연합뉴스"],
   },
   {
+    id: "global",
+    labelKo: "글로벌",
+    labelEn: "Global",
+    sources: ["CNBC"],
+  },
+  {
     id: "official",
     labelKo: "공식",
     labelEn: "Official",

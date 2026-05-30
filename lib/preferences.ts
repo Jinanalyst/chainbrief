@@ -9,6 +9,7 @@ export const ACTIVE_SOURCES = [
   "Cointelegraph",
   "Decrypt",
   "블록미디어",
+  "CNBC",
 ];
 export const STOCK_REGIONS = ["US", "Korea", "Global"];
 export const STOCK_TYPES = ["Stocks", "ETFs", "Earnings", "Macro", "Economy", "Indices"];
