@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { Suspense, useCallback, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Header } from "@/components/header";
 import { Container } from "@/components/ui/container";
 import { cn } from "@/lib/cn";
@@ -31,11 +32,17 @@ const TAB_IDS = ["profile", "membership", "analytics", "settings"] as const;
 
 type TabId = (typeof TAB_IDS)[number];
 
+function isTabId(value: string | null): value is TabId {
+  return value !== null && (TAB_IDS as readonly string[]).includes(value);
+}
+
 // ── Page ─────────────────────────────────────────────────────────────────────
 
-export default function DashboardPage() {
+function DashboardContent() {
   const { t } = useI18n();
-  const [activeTab, setActiveTab] = useState<TabId>("profile");
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const [activeTab, setActiveTab] = useState<TabId>(isTabId(tabParam) ? tabParam : "profile");
   const [toast, setToast] = useState({ visible: false, message: "" });
 
   const TABS: { id: TabId; label: string }[] = [
@@ -84,5 +91,13 @@ export default function DashboardPage() {
 
       <Toast visible={toast.visible} message={toast.message} />
     </main>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense>
+      <DashboardContent />
+    </Suspense>
   );
 }

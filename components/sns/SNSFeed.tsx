@@ -580,7 +580,7 @@ export function SNSFeed() {
 
                 {/* Bottom: 소스 관리 */}
                 <div className="shrink-0 border-t border-tint/10 p-4">
-                  <Button className="w-full" href="/settings" variant="secondary">
+                  <Button className="w-full" href="/dashboard?tab=settings" variant="secondary">
                     {language === "ko" ? "소스 관리" : "Manage sources"}
                   </Button>
                   <p className="mt-2 text-center text-xs text-muted-2">

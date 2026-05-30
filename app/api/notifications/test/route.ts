@@ -61,7 +61,7 @@ export async function POST(request: Request) {
         slug: "browser-notification-test",
         sourceId: "chain-brief",
         sourceName: "Chain Brief",
-        originalUrl: `${process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"}/settings`,
+        originalUrl: `${process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"}/dashboard?tab=settings`,
         publishedAt: new Date().toISOString(),
         excerpt: testKeyword
           ? `This is a test push for your ${testKeyword} keyword.`

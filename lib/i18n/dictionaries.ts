@@ -185,10 +185,6 @@ export const dictionaries = {
       aboutFeatureText:
         "빠른 스캔을 위한 시간, 소스 라벨, 원문 링크 중심으로 구성했습니다.",
       aboutTitle: "빠른 크립토 RSS 브리핑 피드.",
-      settingsDescription:
-        "간결한 Chain Brief RSS 피드의 기본 소스, 카테고리, 키워드 필터를 선택하세요.",
-      settingsEyebrow: "설정",
-      settingsTitle: "브리핑 피드를 개인화하세요.",
     },
     summary: {
       context: "맥락",
@@ -608,10 +604,6 @@ export const dictionaries = {
       aboutFeatureText:
         "Built around quick scanning, timestamps, source labels, and original article links.",
       aboutTitle: "A fast crypto RSS briefing feed.",
-      settingsDescription:
-        "Choose default sources, categories, and keyword filters for the compact Chain Brief RSS feed.",
-      settingsEyebrow: "Settings",
-      settingsTitle: "Personalize your briefing feed.",
     },
     summary: {
       context: "Context",

@@ -1271,7 +1271,7 @@ function FeedSidebar({
             </dd>
           </div>
         </dl>
-        <Button className="mt-4 w-full" href="/settings" variant="secondary">
+        <Button className="mt-4 w-full" href="/dashboard?tab=settings" variant="secondary">
           {copy.feed.customizeFeed}
         </Button>
       </Card>
@@ -1395,7 +1395,7 @@ function NoMatchesState({ language }: { language: BriefPreferences["language"] }
       <p className="mt-2 text-sm leading-6 text-muted">
         {copy.feed.noMatchesDescription}
       </p>
-      <Button className="mt-5 w-full sm:w-auto" href="/settings" variant="secondary">
+      <Button className="mt-5 w-full sm:w-auto" href="/dashboard?tab=settings" variant="secondary">
         {copy.feed.updateSettings}
       </Button>
     </Card>
